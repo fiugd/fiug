@@ -1,1 +1,1 @@
-Very short README
+Very short README from bartok isomorphic-git WIP

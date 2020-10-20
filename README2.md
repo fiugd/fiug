@@ -1,4 +1,4 @@
 
-  10/18/2020, 6:58:16 PM   
+  10/20/2020, 12:30:57 AM   
   Very short README from bartok isomorphic-git WIP
   

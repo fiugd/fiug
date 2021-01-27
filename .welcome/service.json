@@ -838,10 +838,6 @@
       "path": ".welcome/examples/ui frameworks/vue/imageRemix.md"
     },
     {
-      "name": "index.hbs",
-      "path": ".welcome/index.hbs"
-    },
-    {
       "name": "index.js",
       "path": ".welcome/index.js"
     },
@@ -1056,10 +1052,6 @@
     {
       "name": "png.html",
       "path": ".welcome/.templates/png.html"
-    },
-    {
-      "name": "poetry.md",
-      "path": ".welcome/poetry.md"
     },
     {
       "name": "pony.pony",

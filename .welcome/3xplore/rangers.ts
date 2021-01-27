@@ -23,6 +23,8 @@ const proxy = 'http://localhost:3333/proxy/';
 const lericoAPIRoot = "https://rangers.lerico.net/api/";
 const tometoUrl = 'https://vip.tometo.net/rank_list.php'
 
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
 //get-current-res.js
 //getCurrentRes
 const lericoResources = {
@@ -160,7 +162,21 @@ class Backup {
 	const cachedFetch = ((cache) => async (url) => {
 		const cached = await cache.match(url);
 		const headers = { pragma: 'no-cache', 'cache-control': 'no-cache'};
-		if(!cached) await cache.put(url, await fetch(url, { headers }));
+		if(!cached) {
+			let response;
+			let tries = 0;
+			const MAX_TRIES = 3;
+			const DELAY_TRY = 1000;
+			while(tries < MAX_TRIES && (!response || response.status !== 200)){
+				await sleep(DELAY_TRY); tries++;
+				response = await fetch(url, { headers });
+			}
+			if(response && response.status === 200){
+				await cache.put(url, response);
+			} else {
+				return;
+			}
+		}
 		const match = await caches.match(url);
 		window.latestMatch = match
 		return match;
@@ -172,7 +188,7 @@ class Backup {
 		var doc = parser.parseFromString(html, 'text/html');
 		return Array.from(doc.querySelectorAll(query));
 	}
-	
+
 	const parseTometo = (rows) => {
 		return rows.slice(3).map(x => {
 			const splitted = x.textContent.split(/\n/g).filter(y=>!!y.trim()).map(z=>z.trim())

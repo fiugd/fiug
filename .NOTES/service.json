@@ -6,6 +6,7 @@
     "OVERVIEW.md": {},
     "process.png": {},
     "rants.md": {},
+    "reInventNotes.md": {},
     "releases": {
       "bartokv0.0.md": {},
       "bartokv0.1.md": {},
@@ -91,6 +92,10 @@
     {
       "name": "rants.md",
       "path": ".NOTES/rants.md"
+    },
+    {
+      "name": "reInventNotes.md",
+      "path": ".NOTES/reInventNotes.md"
     },
     {
       "name": "service.json",

@@ -1,0 +1,108 @@
+{
+  "tree": {
+    "future.md": {},
+    "MARKETING.md": {},
+    "MILESTONES.md": {},
+    "OVERVIEW.md": {},
+    "process.png": {},
+    "rants.md": {},
+    "releases": {
+      "bartokv0.0.md": {},
+      "bartokv0.1.md": {},
+      "bartokv0.2.md": {},
+      "bartokv0.3.1.md": {},
+      "bartokv0.3.2.md": {},
+      "bartokv0.3.md": {},
+      "bartokv0.4.1.md": {},
+      "bartokv0.4.md": {},
+      "bartokv0.5.md": {}
+    },
+    "service.json": {},
+    "test_scenarios.md": {},
+    "yesterday.md": {},
+    "_bugs.md": {},
+    "_scratch.md": {}
+  },
+  "files": [
+    {
+      "name": "_bugs.md",
+      "path": ".NOTES/_bugs.md"
+    },
+    {
+      "name": "_scratch.md",
+      "path": ".NOTES/_scratch.md"
+    },
+    {
+      "name": "bartokv0.0.md",
+      "path": ".NOTES/releases/bartokv0.0.md"
+    },
+    {
+      "name": "bartokv0.1.md",
+      "path": ".NOTES/releases/bartokv0.1.md"
+    },
+    {
+      "name": "bartokv0.2.md",
+      "path": ".NOTES/releases/bartokv0.2.md"
+    },
+    {
+      "name": "bartokv0.3.1.md",
+      "path": ".NOTES/releases/bartokv0.3.1.md"
+    },
+    {
+      "name": "bartokv0.3.2.md",
+      "path": ".NOTES/releases/bartokv0.3.2.md"
+    },
+    {
+      "name": "bartokv0.3.md",
+      "path": ".NOTES/releases/bartokv0.3.md"
+    },
+    {
+      "name": "bartokv0.4.1.md",
+      "path": ".NOTES/releases/bartokv0.4.1.md"
+    },
+    {
+      "name": "bartokv0.4.md",
+      "path": ".NOTES/releases/bartokv0.4.md"
+    },
+    {
+      "name": "bartokv0.5.md",
+      "path": ".NOTES/releases/bartokv0.5.md"
+    },
+    {
+      "name": "future.md",
+      "path": ".NOTES/future.md"
+    },
+    {
+      "name": "MARKETING.md",
+      "path": ".NOTES/MARKETING.md"
+    },
+    {
+      "name": "MILESTONES.md",
+      "path": ".NOTES/MILESTONES.md"
+    },
+    {
+      "name": "OVERVIEW.md",
+      "path": ".NOTES/OVERVIEW.md"
+    },
+    {
+      "name": "process.png",
+      "path": ".NOTES/process.png"
+    },
+    {
+      "name": "rants.md",
+      "path": ".NOTES/rants.md"
+    },
+    {
+      "name": "service.json",
+      "path": ".NOTES/service.json"
+    },
+    {
+      "name": "test_scenarios.md",
+      "path": ".NOTES/test_scenarios.md"
+    },
+    {
+      "name": "yesterday.md",
+      "path": ".NOTES/yesterday.md"
+    }
+  ]
+}

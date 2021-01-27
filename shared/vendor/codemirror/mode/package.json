@@ -1,0 +1,16 @@
+{
+  "name": "mode",
+  "version": "1.0.0",
+  "description": "",
+  "main": ".build.js",
+  "scripts": {
+    "start":  "node .build.js",
+    "watch":  "nodemon .build.js -e js -w .build.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "uglify-js": "^3.11.0"
+  }
+}

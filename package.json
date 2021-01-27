@@ -1,0 +1,28 @@
+{
+  "name": "bartok",
+  "version": "1.0.0",
+  "description": "api and services composer and host",
+  "main": "index.js",
+  "scripts": {
+    "watch": "browser-sync start --config .browsersync.js",
+    "watch.server": "nodemon server",
+    "sql.init": "cd ./server && sequelize init",
+    "sql.service.model.create": "cd ./server && sequelize model:create --name Service --attributes name:string",
+    "test": "jest --watch"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "browser-sync": "^2.26.7",
+    "jest": "^26.0.1",
+    "nodemon": "2.0.2",
+    "sequelize-cli": "5.5.1"
+  },
+  "dependencies": {
+    "express": "4.17.1",
+    "mysql2": "^2.1.0",
+    "pm2": "4.2.3",
+    "sequelize": "5.21.5",
+    "sqlite3": "4.1.1"
+  }
+}

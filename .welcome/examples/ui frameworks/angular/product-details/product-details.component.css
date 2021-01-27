@@ -1,0 +1,16 @@
+.product {
+	padding: 0.1em 0.5em;
+	background: #3332;
+	margin: 1em 0;
+}
+
+.actions {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: flex-end;
+}
+
+.actions > * {
+	margin-left: 1em;
+}

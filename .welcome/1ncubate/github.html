@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Markdown</title>
+	<meta name="description"
+		content="">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="mobile-web-app-capable" content="yes">
+	<link rel="stylesheet" href="/shared/css/github-markdown.min.css" />
+	<link rel="stylesheet" href="https://unpkg.com/font-awesome@4.7.0/css/font-awesome.css" />
+	<base target="_blank" href="../../">
+</head>
+
+<script type="module">
+	import { Octokit } from "https://cdn.skypack.dev/@octokit/rest";
+
+	(async () => {
+		const octokit = new Octokit();
+
+		console.log(Object.keys(octokit.repos))
+		const data = await octokit.repos
+			.getContent({
+				owner: 'crosshj',
+				repo: 'fiug'
+			});
+		console.log(data)
+
+		const tree = await octokit.request('GET /repos/{owner}/{repo}/git/trees/{tree_sha}', {
+			owner: 'crosshj',
+			repo: 'fiug',
+			tree_sha: 'e002fde335352b29e28ac8b2d844cf814e59b1e8'
+		})
+		console.log(tree);
+
+	})()
+</script>

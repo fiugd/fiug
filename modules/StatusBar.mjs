@@ -1,4 +1,4 @@
-import { attachListeners } from './events/statusBar.mjs';
+import { attachListeners } from './statusBarEvents.mjs';
 
 function getSettings(){
 	const storedSettings = JSON.parse(localStorage.getItem('editorSettings')||'{}');

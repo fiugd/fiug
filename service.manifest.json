@@ -1,417 +1,425 @@
 {
-    "version": "0.4",
-    "main": "service.manifest.json",
-    "modules": [
+  "version": "0.4",
+  "main": "service.manifest.json",
+  "modules": [
     {
-        "resources": [
-            "./",
-            "./index.service.test.html",
-            "./index.bootstrap.html",
-            "./index.old.html",
-            "./index.html",
-            "./service.manifest.json",
+      "resources": [
+        "./",
+        "./index.service.test.html",
+        "./index.bootstrap.html",
+        "./index.old.html",
+        "./index.html",
+        "./service.manifest.json",
 
-            "./settings.html",
-            "./bartok-logo.png",
+        "./settings.html",
+        "./bartok-logo.png",
 
-            "/shared/vendor/stylus.min.js",
+        "/shared/vendor/stylus.min.js",
 
-            "/shared/vendor/localforage.min.js",
-            "/shared/vendor/json5v-2.0.0.min.js",
+        "/shared/vendor/localforage.min.js",
+        "/shared/vendor/json5v-2.0.0.min.js",
 
-            "/shared/fonts/flUhRq6tzZclQEJ-Vdg-IuiaDsNcIhQ8tQ.woff2",
-            "/shared/fonts/seti.woff2",
-            "/shared/fonts/codicon.ttf",
+        "/shared/fonts/flUhRq6tzZclQEJ-Vdg-IuiaDsNcIhQ8tQ.woff2",
+        "/shared/fonts/seti.woff2",
+        "/shared/fonts/codicon.ttf",
 
-            "/shared/css/xterm.css",
-            "/shared/css/seti-icons.css",
-            "/shared/css/material-icons.css",
-            "/shared/css/materialize.min.css"
-        ]
-    },
-    "NOTE: the next bit is needed by old index.html only - FIGURE IT OUT",
-    {
-        "resources": [
-            "./index.js",
-            "/shared/modules/theme.mjs",
-            "/shared/vendor/materialize.min.js",
-            "modules/PanesNew.mjs",
-            "modules/management.mjs",
-            "modules/operations.mjs"
-        ]
+        "/shared/css/xterm.css",
+        "/shared/css/seti-icons.css",
+        "/shared/css/material-icons.css",
+        "/shared/css/materialize.min.css"
+      ]
     },
     "NOTE: resources for example apps",
     {
-        "resources": [
-            "/shared/vendor/showdown.1.9.1.min.js",
-            "/shared/css/github-markdown.min.css",
-            "/shared/vendor/preact.standalone.module.js",
-            "/shared/vendor/babel.min.js",
-            "/shared/vendor/biwascheme-0.7.0-min.js",
-            "/shared/vendor/css-doodle.0.6.1.min.js",
+      "resources": [
+        "/shared/vendor/showdown.1.9.1.min.js",
+        "/shared/css/github-markdown.min.css",
+        "/shared/vendor/preact.standalone.module.js",
+        "/shared/vendor/babel.min.js",
+        "/shared/vendor/biwascheme-0.7.0-min.js",
+        "/shared/vendor/css-doodle.0.6.1.min.js",
 
-            "https://cdnjs.cloudflare.com/ajax/libs/rxjs/6.2.1/rxjs.umd.min.js",
-            "https://cdnjs.cloudflare.com/ajax/libs/core-js/2.5.7/core.js",
-            "https://unpkg.com/@angular/core@9.1.1/bundles/core.umd.js",
-            "https://cdnjs.cloudflare.com/ajax/libs/zone.js/0.8.26/zone.min.js",
-            "https://unpkg.com/@angular/common@9.1.1/bundles/common.umd.js",
-            "https://unpkg.com/@angular/compiler@9.1.1/bundles/compiler.umd.js",
-            "https://unpkg.com/@angular/platform-browser@9.1.1/bundles/platform-browser.umd.js",
-            "https://unpkg.com/@angular/platform-browser-dynamic@9.1.1/bundles/platform-browser-dynamic.umd.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/rxjs/6.2.1/rxjs.umd.min.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/core-js/2.5.7/core.js",
+        "https://unpkg.com/@angular/core@9.1.1/bundles/core.umd.js",
+        "https://cdnjs.cloudflare.com/ajax/libs/zone.js/0.8.26/zone.min.js",
+        "https://unpkg.com/@angular/common@9.1.1/bundles/common.umd.js",
+        "https://unpkg.com/@angular/compiler@9.1.1/bundles/compiler.umd.js",
+        "https://unpkg.com/@angular/platform-browser@9.1.1/bundles/platform-browser.umd.js",
+        "https://unpkg.com/@angular/platform-browser-dynamic@9.1.1/bundles/platform-browser-dynamic.umd.js",
 
-            "https://cdn.auth0.com/js/auth0-spa-js/1.7/auth0-spa-js.production.js",
+        "https://cdn.auth0.com/js/auth0-spa-js/1.7/auth0-spa-js.production.js",
 
-            "https://d3js.org/d3.v5.min.js",
+        "https://d3js.org/d3.v5.min.js",
 
-            "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css",
-            "https://cdn.jsdelivr.net/gh/jsvine/nbpreview@master/css/vendor/prism.css",
-            "https://cdn.jsdelivr.net/gh/jsvine/nbpreview@mathjax-support/css/vendor/notebook.css",
-            "https://cdn.jsdelivr.net/gh/jsvine/nbpreview@master/css/nbpreview.css",
-            "https://cdn.jsdelivr.net/gh/jsvine/nbpreview@master/js/vendor/marked.min.js",
-            "https://cdn.jsdelivr.net/gh/jsvine/nbpreview@master/js/vendor/ansi_up.min.js",
-            "https://cdn.jsdelivr.net/gh/jsvine/nbpreview@master/js/vendor/prism.min.js",
-            "https://cdn.jsdelivr.net/gh/jsvine/nbpreview@master/js/vendor/notebook.min.js",
-            "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js",
-            "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js",
+        "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.css",
+        "https://cdn.jsdelivr.net/gh/jsvine/nbpreview@master/css/vendor/prism.css",
+        "https://cdn.jsdelivr.net/gh/jsvine/nbpreview@mathjax-support/css/vendor/notebook.css",
+        "https://cdn.jsdelivr.net/gh/jsvine/nbpreview@master/css/nbpreview.css",
+        "https://cdn.jsdelivr.net/gh/jsvine/nbpreview@master/js/vendor/marked.min.js",
+        "https://cdn.jsdelivr.net/gh/jsvine/nbpreview@master/js/vendor/ansi_up.min.js",
+        "https://cdn.jsdelivr.net/gh/jsvine/nbpreview@master/js/vendor/prism.min.js",
+        "https://cdn.jsdelivr.net/gh/jsvine/nbpreview@master/js/vendor/notebook.min.js",
+        "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/katex.min.js",
+        "https://cdn.jsdelivr.net/npm/katex@0.11.1/dist/contrib/auto-render.min.js",
 
-            "https://cdn.jsdelivr.net/npm/binaryen@95.0.0-nightly.20200723/index.js",
-            "https://cdn.jsdelivr.net/npm/binaryen@94.0.0/index.js",
+        "https://cdn.jsdelivr.net/npm/binaryen@95.0.0-nightly.20200723/index.js",
+        "https://cdn.jsdelivr.net/npm/binaryen@94.0.0/index.js",
 
-            "https://cdn.jsdelivr.net/npm/long@4.0.0/dist/long.js",
-            "https://cdn.jsdelivr.net/npm/assemblyscript@0.14.6/dist/assemblyscript.js",
-            "https://cdn.jsdelivr.net/npm/assemblyscript@0.14.6/dist/asc.js",
+        "https://cdn.jsdelivr.net/npm/long@4.0.0/dist/long.js",
+        "https://cdn.jsdelivr.net/npm/assemblyscript@0.14.6/dist/assemblyscript.js",
+        "https://cdn.jsdelivr.net/npm/assemblyscript@0.14.6/dist/asc.js",
 
-            "https://cdn.jsdelivr.net/npm/prismjs@1.20.0/components/prism-core.min.js",
-            "https://cdn.jsdelivr.net/npm/prismjs@1.20.0/plugins/autoloader/prism-autoloader.min.js",
-            "https://cdn.jsdelivr.net/npm/prismjs@1.20.0/components/prism-brainfuck.min.js",
+        "https://cdn.jsdelivr.net/npm/prismjs@1.20.0/components/prism-core.min.js",
+        "https://cdn.jsdelivr.net/npm/prismjs@1.20.0/plugins/autoloader/prism-autoloader.min.js",
+        "https://cdn.jsdelivr.net/npm/prismjs@1.20.0/components/prism-brainfuck.min.js",
 
-            "https://felixhao28.github.io/JSCPP/dist/JSCPP.es5.min.js",
-            "https://jscl-project.github.io/jscl.js",
-            "https://asmblah.github.io/uniter/dist/uniter.js",
+        "https://felixhao28.github.io/JSCPP/dist/JSCPP.es5.min.js",
+        "https://jscl-project.github.io/jscl.js",
+        "https://asmblah.github.io/uniter/dist/uniter.js",
 
-            "https://cdn.jsdelivr.net/npm/tau-prolog@0.3.0/modules/core.min.js",
-            "https://cdn.jsdelivr.net/npm/tau-prolog@0.3.0/modules/js.min.js",
-            "https://cdn.jsdelivr.net/npm/tau-prolog@0.3.0/modules/dom.min.js",
-            "https://cdn.jsdelivr.net/npm/tau-prolog@0.3.0/modules/lists.min.js",
-            "https://cdn.jsdelivr.net/npm/tau-prolog@0.3.0/modules/format.min.js",
-            "https://cdn.jsdelivr.net/npm/tau-prolog@0.3.0/modules/charsio.min.js",
-            "https://cdn.jsdelivr.net/npm/tau-prolog@0.3.0/modules/os.min.js",
-            "https://cdn.jsdelivr.net/npm/tau-prolog@0.3.0/modules/random.min.js",
-            "https://cdn.jsdelivr.net/npm/tau-prolog@0.3.0/modules/statistics.min.js",
+        "https://cdn.jsdelivr.net/npm/tau-prolog@0.3.0/modules/core.min.js",
+        "https://cdn.jsdelivr.net/npm/tau-prolog@0.3.0/modules/js.min.js",
+        "https://cdn.jsdelivr.net/npm/tau-prolog@0.3.0/modules/dom.min.js",
+        "https://cdn.jsdelivr.net/npm/tau-prolog@0.3.0/modules/lists.min.js",
+        "https://cdn.jsdelivr.net/npm/tau-prolog@0.3.0/modules/format.min.js",
+        "https://cdn.jsdelivr.net/npm/tau-prolog@0.3.0/modules/charsio.min.js",
+        "https://cdn.jsdelivr.net/npm/tau-prolog@0.3.0/modules/os.min.js",
+        "https://cdn.jsdelivr.net/npm/tau-prolog@0.3.0/modules/random.min.js",
+        "https://cdn.jsdelivr.net/npm/tau-prolog@0.3.0/modules/statistics.min.js",
 
-            "https://cdn.jsdelivr.net/npm/skulpt@1.0.0/dist/skulpt.min.js",
-            "https://cdn.jsdelivr.net/npm/skulpt@1.0.0/dist/skulpt-stdlib.js",
-            "https://cdn.opalrb.com/opal/current/opal.js",
-            "https://cdn.opalrb.com/opal/current/opal-parser.js",
+        "https://cdn.jsdelivr.net/npm/skulpt@1.0.0/dist/skulpt.min.js",
+        "https://cdn.jsdelivr.net/npm/skulpt@1.0.0/dist/skulpt-stdlib.js",
+        "https://cdn.opalrb.com/opal/current/opal.js",
+        "https://cdn.opalrb.com/opal/current/opal-parser.js",
 
-            "/shared/vendor/sql-wasm.js",
-            "/shared/vendor/sql-wasm.wasm",
+        "/shared/vendor/sql-wasm.js",
+        "/shared/vendor/sql-wasm.wasm",
 
-            "/shared/vendor/wasm_lua/main.wasm",
-            "/shared/vendor/wasm_lua/main.js",
+        "/shared/vendor/wasm_lua/main.wasm",
+        "/shared/vendor/wasm_lua/main.js",
 
-            "/shared/vendor/waforth/waforth.wat",
-            "/shared/vendor/waforth/WAForth.js",
+        "/shared/vendor/waforth/waforth.wat",
+        "/shared/vendor/waforth/WAForth.js",
 
-            "/shared/vendor/pascal/parse.js",
-            "/shared/vendor/pascal/ieee754.js",
-            "/shared/vendor/pascal/ir.js",
-            "/shared/vendor/pascal/units/system.js",
+        "/shared/vendor/pascal/parse.js",
+        "/shared/vendor/pascal/ieee754.js",
+        "/shared/vendor/pascal/ir.js",
+        "/shared/vendor/pascal/units/system.js",
 
-            "/shared/vendor/llvm.js/analyzer.js",
-            "/shared/vendor/llvm.js/compiler.js",
-            "/shared/vendor/llvm.js/framework.js",
-            "/shared/vendor/llvm.js/intertyper.js",
-            "/shared/vendor/llvm.js/jsifier.js",
-            "/shared/vendor/llvm.js/library.js",
-            "/shared/vendor/llvm.js/library_browser.js",
-            "/shared/vendor/llvm.js/library_egl.js",
-            "/shared/vendor/llvm.js/library_gc.js",
-            "/shared/vendor/llvm.js/library_gl.js",
-            "/shared/vendor/llvm.js/library_glut.js",
-            "/shared/vendor/llvm.js/library_jansson.js",
-            "/shared/vendor/llvm.js/library_sdl.js",
-            "/shared/vendor/llvm.js/library_xlib.js",
-            "/shared/vendor/llvm.js/modules.js",
-            "/shared/vendor/llvm.js/parseTools.js",
-            "/shared/vendor/llvm.js/preamble.js",
-            "/shared/vendor/llvm.js/postamble.js",
-            "/shared/vendor/llvm.js/runtime.js",
-            "/shared/vendor/llvm.js/settings.js",
-            "/shared/vendor/llvm.js/shell.js",
-            "/shared/vendor/llvm.js/utility.js",
+        "/shared/vendor/llvm.js/analyzer.js",
+        "/shared/vendor/llvm.js/compiler.js",
+        "/shared/vendor/llvm.js/framework.js",
+        "/shared/vendor/llvm.js/intertyper.js",
+        "/shared/vendor/llvm.js/jsifier.js",
+        "/shared/vendor/llvm.js/library.js",
+        "/shared/vendor/llvm.js/library_browser.js",
+        "/shared/vendor/llvm.js/library_egl.js",
+        "/shared/vendor/llvm.js/library_gc.js",
+        "/shared/vendor/llvm.js/library_gl.js",
+        "/shared/vendor/llvm.js/library_glut.js",
+        "/shared/vendor/llvm.js/library_jansson.js",
+        "/shared/vendor/llvm.js/library_sdl.js",
+        "/shared/vendor/llvm.js/library_xlib.js",
+        "/shared/vendor/llvm.js/modules.js",
+        "/shared/vendor/llvm.js/parseTools.js",
+        "/shared/vendor/llvm.js/preamble.js",
+        "/shared/vendor/llvm.js/postamble.js",
+        "/shared/vendor/llvm.js/runtime.js",
+        "/shared/vendor/llvm.js/settings.js",
+        "/shared/vendor/llvm.js/shell.js",
+        "/shared/vendor/llvm.js/utility.js",
 
-            "/shared/vendor/julia/hello-no-bysyncify.js",
-            "/shared/vendor/julia/hello-no-bysyncify.data",
-            "/shared/vendor/julia/hello-no-bysyncify.wasm",
+        "/shared/vendor/julia/hello-no-bysyncify.js",
+        "/shared/vendor/julia/hello-no-bysyncify.data",
+        "/shared/vendor/julia/hello-no-bysyncify.wasm",
 
-            "https://unpkg.com/three@0.115.0/build/three.js",
-            "https://unpkg.com/three@0.115.0/examples/js/controls/OrbitControls.js",
-            "https://unpkg.com/three@0.115.0/examples/js/loaders/GLTFLoader.js",
-            "https://unpkg.com/three@0.115.0/examples/js/math/SimplexNoise.js",
-            "https://unpkg.com/three@0.115.0/examples/js/shaders/CopyShader.js",
-            "https://unpkg.com/three@0.115.0/examples/js/shaders/SSAOShader.js",
-            "https://unpkg.com/three@0.115.0/examples/js/postprocessing/EffectComposer.js",
-            "https://unpkg.com/three@0.115.0/examples/js/postprocessing/ShaderPass.js",
-            "https://unpkg.com/three@0.115.0/examples/js/postprocessing/SSAOPass.js",
-            "https://rawgit.com/mrdoob/three.js/master/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf",
-            "https://rawgit.com/mrdoob/three.js/master/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.bin",
-            "https://rawgit.com/mrdoob/three.js/master/examples/models/gltf/DamagedHelmet/glTF/Default_albedo.jpg",
-            "https://rawgit.com/mrdoob/three.js/master/examples/models/gltf/DamagedHelmet/glTF/Default_metalRoughness.jpg",
-            "https://rawgit.com/mrdoob/three.js/master/examples/models/gltf/DamagedHelmet/glTF/Default_normal.jpg",
-            "https://rawgit.com/mrdoob/three.js/master/examples/models/gltf/DamagedHelmet/glTF/Default_AO.jpg",
-            "https://rawgit.com/mrdoob/three.js/master/examples/models/gltf/DamagedHelmet/glTF/Default_emissive.jpg",
+        "https://unpkg.com/three@0.115.0/build/three.js",
+        "https://unpkg.com/three@0.115.0/examples/js/controls/OrbitControls.js",
+        "https://unpkg.com/three@0.115.0/examples/js/loaders/GLTFLoader.js",
+        "https://unpkg.com/three@0.115.0/examples/js/math/SimplexNoise.js",
+        "https://unpkg.com/three@0.115.0/examples/js/shaders/CopyShader.js",
+        "https://unpkg.com/three@0.115.0/examples/js/shaders/SSAOShader.js",
+        "https://unpkg.com/three@0.115.0/examples/js/postprocessing/EffectComposer.js",
+        "https://unpkg.com/three@0.115.0/examples/js/postprocessing/ShaderPass.js",
+        "https://unpkg.com/three@0.115.0/examples/js/postprocessing/SSAOPass.js",
+        "https://rawgit.com/mrdoob/three.js/master/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf",
+        "https://rawgit.com/mrdoob/three.js/master/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.bin",
+        "https://rawgit.com/mrdoob/three.js/master/examples/models/gltf/DamagedHelmet/glTF/Default_albedo.jpg",
+        "https://rawgit.com/mrdoob/three.js/master/examples/models/gltf/DamagedHelmet/glTF/Default_metalRoughness.jpg",
+        "https://rawgit.com/mrdoob/three.js/master/examples/models/gltf/DamagedHelmet/glTF/Default_normal.jpg",
+        "https://rawgit.com/mrdoob/three.js/master/examples/models/gltf/DamagedHelmet/glTF/Default_AO.jpg",
+        "https://rawgit.com/mrdoob/three.js/master/examples/models/gltf/DamagedHelmet/glTF/Default_emissive.jpg",
 
-            "/shared/vendor/klipse_plugin-7.9.6.min.js",
+        "/shared/vendor/klipse_plugin-7.9.6.min.js",
 
-            "https://cdn.jsdelivr.net/npm/reveal.js@3.9.2/css/reveal.min.css",
-            "https://cdn.jsdelivr.net/npm/reveal.js@3.9.2/css/theme/black.css",
-            "https://cdn.jsdelivr.net/npm/reveal.js@3.9.2/js/reveal.min.js",
-            "https://cdn.jsdelivr.net/npm/reveal.js@3.9.2/plugin/markdown/marked.js",
-            "https://cdn.jsdelivr.net/npm/reveal.js@3.9.2/plugin/markdown/markdown.min.js",
-            "https://cdn.jsdelivr.net/npm/reveal.js@3.9.2/lib/font/source-sans-pro/source-sans-pro.css",
-            "/shared/images/wp5199724.jpg",
-            "https://s3.amazonaws.com/ganbreederpublic/imgs/65d75503c6d4ed375d336261.jpeg",
-            "https://media0.giphy.com/media/3oEduR8JONr03Z8TuM/source.gif",
-            "https://media2.giphy.com/media/QWuiKv0BuLFvpK0mQm/source.gif",
-            "https://i.imgur.com/YPQc9ad.gif?noredirect",
-            "https://cdna.artstation.com/p/assets/images/images/002/190/202/large/teun-van-der-zalm-ncu001-2a.jpg?1458468286",
-            "https://mir-s3-cdn-cf.behance.net/project_modules/fs/84ae7e19292199.562d7ef8051b0.jpg",
-            "/shared/images/forest_fog_dark_152252_1920x1080.jpg",
-            "/shared/images/forest_fog_trees_131668_1920x1080.jpg",
-            "/shared/images/forest_fog_dark_127172_1920x1080.jpg",
-            "/shared/images/9cfbf2a3ef56089624822bedbea2da64.gif",
-            "/shared/images/8f0b34aa3fed21ec78784a3f52f1728c.gif",
+        "https://cdn.jsdelivr.net/npm/reveal.js@3.9.2/css/reveal.min.css",
+        "https://cdn.jsdelivr.net/npm/reveal.js@3.9.2/css/theme/black.css",
+        "https://cdn.jsdelivr.net/npm/reveal.js@3.9.2/js/reveal.min.js",
+        "https://cdn.jsdelivr.net/npm/reveal.js@3.9.2/plugin/markdown/marked.js",
+        "https://cdn.jsdelivr.net/npm/reveal.js@3.9.2/plugin/markdown/markdown.min.js",
+        "https://cdn.jsdelivr.net/npm/reveal.js@3.9.2/lib/font/source-sans-pro/source-sans-pro.css",
+        "/shared/images/wp5199724.jpg",
+        "https://s3.amazonaws.com/ganbreederpublic/imgs/65d75503c6d4ed375d336261.jpeg",
+        "https://media0.giphy.com/media/3oEduR8JONr03Z8TuM/source.gif",
+        "https://media2.giphy.com/media/QWuiKv0BuLFvpK0mQm/source.gif",
+        "https://i.imgur.com/YPQc9ad.gif?noredirect",
+        "https://cdna.artstation.com/p/assets/images/images/002/190/202/large/teun-van-der-zalm-ncu001-2a.jpg?1458468286",
+        "https://mir-s3-cdn-cf.behance.net/project_modules/fs/84ae7e19292199.562d7ef8051b0.jpg",
+        "/shared/images/forest_fog_dark_152252_1920x1080.jpg",
+        "/shared/images/forest_fog_trees_131668_1920x1080.jpg",
+        "/shared/images/forest_fog_dark_127172_1920x1080.jpg",
+        "/shared/images/9cfbf2a3ef56089624822bedbea2da64.gif",
+        "/shared/images/8f0b34aa3fed21ec78784a3f52f1728c.gif",
 
-            "https://cdn.jsdelivr.net/npm/reveal.js@3.9.2/lib/font/source-sans-pro/source-sans-pro-italic.woff",
-            "https://cdn.jsdelivr.net/npm/reveal.js@3.9.2/lib/font/source-sans-pro/source-sans-pro-semibold.woff",
-            "https://cdn.jsdelivr.net/npm/reveal.js@3.9.2/lib/font/source-sans-pro/source-sans-pro-regular.woff",
-            "https://cdn.jsdelivr.net/npm/reveal.js@3.9.2/lib/font/source-sans-pro/source-sans-pro-italic.ttf",
-            "https://cdn.jsdelivr.net/npm/reveal.js@3.9.2/lib/font/source-sans-pro/source-sans-pro-semibold.ttf",
-            "https://cdn.jsdelivr.net/npm/reveal.js@3.9.2/lib/font/source-sans-pro/source-sans-pro-regular.ttf",
+        "https://cdn.jsdelivr.net/npm/reveal.js@3.9.2/lib/font/source-sans-pro/source-sans-pro-italic.woff",
+        "https://cdn.jsdelivr.net/npm/reveal.js@3.9.2/lib/font/source-sans-pro/source-sans-pro-semibold.woff",
+        "https://cdn.jsdelivr.net/npm/reveal.js@3.9.2/lib/font/source-sans-pro/source-sans-pro-regular.woff",
+        "https://cdn.jsdelivr.net/npm/reveal.js@3.9.2/lib/font/source-sans-pro/source-sans-pro-italic.ttf",
+        "https://cdn.jsdelivr.net/npm/reveal.js@3.9.2/lib/font/source-sans-pro/source-sans-pro-semibold.ttf",
+        "https://cdn.jsdelivr.net/npm/reveal.js@3.9.2/lib/font/source-sans-pro/source-sans-pro-regular.ttf",
 
-            "/shared/images/thumb-1920-774078.jpg",
+        "/shared/images/thumb-1920-774078.jpg",
 
-            "/shared/vendor/go/playground.js",
-            "/shared/vendor/go/pkg/errors.a.js",
-            "/shared/vendor/go/pkg/fmt.a.js",
-            "/shared/vendor/go/pkg/github.com/gopherjs/gopherjs/js.a.js",
-            "/shared/vendor/go/pkg/github.com/gopherjs/gopherjs/nosync.a.js",
-            "/shared/vendor/go/pkg/internal/bytealg.a.js",
-            "/shared/vendor/go/pkg/internal/cpu.a.js",
-            "/shared/vendor/go/pkg/internal/fmtsort.a.js",
-            "/shared/vendor/go/pkg/internal/poll.a.js",
-            "/shared/vendor/go/pkg/internal/race.a.js",
-            "/shared/vendor/go/pkg/internal/syscall/unix.a.js",
-            "/shared/vendor/go/pkg/internal/testlog.a.js",
-            "/shared/vendor/go/pkg/io.a.js",
-            "/shared/vendor/go/pkg/math.a.js",
-            "/shared/vendor/go/pkg/math/bits.a.js",
-            "/shared/vendor/go/pkg/os.a.js",
-            "/shared/vendor/go/pkg/reflect.a.js",
-            "/shared/vendor/go/pkg/runtime.a.js",
-            "/shared/vendor/go/pkg/runtime/internal/sys.a.js",
-            "/shared/vendor/go/pkg/sort.a.js",
-            "/shared/vendor/go/pkg/strconv.a.js",
-            "/shared/vendor/go/pkg/sync.a.js",
-            "/shared/vendor/go/pkg/sync/atomic.a.js",
-            "/shared/vendor/go/pkg/syscall.a.js",
-            "/shared/vendor/go/pkg/syscall/js.a.js",
-            "/shared/vendor/go/pkg/time.a.js",
-            "/shared/vendor/go/pkg/unicode.a.js",
-            "/shared/vendor/go/pkg/unicode/utf8.a.js"
-
-        ]
+        "/shared/vendor/go/playground.js",
+        "/shared/vendor/go/pkg/errors.a.js",
+        "/shared/vendor/go/pkg/fmt.a.js",
+        "/shared/vendor/go/pkg/github.com/gopherjs/gopherjs/js.a.js",
+        "/shared/vendor/go/pkg/github.com/gopherjs/gopherjs/nosync.a.js",
+        "/shared/vendor/go/pkg/internal/bytealg.a.js",
+        "/shared/vendor/go/pkg/internal/cpu.a.js",
+        "/shared/vendor/go/pkg/internal/fmtsort.a.js",
+        "/shared/vendor/go/pkg/internal/poll.a.js",
+        "/shared/vendor/go/pkg/internal/race.a.js",
+        "/shared/vendor/go/pkg/internal/syscall/unix.a.js",
+        "/shared/vendor/go/pkg/internal/testlog.a.js",
+        "/shared/vendor/go/pkg/io.a.js",
+        "/shared/vendor/go/pkg/math.a.js",
+        "/shared/vendor/go/pkg/math/bits.a.js",
+        "/shared/vendor/go/pkg/os.a.js",
+        "/shared/vendor/go/pkg/reflect.a.js",
+        "/shared/vendor/go/pkg/runtime.a.js",
+        "/shared/vendor/go/pkg/runtime/internal/sys.a.js",
+        "/shared/vendor/go/pkg/sort.a.js",
+        "/shared/vendor/go/pkg/strconv.a.js",
+        "/shared/vendor/go/pkg/sync.a.js",
+        "/shared/vendor/go/pkg/sync/atomic.a.js",
+        "/shared/vendor/go/pkg/syscall.a.js",
+        "/shared/vendor/go/pkg/syscall/js.a.js",
+        "/shared/vendor/go/pkg/time.a.js",
+        "/shared/vendor/go/pkg/unicode.a.js",
+        "/shared/vendor/go/pkg/unicode/utf8.a.js"
+      ]
     },
     "NOTE: modules",
     {
-        "route": "./modules/Panes.mjs",
-        "type": "domComponent",
-        "source": "modules/PanesNew.mjs"
-    }, {
-        "route": "./modules/StatusBar.mjs",
-        "type": "domComponent",
-        "source": "modules/StatusBar.mjs"
-    }, {
-        "route": "./modules/ActionBar.mjs",
-        "type": "domComponent",
-        "source": "modules/ActionBar.mjs"
-    }, {
-        "route": "./modules/TreeView.mjs",
-        "type": "domComponent",
-        "source": "modules/TreeView.mjs",
-        "resources": [
-            "/shared/vendor/js-treeview.1.1.5.js"
-        ]
-    }, {
-        "route": "./modules/LoaderBar.mjs",
-        "type": "domComponent",
-        "source": "modules/LoaderBar.mjs"
-    }, {
-        "route": "./modules/Terminal.mjs",
-        "type": "domComponent",
-        "source": "modules/Terminal.mjs",
-        "resources": [
-            "/shared/vendor/xterm.min.js",
-            "/shared/vendor/xterm-addon-fit.js"
-        ]
-    }, {
-        "route": "./modules/HotKeys.mjs",
-        "type": "domComponent",
-        "source": "modules/HotKeys.mjs"
-    }, {
-        "route": "./modules/Services.mjs",
-        "type": "domComponent",
-        "source": "modules/Services.mjs"
-    }, {
-        "route": "./modules/Editor.mjs",
-        "type": "domComponent",
-        "source": "modules/Editor.mjs",
-        "resources": [
-            "/shared/modules/editor.mjs",
-            "/shared/css/codemirror.css",
-            "/shared/css/bespin.css",
-            "/shared/css/vscode.codemirror.css",
+      "route": "./_/modules/Panes.mjs",
+      "type": "domComponent",
+      "source": "modules/Panes.mjs"
+    },
+    {
+      "route": "./_/modules/StatusBar.mjs",
+      "type": "domComponent",
+      "source": "modules/StatusBar.mjs"
+    },
+    {
+      "route": "./_/modules/ActionBar.mjs",
+      "type": "domComponent",
+      "source": "modules/ActionBar.mjs"
+    },
+    {
+      "route": "./_/modules/TreeView.mjs",
+      "type": "domComponent",
+      "source": "modules/TreeView.mjs",
+      "resources": ["/shared/vendor/js-treeview.1.1.5.js"]
+    },
+    {
+      "route": "./_/modules/LoaderBar.mjs",
+      "type": "domComponent",
+      "source": "modules/LoaderBar.mjs"
+    },
+    {
+      "route": "./_/modules/Terminal.mjs",
+      "type": "domComponent",
+      "source": "modules/Terminal.mjs",
+      "resources": [
+        "/shared/vendor/xterm.min.js",
+        "/shared/vendor/xterm-addon-fit.js"
+      ]
+    },
+    {
+      "route": "./_/modules/HotKeys.mjs",
+      "type": "domComponent",
+      "source": "modules/HotKeys.mjs"
+    },
+    {
+      "route": "./_/modules/Services.mjs",
+      "type": "domComponent",
+      "source": "modules/Services.mjs"
+    },
+    {
+      "route": "./_/modules/Editor.mjs",
+      "type": "domComponent",
+      "source": "modules/Editor.mjs",
+      "resources": [
+        "/shared/modules/editor.mjs",
+        "/shared/css/codemirror.css",
+        "/shared/css/bespin.css",
+        "/shared/css/vscode.codemirror.css",
 
-            "/shared/vendor/codemirror.js",
-            "/shared/vendor/codemirror/addon.bundle.js",
-            "/shared/vendor/codemirror/mode.bundle.js"
-        ]
-    }, {
-        "route": "./modules/ContextMenu.mjs",
-        "type": "domComponent",
-        "source": "modules/ContextMenu.mjs"
-    }, {
-        "route": "./modules/Operations.mjs",
-        "type": "domComponent",
-        "source": "modules/Operations_New.mjs"
+        "/shared/vendor/codemirror.js",
+        "/shared/vendor/codemirror/addon.bundle.js",
+        "/shared/vendor/codemirror/mode.bundle.js"
+      ]
+    },
+    {
+      "route": "./_/modules/ContextMenu.mjs",
+      "type": "domComponent",
+      "source": "modules/ContextMenu.mjs"
+    },
+    {
+      "route": "./_/modules/Operations.mjs",
+      "type": "domComponent",
+      "source": "modules/Operations.mjs"
     },
 
     "NOTE: should be a handlers in service worker context",
     {
-        "route": "./modules/events/statusBar.mjs",
-        "source": "modules/events/statusBar.mjs",
-        "handler": null
-    }, {
-        "route": "./modules/events/tree.mjs",
-        "source": "modules/events/tree.mjs",
-        "handler": null
-    }, {
-        "route": "./modules/events/loader.mjs",
-        "source": "modules/events/loader.mjs",
-        "handler": null
-    }, {
-        "route": "./modules/events/terminal.mjs",
-        "source": "modules/events/terminal.mjs",
-        "handler": null
-    }, {
-        "route": "./modules/events/services.mjs",
-        "source": "modules/events/services.mjs",
-        "handler": null
-    }, {
-        "route": "./modules/events/templates.mjs",
-        "source": "modules/events/templates.mjs",
-        "handler": null
-    }, {
-        "route": "./modules/events/editor.mjs",
-        "source": "modules/events/editor.mjs",
-        "handler": null
-    }, {
-        "route": "./modules/events/editorTabs.mjs",
-        "source": "modules/events/editorTabs.mjs",
-        "handler": null
-    }, {
-        "route": "./modules/events/operations.mjs",
-        "source": "modules/events/operations.mjs",
-        "handler": null
+      "route": "./_/modules/statusBarEvents.mjs",
+      "source": "modules/statusBarEvents.mjs",
+      "handler": null
+    },
+    {
+      "route": "./_/modules/treeEvents.mjs",
+      "source": "modules/treeEvents.mjs",
+      "handler": null
+    },
+    {
+      "route": "./_/modules/loaderBarEvents.mjs",
+      "source": "modules/loaderBarEvents.mjs",
+      "handler": null
+    },
+    {
+      "route": "./_/modules/terminalEvents.mjs",
+      "source": "modules/terminalEvents.mjs",
+      "handler": null
+    },
+    {
+      "route": "./_/modules/servicesEvents.mjs",
+      "source": "modules/servicesEvents.mjs",
+      "handler": null
+    },
+    {
+      "route": "./_/modules/templatesEvents.mjs",
+      "source": "modules/templatesEvents.mjs",
+      "handler": null
+    },
+    {
+      "route": "./_/modules/editorEvents.mjs",
+      "source": "modules/editorEvents.mjs",
+      "handler": null
+    },
+    {
+      "route": "./_/modules/editorTabsEvents.mjs",
+      "source": "modules/editorTabsEvents.mjs",
+      "handler": null
+    },
+    {
+      "route": "./_/modules/operationsEvents.mjs",
+      "source": "modules/operationsEvents.mjs",
+      "handler": null
     },
 
     "NOTE: should be compiled in to each module",
     {
-        "route": "./modules/Listeners.mjs",
-        "source": "modules/Listeners.mjs",
-        "handler": null
-    }, {
-        "route": "./modules/Templates.mjs",
-        "source": "modules/Templates.mjs",
-        "handler": null
-    }, {
-        "route": "./modules/EditorTabs.mjs",
-        "source": "modules/EditorTabs.mjs"
-    }, {
-        "route": "./modules/motd.mjs",
-        "source": "modules/motd.mjs",
-        "handler": null
-    }, {
-        "route": "./modules/state.mjs",
-        "source": "modules/state.mjs",
-        "handler": null
-    }, {
-        "route": "./modules/ExternalState.mjs",
-        "source": "modules/ExternalState.mjs",
-        "handler": null
-    }, {
-        "route": "./modules/operationsManagement.mjs",
-        "source": "modules/operationsManagement.mjs",
-        "handler": null
-    }, {
-        "route": "./modules/operationsService.mjs",
-        "source": "modules/operationsService.mjs",
-        "handler": null
-    }, {
-        "route": "./modules/Types.mjs",
-        "source": "modules/Types.mjs",
-        "handler": null
-    }, {
-        "route": "/shared/modules/utilities.mjs",
-        "source": "/shared/modules/utilities.mjs",
-        "handler": null
-    }, {
-        "route": "/shared/icons/seti/ext.json.mjs",
-        "source": "/shared/icons/seti/ext.json.mjs",
-        "handler": null
+      "route": "./_/modules/Listeners.mjs",
+      "source": "modules/Listeners.mjs",
+      "handler": null
+    },
+    {
+      "route": "./_/modules/Templates.mjs",
+      "source": "modules/Templates.mjs",
+      "handler": null
+    },
+    {
+      "route": "./_/modules/EditorTabs.mjs",
+      "source": "modules/EditorTabs.mjs"
+    },
+    {
+      "route": "./_/modules/motd.mjs",
+      "source": "modules/motd.mjs",
+      "handler": null
+    },
+    {
+      "route": "./_/modules/state.mjs",
+      "source": "modules/state.mjs",
+      "handler": null
+    },
+    {
+      "route": "./_/modules/ExternalState.mjs",
+      "source": "modules/ExternalState.mjs",
+      "handler": null
+    },
+    {
+      "route": "./_/modules/operationsManagement.mjs",
+      "source": "modules/operationsManagement.mjs",
+      "handler": null
+    },
+    {
+      "route": "./_/modules/operationsService.mjs",
+      "source": "modules/operationsService.mjs",
+      "handler": null
+    },
+    {
+      "route": "./_/modules/Types.mjs",
+      "source": "modules/Types.mjs",
+      "handler": null
+    },
+    {
+      "route": "/shared/modules/utilities.mjs",
+      "source": "/shared/modules/utilities.mjs",
+      "handler": null
+    },
+    {
+      "route": "/shared/icons/seti/ext.json.mjs",
+      "source": "/shared/icons/seti/ext.json.mjs",
+      "handler": null
     },
 
     "NOTE: should be bundled and minified?",
     {
-        "route": "./index.css",
-        "source": "index.css",
-        "include": [
-            "/shared/css/xterm.css",
-            "/shared/css/seti-icons.css",
-            "/shared/css/material-icons.css",
-            "/shared/css/materialize.min.css"
-        ]
+      "route": "./index.css",
+      "source": "index.css",
+      "include": [
+        "/shared/css/xterm.css",
+        "/shared/css/seti-icons.css",
+        "/shared/css/material-icons.css",
+        "/shared/css/materialize.min.css"
+      ]
     },
 
     "NOTE: external handlers",
     {
-        "route": "\/service\/(.*)",
-        "type": "fetch",
-        "handler": "./modules/serviceRequestHandler.js"
+      "route": "/service/(.*)",
+      "type": "fetch",
+      "handler": "./modules/serviceRequestHandler.js"
     },
     {
-        "route": "\/manage\/(.*)",
-        "type": "fetch",
-        "handler": "./modules/serviceRequestHandler.js"
+      "route": "/manage/(.*)",
+      "type": "fetch",
+      "handler": "./modules/serviceRequestHandler.js"
     },
     {
-        "route": "\/monitor\/(.*)",
-        "type": "fetch",
-        "handler": "./modules/serviceRequestHandler.js"
+      "route": "/monitor/(.*)",
+      "type": "fetch",
+      "handler": "./modules/serviceRequestHandler.js"
     },
     {
-        "route": "\/persist\/(.*)",
-        "type": "fetch",
-        "handler": "./modules/serviceRequestHandler.js"
+      "route": "/persist/(.*)",
+      "type": "fetch",
+      "handler": "./modules/serviceRequestHandler.js"
     },
 
-    "NOTE: this should not be defined here, instead it should be dynamically loaded",
-    {
-        "route": "\/.welcome\/(.*)",
-        "type": "fetch",
-        "handler": "./modules/serviceRequestHandler.js"
-    },
-
-    "NOTE: end modules"]
+    "NOTE: end modules"
+  ]
 }

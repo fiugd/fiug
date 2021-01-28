@@ -1,15 +1,15 @@
-import { attachListener } from './events/loader.mjs';
+import { attachListener } from "./loaderBarEvents.mjs";
 
 let bar;
-function LoaderBar(){
-	if(bar){
-		return bar;
-	}
-	bar = document.createElement('div');
-	bar.id = "loader-bar";
-	bar.style.display = 'none';
+function LoaderBar() {
+  if (bar) {
+    return bar;
+  }
+  bar = document.createElement("div");
+  bar.id = "loader-bar";
+  bar.style.display = "none";
 
-	bar.innerHTML = `
+  bar.innerHTML = `
 		<style>
 			#loader-bar {
 				display: block;
@@ -45,28 +45,28 @@ function LoaderBar(){
 		</div>
 	`;
 
-	// bad debounce... meh
-	let timer;
-	const showBar = () => {
-		if(timer){
-			clearTimeout(timer);
-			timer = undefined;
-		} else {
-			//console.log('show bar');
-		}
-		bar.style.display = 'block';
-	};
-	const hideBar = () => {
-		timer = setTimeout(() => {
-			//console.log('hide bar');
-			bar.style.display = 'none';
-			timer = undefined;
-		}, 2700)
-	};
-	attachListener({ showBar, hideBar });
+  // bad debounce... meh
+  let timer;
+  const showBar = () => {
+    if (timer) {
+      clearTimeout(timer);
+      timer = undefined;
+    } else {
+      //console.log('show bar');
+    }
+    bar.style.display = "block";
+  };
+  const hideBar = () => {
+    timer = setTimeout(() => {
+      //console.log('hide bar');
+      bar.style.display = "none";
+      timer = undefined;
+    }, 2700);
+  };
+  attachListener({ showBar, hideBar });
 
-	document.body.appendChild(bar);
-	return bar;
+  document.body.appendChild(bar);
+  return bar;
 }
 
 export default LoaderBar;

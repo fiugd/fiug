@@ -1,87 +1,93 @@
-import JSTreeView from "../../shared/vendor/js-treeview.1.1.5.js";
+import JSTreeView from "/shared/vendor/js-treeview.1.1.5.js";
 //import JSTreeView from "https://dev.jspm.io/js-treeview@1.1.5";
 
-import { attachListener, connectTrigger } from './events/tree.mjs';
+import { attachListener, connectTrigger } from "./treeEvents.mjs";
 
 let treeView, opener;
 
 function htmlToElement(html) {
-	var template = document.createElement('template');
-	html = html.trim(); // Never return a text node of whitespace as the result
-	template.innerHTML = html;
-	//also would be cool to remove indentation from all lines
-	return template.content.firstChild;
+  var template = document.createElement("template");
+  html = html.trim(); // Never return a text node of whitespace as the result
+  template.innerHTML = html;
+  //also would be cool to remove indentation from all lines
+  return template.content.firstChild;
 }
 
 const utils = (() => {
-	const unique = arr => Array.from(new Set(arr));
-	const htmlEscape = html => [
-		[/&/g, '&amp;'], //must be first
-		[/</g, '&lt;'],
-		[/>/g, '&gt;'],
-		[/"/g, '&quot;'],
-		[/'/g, '&#039;']
-	].reduce((a,o) => a.replace(...o), html);
-	const highlight = (term="", str="", limit) => {
-		const caseMap = str.split('').map(x => x.toLowerCase() === x ? 'lower' : 'upper');
+  const unique = (arr) => Array.from(new Set(arr));
+  const htmlEscape = (html) =>
+    [
+      [/&/g, "&amp;"], //must be first
+      [/</g, "&lt;"],
+      [/>/g, "&gt;"],
+      [/"/g, "&quot;"],
+      [/'/g, "&#039;"],
+    ].reduce((a, o) => a.replace(...o), html);
+  const highlight = (term = "", str = "", limit) => {
+    const caseMap = str
+      .split("")
+      .map((x) => (x.toLowerCase() === x ? "lower" : "upper"));
 
-		const splitstring = str.toLowerCase().split(term.toLowerCase())
-		let html = '<span>' + (
-			limit === 1
-				? splitstring[0] +
-					`</span><span class="highlight">${term.toLowerCase()}</span><span>` +
-					splitstring.slice(1).join(term.toLowerCase())
-				: splitstring
-					.join(`</span><span class="highlight">${term.toLowerCase()}</span><span>`)
-		) + '</span>';
-		if(limit = 1){
-		}
-		html = html.split('');
+    const splitstring = str.toLowerCase().split(term.toLowerCase());
+    let html =
+      "<span>" +
+      (limit === 1
+        ? splitstring[0] +
+          `</span><span class="highlight">${term.toLowerCase()}</span><span>` +
+          splitstring.slice(1).join(term.toLowerCase())
+        : splitstring.join(
+            `</span><span class="highlight">${term.toLowerCase()}</span><span>`
+          )) +
+      "</span>";
+    if ((limit = 1)) {
+    }
+    html = html.split("");
 
-		let intag = false;
-		for (let char = 0, i=0; i < html.length; i++) {
-			const thisChar = html[i];
-			if(thisChar === '<'){
-				intag = true;
-				continue;
-			}
-			if(thisChar === '>'){
-				intag = false;
-				continue;
-			}
-			if(intag) continue;
-			if(caseMap[char] === 'upper'){
-				html[i] = html[i].toUpperCase();
-			}
-			char++;
-		}
-		return html.join('');
-	};
-	const debounce = (func, wait, immediate) => {
-		var timeout;
-		return async function() {
-			var context = this, args = arguments;
-			var later = function() {
-				timeout = null;
-				if (!immediate) func.apply(context, args);
-			};
-			var callNow = immediate && !timeout;
-			clearTimeout(timeout);
-			timeout = setTimeout(later, wait);
-			if (callNow) func.apply(context, args);
-		};
-	};
+    let intag = false;
+    for (let char = 0, i = 0; i < html.length; i++) {
+      const thisChar = html[i];
+      if (thisChar === "<") {
+        intag = true;
+        continue;
+      }
+      if (thisChar === ">") {
+        intag = false;
+        continue;
+      }
+      if (intag) continue;
+      if (caseMap[char] === "upper") {
+        html[i] = html[i].toUpperCase();
+      }
+      char++;
+    }
+    return html.join("");
+  };
+  const debounce = (func, wait, immediate) => {
+    var timeout;
+    return async function () {
+      var context = this,
+        args = arguments;
+      var later = function () {
+        timeout = null;
+        if (!immediate) func.apply(context, args);
+      };
+      var callNow = immediate && !timeout;
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+      if (callNow) func.apply(context, args);
+    };
+  };
 
-	return {
-		unique,
-		htmlEscape,
-		highlight,
-		debounce
-	};
+  return {
+    unique,
+    htmlEscape,
+    highlight,
+    debounce,
+  };
 })();
 
 const ProjectOpener = () => {
-	let _opener = htmlToElement(`
+  let _opener = htmlToElement(`
 		<div class="service-opener">
 			<style>
 				.service-opener > div {
@@ -126,32 +132,34 @@ const ProjectOpener = () => {
 			</div>
 		</div>
 	`);
-	const openerActions = _opener.querySelector('.service-opener-actions');
-	connectTrigger({
-		eventName: 'add-service-folder',
-		filter: e => openerActions.contains(e.target)
-			&& e.target.tagName === "BUTTON"
-			&& e.target.id === 'add-service-folder'
-	});
-	connectTrigger({
-		eventName: 'connect-service-provider',
-		filter: e => openerActions.contains(e.target)
-			&& e.target.tagName === "BUTTON"
-			&& e.target.id === 'connect-service-provider'
-	});
-	connectTrigger({
-		eventName: 'open-previous-service',
-		filter: e => openerActions.contains(e.target)
-			&& e.target.tagName === "BUTTON"
-			&& e.target.id === 'open-previous-service'
-	});
+  const openerActions = _opener.querySelector(".service-opener-actions");
+  connectTrigger({
+    eventName: "add-service-folder",
+    filter: (e) =>
+      openerActions.contains(e.target) &&
+      e.target.tagName === "BUTTON" &&
+      e.target.id === "add-service-folder",
+  });
+  connectTrigger({
+    eventName: "connect-service-provider",
+    filter: (e) =>
+      openerActions.contains(e.target) &&
+      e.target.tagName === "BUTTON" &&
+      e.target.id === "connect-service-provider",
+  });
+  connectTrigger({
+    eventName: "open-previous-service",
+    filter: (e) =>
+      openerActions.contains(e.target) &&
+      e.target.tagName === "BUTTON" &&
+      e.target.id === "open-previous-service",
+  });
 
-	return _opener;
+  return _opener;
 };
 
-
 const ScrollShadow = () => {
-	let scrollShadow = htmlToElement(`
+  let scrollShadow = htmlToElement(`
 		<div class="scroll-shadow">
 			<style>
 				.scroll-shadow {
@@ -166,23 +174,23 @@ const ScrollShadow = () => {
 			</style>
 		</div>
 	`);
-	treeView.addEventListener('scroll', (event) => {
-		try {
-			event.target.scrollTop > 0
-				? scrollShadow.style.display = "block"
-				: scrollShadow.style.display = "none";
-		} catch(e) {
-			scrollShadow.style.display = "none"
-		}
-	});
-	return scrollShadow;
-}
+  treeView.addEventListener("scroll", (event) => {
+    try {
+      event.target.scrollTop > 0
+        ? (scrollShadow.style.display = "block")
+        : (scrollShadow.style.display = "none");
+    } catch (e) {
+      scrollShadow.style.display = "none";
+    }
+  });
+  return scrollShadow;
+};
 
 const TreeMenu = () => {
-	const _treeMenu = document.createElement('div');
-	_treeMenu.id="tree-menu";
-	_treeMenu.classList.add("row", "no-margin");
-	const menuInnerHTML = `
+  const _treeMenu = document.createElement("div");
+  _treeMenu.id = "tree-menu";
+  _treeMenu.classList.add("row", "no-margin");
+  const menuInnerHTML = `
 		<style>
 			#tree-menu .title-actions .action-item a {
 				color: inherit;
@@ -224,32 +232,41 @@ const TreeMenu = () => {
 			</div>
 		</div>
 	`;
-	_treeMenu.addEventListener('click', (e) => {
-		if(!_treeMenu.contains(e.target)) return;
-		if(e.target.tagName === "A" && e.target.className.includes('codicon-toolbar-more')){
-			console.warn('toolbar-more: not implemented');
-			e.preventDefault();
-			return false;
-		}
-	}, { passive: false })
-	connectTrigger({
-		eventName: 'new-file',
-		filter: e => _treeMenu.contains(e.target)
-			&& e.target.tagName === "A"
-			&& e.target.title === 'New File'
-	});
-	connectTrigger({
-		eventName: 'new-folder',
-		filter: e => _treeMenu.contains(e.target)
-			&& e.target.tagName === "A"
-			&& e.target.title === 'New Folder'
-	});
-	_treeMenu.innerHTML = menuInnerHTML;
-	return _treeMenu;
+  _treeMenu.addEventListener(
+    "click",
+    (e) => {
+      if (!_treeMenu.contains(e.target)) return;
+      if (
+        e.target.tagName === "A" &&
+        e.target.className.includes("codicon-toolbar-more")
+      ) {
+        console.warn("toolbar-more: not implemented");
+        e.preventDefault();
+        return false;
+      }
+    },
+    { passive: false }
+  );
+  connectTrigger({
+    eventName: "new-file",
+    filter: (e) =>
+      _treeMenu.contains(e.target) &&
+      e.target.tagName === "A" &&
+      e.target.title === "New File",
+  });
+  connectTrigger({
+    eventName: "new-folder",
+    filter: (e) =>
+      _treeMenu.contains(e.target) &&
+      e.target.tagName === "A" &&
+      e.target.title === "New Folder",
+  });
+  _treeMenu.innerHTML = menuInnerHTML;
+  return _treeMenu;
 };
 
 const SearchBoxHTML = () => {
-	const style = `
+  const style = `
 	<style>
 		.tree-search {
 			display: flex;
@@ -410,7 +427,7 @@ const SearchBoxHTML = () => {
 	</style>
 	`;
 
-	const html = `
+  const html = `
 	<div class="form-container tree-search">
 		${style}
 
@@ -436,302 +453,326 @@ const SearchBoxHTML = () => {
 	</div>
 	`;
 
-	return html;
+  return html;
 };
 
 class SearchBox {
-	dom
+  dom;
 
-	constructor(parent, include){
-		const main = htmlToElement(SearchBoxHTML());
-		this.dom = {
-			main,
-			term: main.querySelector('.search-term'),
-			include: main.querySelector('.search-include'),
-			exclude: main.querySelector('.search-exclude'),
-			summary: main.querySelector('.search-summary'),
-			results: main.querySelector('.search-results')
-		}
-		this.dom.include.value = include || './';
-		this.attachListeners();
-		(parent || document.body).appendChild(main);
-	}
+  constructor(parent, include) {
+    const main = htmlToElement(SearchBoxHTML());
+    this.dom = {
+      main,
+      term: main.querySelector(".search-term"),
+      include: main.querySelector(".search-include"),
+      exclude: main.querySelector(".search-exclude"),
+      summary: main.querySelector(".search-summary"),
+      results: main.querySelector(".search-results"),
+    };
+    this.dom.include.value = include || "./";
+    this.attachListeners();
+    (parent || document.body).appendChild(main);
+  }
 
-	attachListeners(){
-		const debouncedInputListener = utils.debounce((event) => {
-			const term = this.dom.term.value;
-			const include = this.dom.include.value;
-			const exclude = this.dom.exclude.value;
-			this.updateResults([],'');
-			this.updateSummary({});
-			this.searchStream({ term, include, exclude })
-		}, 250, false);
-		this.dom.term.addEventListener('input', (e) => {
-			const term = this.dom.term.value;
-			if(!term){
-				this.term = '';
-				this.updateSummary({});
-				this.dom.results.innerHTML = '';
-				this.updateResults([], '');
-				return;
-			}
-			this.updateSummary({ loading: true });
-			this.updateResults({ loading: true });
-			debouncedInputListener(e);
-		});
-		this.dom.include.addEventListener('input', (e) => {
-			this.updateSummary({ loading: true });
-			this.updateResults({ loading: true });
-			debouncedInputListener(e);
-		});
-		this.dom.exclude.addEventListener('input', (e) => {
-			this.updateSummary({ loading: true });
-			this.updateResults({ loading: true });
-			debouncedInputListener(e);
-		});
-		this.dom.results.addEventListener('click', (e) => {
-			const handler = {
-				'DIV foldable': () => e.target.parentNode.classList.add('open'),
-				'DIV foldable open': () => e.target.parentNode.classList.remove('open')
-			}[`${e.target.tagName} ${e.target.parentNode.className.trim()}`];
+  attachListeners() {
+    const debouncedInputListener = utils.debounce(
+      (event) => {
+        const term = this.dom.term.value;
+        const include = this.dom.include.value;
+        const exclude = this.dom.exclude.value;
+        this.updateResults([], "");
+        this.updateSummary({});
+        this.searchStream({ term, include, exclude });
+      },
+      250,
+      false
+    );
+    this.dom.term.addEventListener("input", (e) => {
+      const term = this.dom.term.value;
+      if (!term) {
+        this.term = "";
+        this.updateSummary({});
+        this.dom.results.innerHTML = "";
+        this.updateResults([], "");
+        return;
+      }
+      this.updateSummary({ loading: true });
+      this.updateResults({ loading: true });
+      debouncedInputListener(e);
+    });
+    this.dom.include.addEventListener("input", (e) => {
+      this.updateSummary({ loading: true });
+      this.updateResults({ loading: true });
+      debouncedInputListener(e);
+    });
+    this.dom.exclude.addEventListener("input", (e) => {
+      this.updateSummary({ loading: true });
+      this.updateResults({ loading: true });
+      debouncedInputListener(e);
+    });
+    this.dom.results.addEventListener("click", (e) => {
+      const handler = {
+        "DIV foldable": () => e.target.parentNode.classList.add("open"),
+        "DIV foldable open": () => e.target.parentNode.classList.remove("open"),
+      }[`${e.target.tagName} ${e.target.parentNode.className.trim()}`];
 
-			if(handler) return handler();
-		})
-	}
+      if (handler) return handler();
+    });
+  }
 
-	async searchStream({ term, include, exclude }){
-		this.dom.results.innerHTML = '';;
-		this.updateSummary({});
+  async searchStream({ term, include, exclude }) {
+    this.dom.results.innerHTML = "";
+    this.updateSummary({});
 
-		const base = new URL('../../service/search', location.href).href
-		const res = (await fetch(`${base}/?term=${term}&include=${include||''}&exclude=${exclude||''}`));
-		const reader = res.body.getReader()
-		const decoder = new TextDecoder("utf-8");
-		const timer = { t1: performance.now() }
-		let allMatches = [];
-		let malformed;
-		this.resultsInDom = false;
-		while(true){
-			const { done, value } = await reader.read();
-			if(done) break;
-			let results = decoder.decode(value, { stream: true });
-			if(malformed){
-				results = malformed.trim() + results.trim();
-				malformed = '';
-			}
-			if(results.trim()[results.trim().length-1] !== '}'){
-				results = results.split('\n');
-				malformed = results.pop()
-				results = results.join('\n');
-			}
-			results = results.split('\n').filter(x=>!!x);
-			this.updateResults(results, allMatches, term);
-			this.updateSummary({
-				allMatches,
-				time: performance.now() - timer.t1,
-				searchTerm: term
-			});
-		}
-	}
+    const base = new URL("../../service/search", location.href).href;
+    const res = await fetch(
+      `${base}/?term=${term}&include=${include || ""}&exclude=${exclude || ""}`
+    );
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    const timer = { t1: performance.now() };
+    let allMatches = [];
+    let malformed;
+    this.resultsInDom = false;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      let results = decoder.decode(value, { stream: true });
+      if (malformed) {
+        results = malformed.trim() + results.trim();
+        malformed = "";
+      }
+      if (results.trim()[results.trim().length - 1] !== "}") {
+        results = results.split("\n");
+        malformed = results.pop();
+        results = results.join("\n");
+      }
+      results = results.split("\n").filter((x) => !!x);
+      this.updateResults(results, allMatches, term);
+      this.updateSummary({
+        allMatches,
+        time: performance.now() - timer.t1,
+        searchTerm: term,
+      });
+    }
+  }
 
-	updateTerm(term){ this.dom.term.value = term; }
+  updateTerm(term) {
+    this.dom.term.value = term;
+  }
 
-	updateInclude(path){ this.dom.include.value = path; }
+  updateInclude(path) {
+    this.dom.include.value = path;
+  }
 
-	hide(){ this.dom.main.style.visibility = 'hidden'; }
+  hide() {
+    this.dom.main.style.visibility = "hidden";
+  }
 
-	show(){ this.dom.main.style.visibility = 'visible'; }
+  show() {
+    this.dom.main.style.visibility = "visible";
+  }
 
-	async updateResults(results, allMatches, term){
-		const addFileResultsLineEl = (result) => {
-			const limit = 1; //only highlight one occurence
-			const listItemEl = (Array.isArray(result) ? result : [result])
-				.map((r,i) => `
+  async updateResults(results, allMatches, term) {
+    const addFileResultsLineEl = (result) => {
+      const limit = 1; //only highlight one occurence
+      const listItemEl = (Array.isArray(result) ? result : [result]).map(
+        (r, i) => `
 					<li>
 						<div class="hover-highlight"></div>
 						${utils.highlight(term, utils.htmlEscape(r.text.trim()), limit)}
 					</li>
-				`);
-			return listItemEl;
-		};
-		const createFileResultsEl = (result, index) => {
-			const items = ['html', 'json', 'info'];
-			const iconClass = "icon-" + items[Math.floor(Math.random() * items.length)];
-			const open = (term.length > 1 || !this.resultsInDom) ? 'open' : '';
-			const fileResultsEl = htmlToElement(`
+				`
+      );
+      return listItemEl;
+    };
+    const createFileResultsEl = (result, index) => {
+      const items = ["html", "json", "info"];
+      const iconClass =
+        "icon-" + items[Math.floor(Math.random() * items.length)];
+      const open = term.length > 1 || !this.resultsInDom ? "open" : "";
+      const fileResultsEl = htmlToElement(`
 				<li class="foldable ${open}" data-path="${result.file}">
 					<div>
 						<div class="hover-highlight"></div>
 						<span class="${iconClass}">${result.docName}</span>
 						<span class="doc-path">${result.path}</span>
 					</div>
-					<ul>${addFileResultsLineEl(result).join('\n')}</ul>
+					<ul>${addFileResultsLineEl(result).join("\n")}</ul>
 				</li>
 			`);
-			return fileResultsEl;
-		};
-		for(var rindex=0; rindex<results.length; rindex++){
-			const x = results[rindex];
-			try {
-				const parsed = JSON.parse(x)
-				parsed.docName = parsed.file.split('/').pop();
-				parsed.path = parsed.file.replace('/'+parsed.docName, '').replace(/^\.\//, '')
-				allMatches.push(parsed)
+      return fileResultsEl;
+    };
+    for (var rindex = 0; rindex < results.length; rindex++) {
+      const x = results[rindex];
+      try {
+        const parsed = JSON.parse(x);
+        parsed.docName = parsed.file.split("/").pop();
+        parsed.path = parsed.file
+          .replace("/" + parsed.docName, "")
+          .replace(/^\.\//, "");
+        allMatches.push(parsed);
 
-				window.requestAnimationFrame(() => {
-					const existingFileResultsEl = this.dom.results.querySelector(`li[data-path="${parsed.file}"] ul`);
-					let newLineItems;
-					if(existingFileResultsEl){
-						newLineItems = addFileResultsLineEl(parsed);
-					}
-					if(newLineItems){
-						const elementItems = newLineItems.map(htmlToElement);
-						existingFileResultsEl.append(...elementItems);
-						return;
-					}
-					const fileResultsEl = createFileResultsEl(parsed, rindex);
-					this.dom.results.appendChild(fileResultsEl);
-					this.resultsInDom = true;
-				});
-			} catch(e){
-				console.warn(`trouble parsing: ${x}, ${e}`)
-			}
-		}
-	}
+        window.requestAnimationFrame(() => {
+          const existingFileResultsEl = this.dom.results.querySelector(
+            `li[data-path="${parsed.file}"] ul`
+          );
+          let newLineItems;
+          if (existingFileResultsEl) {
+            newLineItems = addFileResultsLineEl(parsed);
+          }
+          if (newLineItems) {
+            const elementItems = newLineItems.map(htmlToElement);
+            existingFileResultsEl.append(...elementItems);
+            return;
+          }
+          const fileResultsEl = createFileResultsEl(parsed, rindex);
+          this.dom.results.appendChild(fileResultsEl);
+          this.resultsInDom = true;
+        });
+      } catch (e) {
+        console.warn(`trouble parsing: ${x}, ${e}`);
+      }
+    }
+  }
 
-	updateSummary({ allMatches, time, searchTerm, loading }){
-		if(loading){
-			this.dom.summary.innerHTML = '';
-			return;
-		}
-		if(!allMatches || !allMatches.length){
-			this.dom.summary.innerHTML = 'No results';
-			return;
-		}
-		const totalFiles = utils.unique(allMatches.map(x=>x.docName))
-			.map(x => ({
-				filename: x,
-				results: []
-			}));
-		const pluralRes = allMatches.length > 1 ? "s" : ''
-		const pluralFile = totalFiles.length > 1 ? "s" : ''
-		this.dom.summary.innerHTML = `${allMatches.length} result${pluralRes} in ${totalFiles.length} file${pluralFile}, ${time.toFixed(2)} ms`;
-	}
+  updateSummary({ allMatches, time, searchTerm, loading }) {
+    if (loading) {
+      this.dom.summary.innerHTML = "";
+      return;
+    }
+    if (!allMatches || !allMatches.length) {
+      this.dom.summary.innerHTML = "No results";
+      return;
+    }
+    const totalFiles = utils
+      .unique(allMatches.map((x) => x.docName))
+      .map((x) => ({
+        filename: x,
+        results: [],
+      }));
+    const pluralRes = allMatches.length > 1 ? "s" : "";
+    const pluralFile = totalFiles.length > 1 ? "s" : "";
+    this.dom.summary.innerHTML = `${allMatches.length} result${pluralRes} in ${
+      totalFiles.length
+    } file${pluralFile}, ${time.toFixed(2)} ms`;
+  }
 }
 
 let searchBox;
 const Search = (parent) => {
-	searchBox = searchBox || new SearchBox(parent);
-	searchBox.hide();
-/*
+  searchBox = searchBox || new SearchBox(parent);
+  searchBox.hide();
+  /*
 	searchBox.updateTerm(searchTerm);
 	searchBox.updateInclude(path)
 	searchBox.searchStream({ term: searchTerm, include: path })
 */
 
-	return searchBox;
+  return searchBox;
 };
 
-const getTreeViewDOM = ({ showOpenService  } = {}) => {
-	if(opener && showOpenService){
-		opener.classList.remove('hidden');
-		const treeMenuLabel = document.querySelector('#tree-menu .title-label h2');
-		treeMenuLabel.innerText = 'NO FOLDER OPENED';
-	} else if(opener) {
-		opener.classList.add('hidden');
-	}
-	if(treeView){
-		return treeView;
-	}
+const getTreeViewDOM = ({ showOpenService } = {}) => {
+  if (opener && showOpenService) {
+    opener.classList.remove("hidden");
+    const treeMenuLabel = document.querySelector("#tree-menu .title-label h2");
+    treeMenuLabel.innerText = "NO FOLDER OPENED";
+  } else if (opener) {
+    opener.classList.add("hidden");
+  }
+  if (treeView) {
+    return treeView;
+  }
 
-	treeView = document.createElement('div');
-	treeView.id = 'tree-view';
-	opener = ProjectOpener();
-	if(showOpenService){
-		const treeMenuLabel = document.querySelector('#tree-menu .title-label h2');
-		treeMenuLabel.innerText = 'NO FOLDER OPENED';
-	} else {
-		opener.classList.add('hidden');
-	}
-	treeView.appendChild(opener);
+  treeView = document.createElement("div");
+  treeView.id = "tree-view";
+  opener = ProjectOpener();
+  if (showOpenService) {
+    const treeMenuLabel = document.querySelector("#tree-menu .title-label h2");
+    treeMenuLabel.innerText = "NO FOLDER OPENED";
+  } else {
+    opener.classList.add("hidden");
+  }
+  treeView.appendChild(opener);
 
-	const explorerPane = document.body.querySelector('#explorer');
-	explorerPane.appendChild(TreeMenu());
-	Search(explorerPane);
-	explorerPane	.appendChild(ScrollShadow(treeView));
-	explorerPane.appendChild(treeView);
-	explorerPane.classList.remove('pane-loading');
+  const explorerPane = document.body.querySelector("#explorer");
+  explorerPane.appendChild(TreeMenu());
+  Search(explorerPane);
+  explorerPane.appendChild(ScrollShadow(treeView));
+  explorerPane.appendChild(treeView);
+  explorerPane.classList.remove("pane-loading");
 
-	return treeView;
+  return treeView;
 };
 
 const updateTree = (treeView) => (change, { name, id, file }) => {
-	if(change !== "dirty"){
-		return;
-	}
+  if (change !== "dirty") {
+    return;
+  }
 
-	let dirtyParents;
-	//console.log(`Need to mark ${file} from ${name} ${id} as dirty`);
-	Array.from(treeView.querySelectorAll('.tree-leaf-content'))
-		.forEach(t => {
-			const item = JSON.parse(t.dataset.item);
-			if(item.name === file){
-				t.classList.add('changed');
-				dirtyParents = t.dataset.path.split('/').filter(x => !!x);
-			}
-		});
-	if(!dirtyParents){
-		return
-	}
-	Array.from(treeView.querySelectorAll('.tree-leaf-content'))
-		.forEach(t => {
-			const item = JSON.parse(t.dataset.item);
-			if(dirtyParents.includes(item.name)){
-				t.classList.add('changed');
-			}
-		});
+  let dirtyParents;
+  //console.log(`Need to mark ${file} from ${name} ${id} as dirty`);
+  Array.from(treeView.querySelectorAll(".tree-leaf-content")).forEach((t) => {
+    const item = JSON.parse(t.dataset.item);
+    if (item.name === file) {
+      t.classList.add("changed");
+      dirtyParents = t.dataset.path.split("/").filter((x) => !!x);
+    }
+  });
+  if (!dirtyParents) {
+    return;
+  }
+  Array.from(treeView.querySelectorAll(".tree-leaf-content")).forEach((t) => {
+    const item = JSON.parse(t.dataset.item);
+    if (dirtyParents.includes(item.name)) {
+      t.classList.add("changed");
+    }
+  });
+};
+
+function treeDomNodeFromPath(path) {
+  if (!path) {
+    return document.querySelector("#tree-view");
+  }
+  const leaves = Array.from(
+    document.querySelectorAll("#tree-view .tree-leaf-content")
+  );
+  const name = path.split("/").pop();
+  const found = leaves.find((x) => JSON.parse(x.dataset.item).name === name);
+  return found;
 }
 
-function treeDomNodeFromPath(path){
-	if(!path){
-		return document.querySelector('#tree-view');
-	}
-	const leaves = Array.from(document.querySelectorAll('#tree-view .tree-leaf-content'));
-	const name = path.split('/').pop()
-	const found = leaves.find(x => JSON.parse(x.dataset.item).name === name)
-	return found;
-}
-
-function newFile({ parent, onDone }){
-	if(!onDone){
-		return console.error('newFile requires an onDone event handler');
-	}
-	const parentDOM = treeDomNodeFromPath(parent);
-	let nearbySibling;
-	if(parent){
-		const expando = parentDOM.querySelector('.tree-expando');
-		expando.classList.remove('closed');
-		expando.classList.add('expanded', 'open');
-		const childLeaves = parentDOM.parentNode.querySelector('.tree-child-leaves');
-		childLeaves.classList.remove('hidden');
-		nearbySibling = childLeaves.querySelector('.tree-leaf');
-	} else {
-		try {
-			nearbySibling = Array.from(parentDOM.children)
-				.find(x => JSON.parse(
-					x.querySelector('.tree-leaf-content').dataset.item
-					).children.length === 0
-				)
-		} catch(e) {}
-	}
-	if(!nearbySibling){
-		console.error('unable to add new file; error parsing DOM')
-		return;
-	}
-	const paddingLeft = nearbySibling
-		.querySelector('.tree-leaf-content')
-		.style.paddingLeft;
-	const newFileNode = htmlToElement(`
+function newFile({ parent, onDone }) {
+  if (!onDone) {
+    return console.error("newFile requires an onDone event handler");
+  }
+  const parentDOM = treeDomNodeFromPath(parent);
+  let nearbySibling;
+  if (parent) {
+    const expando = parentDOM.querySelector(".tree-expando");
+    expando.classList.remove("closed");
+    expando.classList.add("expanded", "open");
+    const childLeaves = parentDOM.parentNode.querySelector(
+      ".tree-child-leaves"
+    );
+    childLeaves.classList.remove("hidden");
+    nearbySibling = childLeaves.querySelector(".tree-leaf");
+  } else {
+    try {
+      nearbySibling = Array.from(parentDOM.children).find(
+        (x) =>
+          JSON.parse(x.querySelector(".tree-leaf-content").dataset.item)
+            .children.length === 0
+      );
+    } catch (e) {}
+  }
+  if (!nearbySibling) {
+    console.error("unable to add new file; error parsing DOM");
+    return;
+  }
+  const paddingLeft = nearbySibling.querySelector(".tree-leaf-content").style
+    .paddingLeft;
+  const newFileNode = htmlToElement(`
 		<div class="tree-leaf new">
 			<div class="tree-leaf-content" style="padding-left: ${paddingLeft};">
 				<div class="tree-leaf-text icon-default">
@@ -740,44 +781,47 @@ function newFile({ parent, onDone }){
 			</div>
 		</div>
 		`);
-	const fileNameInput = newFileNode.querySelector('input');
-	const finishInput = (event) => {
-		if (event.key && event.key !== "Enter") { return; }
-		const filename = fileNameInput.value;
+  const fileNameInput = newFileNode.querySelector("input");
+  const finishInput = (event) => {
+    if (event.key && event.key !== "Enter") {
+      return;
+    }
+    const filename = fileNameInput.value;
 
-		fileNameInput.removeEventListener('blur', finishInput);
-		fileNameInput.removeEventListener('keyup', finishInput);
-		if(!filename){ return; }
+    fileNameInput.removeEventListener("blur", finishInput);
+    fileNameInput.removeEventListener("keyup", finishInput);
+    if (!filename) {
+      return;
+    }
 
-		newFileNode.classList.add('creating');
-		fileNameInput.disabled = true;
-		onDone(filename, parent);
-	};
-	fileNameInput.addEventListener("blur", finishInput);
-	fileNameInput.addEventListener("keyup", finishInput);
+    newFileNode.classList.add("creating");
+    fileNameInput.disabled = true;
+    onDone(filename, parent);
+  };
+  fileNameInput.addEventListener("blur", finishInput);
+  fileNameInput.addEventListener("keyup", finishInput);
 
-	//TODO: focus input, when input loses focus create real file
-	//TODO: when ENTER is pressed, create real file (or add a cool error box)
-	nearbySibling.parentNode.insertBefore(newFileNode, nearbySibling);
-	fileNameInput.focus();
+  //TODO: focus input, when input loses focus create real file
+  //TODO: when ENTER is pressed, create real file (or add a cool error box)
+  nearbySibling.parentNode.insertBefore(newFileNode, nearbySibling);
+  fileNameInput.focus();
 }
 window.newFile = newFile; //TODO: kill this some day
 
-function newFolder({ parent, onDone }){
-	if(!onDone){
-		return console.error('newFolder requires an onDone event handler');
-	}
-	const parentDOM = treeDomNodeFromPath(parent);
-	const expando = parentDOM.querySelector('.tree-expando');
-	expando.classList.remove('closed');
-	expando.classList.add('expanded', 'open');
-	const childLeaves = parentDOM.parentNode.querySelector('.tree-child-leaves');
-	childLeaves.classList.remove('hidden');
-	const nearbySibling = childLeaves.querySelector('.tree-leaf');
-	const paddingLeft = nearbySibling
-		.querySelector('.tree-leaf-content')
-		.style.paddingLeft;
-	const newFolderNode = htmlToElement(`
+function newFolder({ parent, onDone }) {
+  if (!onDone) {
+    return console.error("newFolder requires an onDone event handler");
+  }
+  const parentDOM = treeDomNodeFromPath(parent);
+  const expando = parentDOM.querySelector(".tree-expando");
+  expando.classList.remove("closed");
+  expando.classList.add("expanded", "open");
+  const childLeaves = parentDOM.parentNode.querySelector(".tree-child-leaves");
+  childLeaves.classList.remove("hidden");
+  const nearbySibling = childLeaves.querySelector(".tree-leaf");
+  const paddingLeft = nearbySibling.querySelector(".tree-leaf-content").style
+    .paddingLeft;
+  const newFolderNode = htmlToElement(`
 		<div class="tree-leaf new">
 			<div class="tree-leaf-content" style="padding-left: ${paddingLeft};">
 				<div class="tree-leaf-text icon-default">
@@ -786,87 +830,93 @@ function newFolder({ parent, onDone }){
 			</div>
 		</div>
 	`);
-	const folderNameInput = newFolderNode.querySelector('input');
-	const finishInput = (event) => {
-		if (event.key && event.key !== "Enter") { return; }
-		const foldername = folderNameInput.value;
+  const folderNameInput = newFolderNode.querySelector("input");
+  const finishInput = (event) => {
+    if (event.key && event.key !== "Enter") {
+      return;
+    }
+    const foldername = folderNameInput.value;
 
-		folderNameInput.removeEventListener('blur', finishInput);
-		folderNameInput.removeEventListener('keyup', finishInput);
-		newFolderNode.parentNode.removeChild(newFolderNode);
+    folderNameInput.removeEventListener("blur", finishInput);
+    folderNameInput.removeEventListener("keyup", finishInput);
+    newFolderNode.parentNode.removeChild(newFolderNode);
 
-		if(!foldername){ return; }
-		onDone(foldername, parent);
-	};
-	folderNameInput.addEventListener("blur", finishInput);
-	folderNameInput.addEventListener("keyup", finishInput);
+    if (!foldername) {
+      return;
+    }
+    onDone(foldername, parent);
+  };
+  folderNameInput.addEventListener("blur", finishInput);
+  folderNameInput.addEventListener("keyup", finishInput);
 
-	//TODO: focus input, when input loses focus create real folder
-	//TODO: when ENTER is pressed, create real folder (or add a cool error box)
-	nearbySibling.parentNode.insertBefore(newFolderNode, nearbySibling);
-	folderNameInput.focus();
+  //TODO: focus input, when input loses focus create real folder
+  //TODO: when ENTER is pressed, create real folder (or add a cool error box)
+  nearbySibling.parentNode.insertBefore(newFolderNode, nearbySibling);
+  folderNameInput.focus();
 }
 
-function showServiceChooser(treeview){
-	return () => {
-		getTreeViewDOM({ showOpenService: true  })
-	};
+function showServiceChooser(treeview) {
+  return () => {
+    getTreeViewDOM({ showOpenService: true });
+  };
 }
 
 let projectName;
 const updateTreeMenu = ({ title, project }) => {
-	const treeMenu = document.querySelector('#explorer #tree-menu');
-	const titleEl = treeMenu.querySelector('.title-label h2');
-	const explorerActions = document.querySelector('#explorer .actions-container');
-	if(title && title.toLowerCase() === 'search'){
-		explorerActions.style.display = 'none';
-	} else {
-		explorerActions.style.display = '';
-	}
-	if(title){
-		titleEl.setAttribute('title', title);
-		titleEl.innerText = title;
-		return;
-	}
-	titleEl.setAttribute('title', project || projectName || '');
-	titleEl.innerText = project || projectName || '';
-	if(project){
-		projectName = project;
-	}
+  const treeMenu = document.querySelector("#explorer #tree-menu");
+  const titleEl = treeMenu.querySelector(".title-label h2");
+  const explorerActions = document.querySelector(
+    "#explorer .actions-container"
+  );
+  if (title && title.toLowerCase() === "search") {
+    explorerActions.style.display = "none";
+  } else {
+    explorerActions.style.display = "";
+  }
+  if (title) {
+    titleEl.setAttribute("title", title);
+    titleEl.innerText = title;
+    return;
+  }
+  titleEl.setAttribute("title", project || projectName || "");
+  titleEl.innerText = project || projectName || "";
+  if (project) {
+    projectName = project;
+  }
 };
 
 const showSearch = (treeView) => {
-	const treeSearch = treeView.parentNode.querySelector('.tree-search');
-	const searchInput = document.querySelector('.project-search-input');
-	return ({ show }) => {
-		if(show){
-			treeView.style.visibility = 'hidden';
-			treeSearch.style.visibility = 'visible';
-			treeSearch.style.height = '';
-			updateTreeMenu({ title: 'search' });
-			setTimeout(() => {
-				searchInput.focus();
-				searchInput.select();
-			}, 1);
-		} else {
-			treeView.style.visibility = 'visible';
-			treeSearch.style.visibility = 'hidden';
-			updateTreeMenu({ })
-		}
-	};
+  const treeSearch = treeView.parentNode.querySelector(".tree-search");
+  const searchInput = document.querySelector(".project-search-input");
+  return ({ show }) => {
+    if (show) {
+      treeView.style.visibility = "hidden";
+      treeSearch.style.visibility = "visible";
+      treeSearch.style.height = "";
+      updateTreeMenu({ title: "search" });
+      setTimeout(() => {
+        searchInput.focus();
+        searchInput.select();
+      }, 1);
+    } else {
+      treeView.style.visibility = "visible";
+      treeSearch.style.visibility = "hidden";
+      updateTreeMenu({});
+    }
+  };
 };
 
-function _TreeView(op){
-	if(op === "hide"){
-		const prevTreeView = document.querySelector('#tree-view');
-		if(prevTreeView){
-			prevTreeView.style.display = "none";
-		}
-		return;
-	}
-	const treeView = getTreeViewDOM();
-	treeView.style.display = "";
-	const treeViewStyle = htmlToElement(`
+function _TreeView(op) {
+  if (op === "hide") {
+    const prevTreeView = document.querySelector("#tree-view");
+    if (prevTreeView) {
+      prevTreeView.style.display = "none";
+    }
+    return;
+  }
+  const treeView = getTreeViewDOM();
+  treeView.style.display = "";
+  const treeViewStyle = htmlToElement(`
 		<style>
 			#tree-view {
 				opacity: .7;
@@ -878,19 +928,15 @@ function _TreeView(op){
 			}
 		</style>
 	`);
-	treeView.parentNode.append(treeViewStyle);
+  treeView.parentNode.append(treeViewStyle);
 
-	attachListener(
-		treeView,
-		JSTreeView,
-		updateTree(treeView),
-		{
-			newFile, newFolder,
-			showSearch: showSearch(treeView),
-			updateTreeMenu,
-			showServiceChooser: showServiceChooser(treeView)
-		}
-	);
+  attachListener(treeView, JSTreeView, updateTree(treeView), {
+    newFile,
+    newFolder,
+    showSearch: showSearch(treeView),
+    updateTreeMenu,
+    showServiceChooser: showServiceChooser(treeView),
+  });
 }
 
 export default _TreeView;

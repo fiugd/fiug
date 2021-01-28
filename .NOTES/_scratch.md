@@ -3,7 +3,7 @@
 why I keep vscode open
 ----------------------
 
-- [ ] service worker flow is not merged to main flow
+- [X] service worker flow is not merged to main flow
 - [X] no search in project / folder
 
 - [ ] awkward integration with file system
@@ -778,5 +778,14 @@ visual studio code insiders
 
 animation
 =========
-
 - bodymovin / lottie-web - https://codepen.io/collection/nVYWZR/
+
+fantasy consoles
+================
+- https://script-8.github.io/
+- https://www.lexaloffle.com/pico-8.php
+- https://discord.gg/sFeDxWK (fantasy consoles)
+
+pixel art
+=========
+- https://www.aseprite.org/

@@ -1,6 +1,6 @@
 /* doing the same thing as workbox here? */
 
-const cacheName = "v0.4.1";
+const cacheName = "v0.4.2";
 
 importScripts("/shared/vendor/localforage.min.js");
 importScripts("/shared/vendor/json5v-2.0.0.min.js");
@@ -130,6 +130,7 @@ function asyncFetchHandler(event) {
     event.request.url.includes("cdn.skypack.dev")
   ) {
     console.warn(`NOT AVAILABLE OFFLINE: ${event.request.url}`);
+    // TODO: cache this!!!
     return;
   }
 
@@ -160,8 +161,9 @@ function fetchHandler(event) {
   const safeHandlers = handlers.filter(
     (x) => !routeHandlerBlacklist.includes(x.routePattern)
   );
+  const path = event.request.url.replace(location.origin, "");
   const foundHandler = safeHandlers.find((x) => {
-    return x.type === "fetch" && x.route.test(event.request.url);
+    return x.type === "fetch" && x.route.test(path);
   });
   if (foundHandler) {
     //console.log(foundHandler)

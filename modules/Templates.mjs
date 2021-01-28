@@ -1,4 +1,4 @@
-import { attachListeners } from './events/templates.mjs';
+import { attachListeners } from "./templatesEvents.mjs";
 
 const jsxFirst = `
 <!DOCTYPE html>
@@ -46,7 +46,7 @@ const jsxFirst = `
 	//console.log(window.h);
 	`;
 
-	const jsxSecond = `
+const jsxSecond = `
 	render(<App />, document.body);
 	</script>
 
@@ -205,92 +205,90 @@ const svc3Second = `
 </html
 `;
 
-
 // DEPRECATE
-function templateSVC3(src){
-	return `${svc3First}${src}${svc3Second}`;
+function templateSVC3(src) {
+  return `${svc3First}${src}${svc3Second}`;
 }
 
 // DEPRECATE
-function templateJSX(src){
-	//console.log('JSX TEMPLATE ACTIVATE');
-	return `${jsxFirst}${src}${jsxSecond}`;
+function templateJSX(src) {
+  //console.log('JSX TEMPLATE ACTIVATE');
+  return `${jsxFirst}${src}${jsxSecond}`;
 }
 
 const convertRaw = (raw) => {
   const newTemp = {
     extensions: [],
-    body: '',
+    body: "",
     tokens: [],
-    matcher: () => false //TODO: matchers are not currently implemented
+    matcher: () => false, //TODO: matchers are not currently implemented
   };
-  if(!raw || !raw.name || !raw.code){
+  if (!raw || !raw.name || !raw.code) {
     return newTemp;
   }
-  newTemp.extensions.push(raw.name.split('.')[0]);
-  newTemp.tokens = [...new Set(raw.code.match(/{{.*}}/g))]
-    .map(x => x.replace(/{{|}}/g,''));
+  newTemp.extensions.push(raw.name.split(".")[0]);
+  newTemp.tokens = [...new Set(raw.code.match(/{{.*}}/g))].map((x) =>
+    x.replace(/{{|}}/g, "")
+  );
   newTemp.body = raw.code;
   return newTemp;
 };
 
 let templates = [];
 // get/save all the templates
-function updateTemplates(rawTemplates){
+function updateTemplates(rawTemplates) {
   templates = rawTemplates.map(convertRaw);
 }
 
-attachListeners({ updateTemplates })
+attachListeners({ updateTemplates });
 
 // TODO: maybe cache this answer (and kill cache when updateTemplates is ran)
 const isSupported = ({ name, contents }, returnMatched) => {
   return true;
-  const extensionMatch = templates.find(t =>
-    t.extensions.find(ext =>
-      (name||'').includes(`.${ext}`)
-    )
+  const extensionMatch = templates.find((t) =>
+    t.extensions.find((ext) => (name || "").includes(`.${ext}`))
   );
-  if(extensionMatch){
+  if (extensionMatch) {
     return returnMatched ? extensionMatch : !!extensionMatch;
   }
 
   const jsonMatch = (() => {
-    if(!(name||'').includes('.json')){ return; }
-    if(!contents.includes('file-type')){ return; }
+    if (!(name || "").includes(".json")) {
+      return;
+    }
+    if (!contents.includes("file-type")) {
+      return;
+    }
     try {
       const parsed = JSON.parse(contents);
-      const extensionMatch = templates.find(t =>
-        t.extensions
-          .find(ext => parsed['file-type'] === ext )
+      const extensionMatch = templates.find((t) =>
+        t.extensions.find((ext) => parsed["file-type"] === ext)
       );
       return extensionMatch;
-    } catch(e){
-      console.log(e)
+    } catch (e) {
+      console.log(e);
     }
   })();
-  if(jsonMatch){
+  if (jsonMatch) {
     return returnMatched ? jsonMatch : !!jsonMatch;
   }
 
-  const matcherMatch = templates.find(x => x.matcher({name, contents}));
+  const matcherMatch = templates.find((x) => x.matcher({ name, contents }));
   return returnMatched ? matcherMatch : !!matcherMatch;
 };
 
 const transform = ({ name, contents }) => {
   return contents;
-  if(name.includes('.htm')){
+  if (name.includes(".htm")) {
     return contents;
   }
-  const template = isSupported({ name, contents }, 'returnMatched');
-  if(!template){
-    console.error('could not find a template that matched this file!');
+  const template = isSupported({ name, contents }, "returnMatched");
+  if (!template) {
+    console.error("could not find a template that matched this file!");
     return;
   }
-  return template.body
-    .replace(`\{\{${template.tokens[0]}\}\}`, contents);
+  return template.body.replace(`\{\{${template.tokens[0]}\}\}`, contents);
 };
-
-
 
 // [light] when asked if file/contents are supported by template, say so
 
@@ -298,7 +296,4 @@ const transform = ({ name, contents }) => {
 
 // Q: what if multiple templates match?
 
-export {
-  templateJSX, templateSVC3,
-  isSupported, transform
-};
+export { templateJSX, templateSVC3, isSupported, transform };

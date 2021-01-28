@@ -51,7 +51,7 @@
       "editorLint.js": {},
       "editor_diff.js": {},
       "fiug-bundle.js": {},
-      "github.html": {},
+      "github.js": {},
       "golden-layout.css": {},
       "golden-layout.js": {},
       "hexedit.js": {},
@@ -735,8 +735,8 @@
       "path": ".welcome/.templates/gif.html"
     },
     {
-      "name": "github.html",
-      "path": ".welcome/1ncubate/github.html"
+      "name": "github.js",
+      "path": ".welcome/1ncubate/github.js"
     },
     {
       "name": "glitch1.png",

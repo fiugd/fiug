@@ -5,8 +5,10 @@
 
 bartok was a music composer   
 original idea for this editor was frontend for a service composer   
-a fugue is a form of musical composition
-fiug.dev is how you spell it if you are me trying to find a catchy/short/available domain name 
+a fugue is a form of musical composition   
+fiug.dev is how you spell it if you are me trying to find a catchy/short/available domain name   
+
+I'm working on thinking more of this as `fiug` and less as `bartok` but maybe the later still has a life, dunno   
 
 
 

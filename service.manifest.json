@@ -15,6 +15,7 @@
         "./bartok-logo.png",
 
         "/shared/vendor/stylus.min.js",
+        "/shared/vendor/materialize.min.js",
 
         "/shared/vendor/localforage.min.js",
         "/shared/vendor/json5v-2.0.0.min.js",

@@ -1,6 +1,6 @@
 /* doing the same thing as workbox here? */
 
-const cacheName = "v0.4.2";
+const cacheName = "v0.4.3";
 
 importScripts("/shared/vendor/localforage.min.js");
 importScripts("/shared/vendor/json5v-2.0.0.min.js");
@@ -34,12 +34,16 @@ function getHandlerStore() {
 }
 handlerStore = getHandlerStore();
 
+importScripts("/modules/service-worker.handler.js");
+
 const activateHandlers = async () => {
   handlerStore = getHandlerStore();
 
   return await handlerStore.iterate((value, key) => {
     const { type, route, handlerName, handlerText } = value;
+    //this (and the fact that all handlers currently use it) ensures that ./modules/serviceRequestHandler.js is a singleton
     const foundHandler = handlers.find((x) => x.handlerName === handlerName);
+
     const foundExactHandler =
       foundHandler &&
       handlers.find(
@@ -55,6 +59,7 @@ const activateHandlers = async () => {
     if (!foundHandler) {
       handlerFunction = eval(handlerText);
     }
+
     console.log(`handler installed for ${route} (from indexDB handlerStore)`);
     handlers.push({
       type,
@@ -167,7 +172,9 @@ function fetchHandler(event) {
   });
   if (foundHandler) {
     //console.log(foundHandler)
-    return foundHandler.handler(event);
+    //TODO: check if the handler returns a response object, otherwise don't use it??
+    //return foundHandler.handler(event);
+    return self.handler(event);
   }
   return caches.match(event.request);
 }

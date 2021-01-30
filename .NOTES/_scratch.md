@@ -778,14 +778,22 @@ visual studio code insiders
 
 animation
 =========
+
 - bodymovin / lottie-web - https://codepen.io/collection/nVYWZR/
 
 fantasy consoles
 ================
+
 - https://script-8.github.io/
 - https://www.lexaloffle.com/pico-8.php
 - https://discord.gg/sFeDxWK (fantasy consoles)
 
 pixel art
 =========
+
 - https://www.aseprite.org/
+
+javascript module formats
+=========================
+
+- https://weblogs.asp.net/dixin/understanding-all-javascript-module-formats-and-tools

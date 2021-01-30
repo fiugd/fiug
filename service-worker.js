@@ -13,12 +13,13 @@ self.addEventListener("message", messageHandler);
 self.addEventListener("sync", syncHandler);
 self.addEventListener("push", pushHandler);
 
-const handlers = [];
+self.handlers = [];
 const driverOrder = [
   localforage.INDEXEDDB,
   localforage.WEBSQL,
   localforage.LOCALSTORAGE,
 ];
+
 let handlerStore;
 function getHandlerStore() {
   return (

@@ -24,8 +24,8 @@
 					this.key = key;
 					this.storage = storage;
 
-					//read provider storage provider
-					//read service storage for list of this provider's services
+					//MAYBE: read provider storage provider
+					//MAYBE: read service storage for list of this provider's services
 
 					this.test = bbpTest(this);
 					this.create = bbpCreate(this);
@@ -35,9 +35,11 @@
 
 					// most of this is handled in services logic
 					this.services = {};
-					this.services.create = bbpServiceCreate(this); //providerCreateServiceHandler (creates service based on this.files.read)
+					//providerCreateServiceHandler (creates service based on this.files.read)
+					this.services.create = bbpServiceCreate(this);
 					this.services.read = bbpServiceRead(this);
-					this.services.update = bbpServiceUpdate(this); //providerCreateServiceHandler (updates service based on this.files.read)
+					//providerCreateServiceHandler (updates service based on this.files.read)
+					this.services.update = bbpServiceUpdate(this);
 					this.services.delete = bbpServiceDelete(this);
 
 					this.files = {};
@@ -51,6 +53,62 @@
 					this.files.update = bbpServiceUpdate(this);
 					//providerFileChange (called from services.handleServiceUpdate)
 					this.files.delete = bbpServiceDelete(this);
+
+					resolve(this);
+				} catch(error) {
+					reject(error);
+				}
+			});
+		}
+	}
+	
+	const githubTest = () => () => 'not implemented';
+	const githubCreate = () => () => 'not implemented';
+	const githubRead = () => () => 'not implemented';
+	const githubUpdate = () => () => 'not implemented';
+	const githubDelete = () => () => 'not implemented';
+	
+	const githubServiceCreate = () => () => 'not implemented';
+	const githubServiceRead = () => () => 'not implemented';
+	const githubServiceUpdate = () => () => 'not implemented';
+	const githubServiceDelete = () => () => 'not implemented';
+
+	const githubFileCreate = () => () => 'not implemented';
+	const githubFileRead = () => () => 'not implemented';
+	const githubFileUpdate = () => () => 'not implemented';
+	const githubFileDelete = () => () => 'not implemented';
+
+	class GithubProvider {
+		constructor ({ key, storage }) {
+			return new Promise((resolve, reject) => {
+				try {
+					this.key = key;
+					this.storage = storage;
+
+					// the provider  user entered info <-> fiug providersStore
+					// store details about how each service connects to github
+					this.test = githubTest(this);
+					this.create = githubCreate(this);
+					this.read = githubRead(this);
+					this.update = githubDelete(this);
+					this.delete = githubDelete(this);
+
+					// child of the provider  gh repository <-> fiug servicesStore
+					// get repo from github, store tree in servicesStore
+					// modify service tree, sync github
+					this.services = {};
+					this.services.create = githubServiceCreate(this);
+					this.services.read = githubServiceRead(this);
+					this.services.update = githubServiceUpdate(this);
+					this.services.delete = githubServiceDelete(this);
+
+					// files from repository  gh repo files <-> fiug filesStore
+					// change a files contents, sync to github
+					this.files = {};
+					this.files.create = githubServiceCreate(this);
+					this.files.read = githubServiceRead(this);
+					this.files.update = githubServiceUpdate(this);
+					this.files.delete = githubServiceDelete(this);
 
 					resolve(this);
 				} catch(error) {

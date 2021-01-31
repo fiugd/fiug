@@ -15,7 +15,7 @@ In the service map, they are represented as code which can be deployed.
 Outside the service map, they exist as running instances of services that deploy and code.
 
 
-```
+``` ascii-diagram
 +-----------------------------------------------------------+
 |        SERVICE MAP                                        |
 +-----------------------------------------------------------+

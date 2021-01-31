@@ -1,7 +1,5 @@
 <!-- no-select -->
 
-
-
 ### 2020-12-15
 
 #### AWS Fault Injection Simulator: Fully managed chaos engineering service

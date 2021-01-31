@@ -51,6 +51,7 @@
       "editorLint.js": {},
       "editor_diff.js": {},
       "fiug-bundle.js": {},
+      "github-worker.mjs": {},
       "github.js": {},
       "golden-layout.css": {},
       "golden-layout.js": {},
@@ -733,6 +734,10 @@
     {
       "name": "gif.html",
       "path": ".welcome/.templates/gif.html"
+    },
+    {
+      "name": "github-worker.mjs",
+      "path": ".welcome/1ncubate/github-worker.mjs"
     },
     {
       "name": "github.js",

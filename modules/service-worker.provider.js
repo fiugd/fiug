@@ -1,4 +1,71 @@
 (() => {
+	const stringify = o => JSON.stringify(o,null,2);
+
+	const bbpTest = () => () => 'not implemented'; //handleProviderTest
+	const bbpCreate = () => () => 'not implemented'; //handleProviderCreate
+	const bbpRead = () => () => 'not implemented'; //handleProviderRead
+	const bbpUpdate = () => () => 'not implemented'; //handleProviderUpdate
+	const bbpDelete = () => () => 'not implemented'; //handleProviderDelete
+	
+	const bbpServiceCreate = () => () => 'not implemented';
+	const bbpServiceRead = () => () => 'not implemented';
+	const bbpServiceUpdate = () => () => 'not implemented';
+	const bbpServiceDelete = () => () => 'not implemented';
+
+	const bbpFileCreate = () => () => 'not implemented';
+	const bbpFileRead = () => () => 'not implemented';
+	const bbpFileUpdate = () => () => 'not implemented'; //providerFileChange
+	const bbpFileDelete = () => () => 'not implemented'; //providerFileChange
+
+	class BasicBartokProvider {
+		constructor ({ key, storage }) {
+			return new Promise((resolve, reject) => {
+				try {
+					this.key = key;
+					this.storage = storage;
+
+					//read provider storage provider
+					//read service storage for list of this provider's services
+
+					this.test = bbpTest(this);
+					this.create = bbpCreate(this);
+					this.read = bbpRead(this);
+					this.update = bbpDelete(this);
+					this.delete = bbpDelete(this);
+
+					// most of this is handled in services logic
+					this.services = {};
+					this.services.create = bbpServiceCreate(this); //providerCreateServiceHandler (creates service based on this.files.read)
+					this.services.read = bbpServiceRead(this);
+					this.services.update = bbpServiceUpdate(this); //providerCreateServiceHandler (updates service based on this.files.read)
+					this.services.delete = bbpServiceDelete(this);
+
+					this.files = {};
+					//providerFileChange (called from services.handleServiceUpdate)
+					this.files.create = bbpServiceCreate(this);
+					//providerCreateServiceHandler (reads files from provider into service)
+					//creates/updates service files based on this read
+					this.files.read = bbpServiceRead(this);
+					//providerFileChange (called from services.handleServiceUpdate)
+					//providerUpdateServiceJson (this is really a this.files.update for service.json)
+					this.files.update = bbpServiceUpdate(this);
+					//providerFileChange (called from services.handleServiceUpdate)
+					this.files.delete = bbpServiceDelete(this);
+
+					resolve(this);
+				} catch(error) {
+					reject(error);
+				}
+			});
+		}
+	}
+
+	/*
+		path: file path relative to a service which is child of provider
+		code: contents of file
+		parent: the service which contains file
+		deleteFile: boolean determines if file is deleted
+	*/
 	async function providerFileChange({ path, code, parent, deleteFile }) {
 		const foundParent =
 			parent ||
@@ -24,105 +91,35 @@
 	}
 
 	const handleProviderTest = () => async (params, event) => {
+		const body = await event.request.json();
+		const { providerType, providerUrl, providerAccessToken } = body;
+		const isSupported = ["basic-bartok-provider", "github-provider"].includes(
+			providerType
+		);
+		if (!isSupported) stringify({ error: `Unsupported provider type: ${providerType}` });
+		if (providerType === "github-provider")  stringify({ success: true, todo: "test user's access token" });
+
+		const fileUrl = (providerUrl + "/file/").replace("//file/", "/file/");
+		const treeUrl = (providerUrl + "/tree/").replace("//tree/", "/tree/");
 		try {
-			const body = await event.request.json();
-			const { providerType, providerUrl, providerAccessToken } = body;
-			const isSupported = ["basic-bartok-provider", "github-provider"].includes(
-				providerType
-			);
-			if (!isSupported) {
-				return JSON.stringify(
-					{
-						error: `Unsupported provider type: ${providerType}`,
-					},
-					null,
-					2
-				);
-			}
-			if (providerType === "github-provider") {
-				return JSON.stringify({
-					success: true,
-					todo: "test user's access token",
-				});
-			}
-			const fileUrl = (providerUrl + "/file/").replace("//file/", "/file/");
-			const treeUrl = (providerUrl + "/tree/").replace("//tree/", "/tree/");
-			try {
-				const baseRes = await fetch(providerUrl);
-				if (baseRes.status !== 200) {
-					return JSON.stringify(
-						{
-							error: `Failed to connect to provider at: ${providerUrl}`,
-						},
-						null,
-						2
-					);
-				}
-			} catch (e) {
-				return JSON.stringify(
-					{
-						error: `Failed to connect to provider at: ${providerUrl}`,
-					},
-					null,
-					2
-				);
-			}
-			try {
-				const fileRes = await fetch(fileUrl);
-				if (fileRes.status !== 200) {
-					return JSON.stringify(
-						{
-							error: `Failed to connect to provider at: ${fileUrl}`,
-						},
-						null,
-						2
-					);
-				}
-			} catch (e) {
-				return JSON.stringify(
-					{
-						error: `Failed to connect to provider at: ${fileUrl}`,
-					},
-					null,
-					2
-				);
-			}
-			try {
-				const treeRes = await fetch(treeUrl);
-				if (treeRes.status !== 200) {
-					return JSON.stringify(
-						{
-							error: `Failed to connect to provider at: ${treeUrl}`,
-						},
-						null,
-						2
-					);
-				}
-			} catch (e) {
-				return JSON.stringify(
-					{
-						error: `Failed to connect to provider at: ${treeUrl}`,
-					},
-					null,
-					2
-				);
-			}
-			return JSON.stringify(
-				{
-					success: true,
-				},
-				null,
-				2
-			);
+			const baseRes = await fetch(providerUrl);
+			if (baseRes.status !== 200) return stringify({ error: `Failed to connect to provider at: ${providerUrl}` });
 		} catch (e) {
-			return JSON.stringify(
-				{
-					error: e,
-				},
-				null,
-				2
-			);
+			return stringify({ error: `Failed to connect to provider at: ${providerUrl}` });
 		}
+		try {
+			const fileRes = await fetch(fileUrl);
+			if (fileRes.status !== 200) return stringify({ error: `Failed to connect to provider at: ${fileUrl}` });
+		} catch (e) {
+			return stringify({ error: `Failed to connect to provider at: ${fileUrl}` });
+		}
+		try {
+			const treeRes = await fetch(treeUrl);
+			if (treeRes.status !== 200) return stringify({ error: `Failed to connect to provider at: ${treeUrl}` });
+		} catch (e) {
+			return stringify({ error: `Failed to connect to provider at: ${treeUrl}` });
+		}
+		return stringify({ success: true });
 	};
 
 	const handleProviderCreate = ({ create }) => async (params, event) => {
@@ -130,35 +127,14 @@
 			const body = await event.request.json();
 			const { providerType, providerUrl } = body;
 			const isSupported = ["basic-bartok-provider"].includes(providerType);
-			if (!isSupported) {
-				return JSON.stringify(
-					{
-						error: `Unsupported provider type: ${providerType}`,
-					},
-					null,
-					2
-				);
-			}
+			if (!isSupported) stringify({ error: `Unsupported provider type: ${providerType}` });
 			const provider = await create({
 				id: providerUrl,
 				url: providerUrl,
 			});
-			return JSON.stringify(
-				{
-					success: true,
-					provider,
-				},
-				null,
-				2
-			);
-		} catch (e) {
-			return JSON.stringify(
-				{
-					error: e,
-				},
-				null,
-				2
-			);
+			return stringify({ success: true, provider });
+		} catch (error) {
+			return stringify({ error });
 		}
 	};
 
@@ -166,35 +142,27 @@
 		console.error(
 			"not implemented: provider read.  Should return one or all saved provider details."
 		);
-		return JSON.stringify({
-			error:
-				"not implemented: provider read.  Should return one or all saved provider details.",
-		});
+		return stringify({ error: "not implemented" });
 	};
 
 	const handleProviderUpdate = () => async (params, event) => {
 		console.error(
 			"not implemented: provider update.  Should update provider details."
 		);
-		return JSON.stringify({
-			error:
-				"not implemented: provider update.  Should update provider details.",
-		});
+		return stringify({ error: "not implemented" });
 	};
 
 	const handleProviderDelete = () => async (params, event) => {
 		console.error(
 			"not implemented: provider delete.  Should delete saved provider."
 		);
-		return JSON.stringify({
-			error: "not implemented: provider delete.  Should delete saved provider.",
-		});
+		return stringify({ error: "not implemented" });
 	};
 
-	const providerUpdateServiceJson = async ({
+	const _providerUpdateServiceJson = async ({
 		service,
 		servicesStore,
-		fileStore,
+		filesStore,
 	}) => {
 		const serviceJsonFile = service.code.find((x) =>
 			x.path.includes("/service.json")
@@ -226,13 +194,13 @@
 		);
 		const filePostUrl = `${providerUrl}file/${providerRoot}${pathWithoutParent}`;
 
-		serviceJsonFile.code = JSON.stringify(serviceJson, null, 2);
+		serviceJsonFile.code = stringify(serviceJson);
 		if (!serviceOther.name) {
 			console.error("cannot set services store item without service name");
 			return;
 		}
 		await servicesStore.setItem(service.id + "", serviceOther);
-		await fileStore.setItem(serviceJsonFile.path, serviceJsonFile.code);
+		await filesStore.setItem(serviceJsonFile.path, serviceJsonFile.code);
 		await fetch(filePostUrl, {
 			method: "post",
 			body: serviceJsonFile.code,
@@ -240,6 +208,9 @@
 	};
 
 	async function providerCreateServiceHandler(event) {
+		const servicesStore = this.stores.services;
+		const filesStore = this.stores.files;
+
 		console.warn("providerCreateServiceHandler");
 		try {
 			const body = await event.request.json();
@@ -263,32 +234,21 @@
 			*/
 
 			const isSupported = ["basic-bartok-provider"].includes(providerType);
-			if (!isSupported) {
-				return JSON.stringify({
-					error: `Unsupported provider type: ${providerType}`,
-				});
-			}
+			if (!isSupported) return stringify({ error: `Unsupported provider type: ${providerType}` });
 			const provider = await this.read(providerUrl);
-			if (!provider) {
-				return JSON.stringify({
-					error: `Provider does not exist: ${providerUrl}`,
-				});
-			}
+			if (!provider) return stringify({ error: `Provider does not exist: ${providerUrl}` });
+
 			// TODO: treeUrl, fileUrl aka provider.getTree should be on provider at this point
 			// maybe even provider.supported should be there
 			const treeUrl = (providerUrl + "/tree/").replace("//tree/", "/tree/");
 			const fileUrl = (providerUrl + "/file/").replace("//file/", "/file/");
 			const allServices = [];
-			await this.stores.services.iterate((value, key) => {
+			await servicesStore.iterate((value, key) => {
 				allServices.push(value);
 			});
 
 			const baseRes = await fetch(treeUrl);
-			if (baseRes.status !== 200) {
-				return JSON.stringify({
-					error: `Failed to connect to provider at: ${providerUrl}`,
-				});
-			}
+			if (baseRes.status !== 200) return stringify({ error: `Failed to connect to provider at: ${providerUrl}` });
 			const {
 				files: providerFiles,
 				root: providerRoot,
@@ -314,14 +274,14 @@
 				console.error("cannot set services store item without service name");
 				return;
 			}
-			await this.stores.services.setItem(id + "", service);
+			await servicesStore.setItem(id + "", service);
 			service.code = [];
 			for (let f = 0; f < providerFiles.length; f++) {
 				const filePath = providerFiles[f];
 				const fileContents = await this.utils.fetchFileContents(
 					`${fileUrl}${providerRoot}/${filePath}`
 				);
-				this.stores.files.setItem(
+				filesStore.setItem(
 					`./${providerRootName}/${filePath}`,
 					fileContents
 				);
@@ -331,34 +291,16 @@
 					code: typeof fileContents === "string" ? fileContents : "",
 				});
 			}
-			await providerUpdateServiceJson({
-				service,
-				servicesStore: this.stores.services,
-				fileStore: this.stores.files,
-			});
+			await this.providerUpdateServiceJson({ service, servicesStore, filesStore });
 
 			await this.app.addServiceHandler({
 				name: providerRootName,
 				msg: "served from fresh baked",
 			});
-			return JSON.stringify(
-				{
-					result: {
-						services: [service],
-					},
-				},
-				null,
-				2
-			);
-		} catch (e) {
-			console.error(e);
-			return JSON.stringify(
-				{
-					error: e,
-				},
-				null,
-				2
-			);
+			return stringify({ result: { services: [service] } });
+		} catch (error) {
+			console.error(error);
+			return stringify({ error });
 		}
 	}
 
@@ -376,7 +318,9 @@
 				updateHandler: handleProviderUpdate(this),
 				deleteHandler: handleProviderDelete(this),
 			};
+
 			// related to services that are hosted by provider
+			this.providerUpdateServiceJson = _providerUpdateServiceJson.bind(this);
 			this.createServiceHandler = providerCreateServiceHandler.bind(this);
 			this.fileChange = providerFileChange.bind(this);
 		}

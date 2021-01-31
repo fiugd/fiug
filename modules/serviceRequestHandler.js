@@ -1,3 +1,7 @@
+/*
+	DEPRECATE: this file is not used; delete when ready
+*/
+
 let mimeTypes;
 const xfrmMimes = (() => {
 	let cache;

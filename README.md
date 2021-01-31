@@ -3,22 +3,31 @@
 
 ### about the name
 
-bartok was a composer   
-this is a service composer   
+bartok was a music composer   
+original idea for this editor was frontend for a service composer   
+a fugue is a form of musical composition   
+fiug.dev is how you spell it if you are me trying to find a catchy/short/available domain name   
+
+I'm working on thinking more of this as `fiug` and less as `bartok` but maybe the later still has a life, dunno   
+
 
 
 ### how to run
 
-to run UI:
+I'm working on making this as easy as https://fiug.dev (try it out!)
+
+That may not be working all the time... or now.
+
+to run UI locally:
+- git clone this repo
 - `npm install`
 - `npm run watch` 
-
-or just load index.html in your browser
-
 
 to run server:
 - run UI as above
 - `npm run watch.server` 
+
+there is also a basic server which does much less than what I had this server doing, see "about the name"
 
 
 ### misc notes
@@ -29,7 +38,6 @@ terminal
 
 tree view   
 - https://www.jqueryscript.net/blog/Best-Tree-View-Plugins-jQuery.html
--
 
 editor minimap   
 - broken - https://github.com/alex-seville/minimap
@@ -65,5 +73,6 @@ other names for this service considered:
 - mratibu - Swahili - "organizer or coordinator"
 - alakoso - Yoruba - "director, ruler"
 - catechist - (one of the things alakso can mean) because it sounds cool, "to question or instruct" related to Christian religion
+- ... and more, forgot those (and you don't really care, do you?)
 
 

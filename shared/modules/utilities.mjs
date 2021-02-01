@@ -17,7 +17,8 @@ function codemirrorModeFromFileType(fileType){
 		image: { name  : 'default' },
 		bat: { name: 'default' },
 		mjs: { name: 'javascript' },
-		json: { name: 'javascript', json: true }
+		json: { name: 'javascript', json: true },
+		c: { name: 'c', mimeType: 'text/x-csrc' }
 	};
 	//console.log({ fileType, conversions: conversions[fileType] });
 	return conversions[fileType] || fileType;

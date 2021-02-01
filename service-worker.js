@@ -179,7 +179,8 @@ function fetchHandler(event) {
     //return foundHandler.handler(event);
     return self.handler(event);
   }
-  return caches.match(event.request);
+  const match = await caches.match(event.request);
+  event.respondWith(match || fetch(event.request));
 }
 
 function messageHandler(event) {

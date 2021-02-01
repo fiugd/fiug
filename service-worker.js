@@ -1,6 +1,6 @@
 /* doing the same thing as workbox here? */
 
-const cacheName = "v0.4.5";
+const cacheName = "v0.4.6";
 
 importScripts("/shared/vendor/localforage.min.js");
 importScripts("/shared/vendor/json5v-2.0.0.min.js");
@@ -180,10 +180,9 @@ function fetchHandler(event) {
     return self.handler(event);
   }
   event.respondWith(
-    caches.match(event.request)
-      .then(function (response) {
-        return response || fetch(event.request);
-      })
+    caches.match(event.request).then(function (response) {
+      return response || fetch(event.request);
+    })
   );
 }
 

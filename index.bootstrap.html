@@ -49,7 +49,7 @@
             }
         }
 
-        return reg.active;
+        return reg && reg.active;
     }
     const serviceWorkerMessageHandler = (manifest) => {
         const progressBar = document.getElementById('progress-bar');

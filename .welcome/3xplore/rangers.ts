@@ -1,3 +1,5 @@
+//show-preview
+
 /*
 	libraries for aggregating, reducing, manipulating data:
 
@@ -219,6 +221,7 @@ class Backup {
 					used[number].teammates[t] = used[number].teammates[t] || 0;
 					used[number].teammates[t]++;
 				})
+				//if(number === "1165") console.log({ rank: user.rank });
 			});
 		});
 		return Object.entries(used)

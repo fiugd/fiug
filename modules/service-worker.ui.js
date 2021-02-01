@@ -186,10 +186,10 @@
 			handlerText: foundHandler.handlerText,
 		});
 		await handlerStore.setItem(route, {
-			type,
+			type: foundHandler ? foundHandler.type : "fetch",
 			route,
 			handlerName: handler,
-			handlerText: foundHandler.handlerText,
+			handlerText: foundHandler ? foundHandler.handlerText : 'service-worker-handler(set in ui manager)',
 		});
 	};
 

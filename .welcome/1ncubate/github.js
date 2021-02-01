@@ -45,7 +45,8 @@ cons:
 alternatives:
 - precompile github octokit code
 - compile octokit on the fly
-- could call github API directly vs using octokit
+- could call github API directly vs using octokit <<< BEST!!! (see fetch below)
+	- https://docs.github.com/en/rest
 
 */
 
@@ -99,6 +100,14 @@ const sessionPrompt = (varName) => {
 	const repo = 'fiug';
 	const tree_sha = 'e002fde335352b29e28ac8b2d844cf814e59b1e8'
 	const auth = sessionPrompt('Github Personal Access Token');
+	
+	//https://docs.github.com/en/rest
+	const result = await( await fetch("https://api.github.com/rate_limit", {
+		headers: {
+			authorization: `token ${auth}`,
+		}
+	})).json();
+	await log({ rateLimit: result })
 
 	await GithubWorker.init.exec({ auth }); // do this better (class)
 
@@ -109,7 +118,7 @@ const sessionPrompt = (varName) => {
 	//await log({ repos: repos.filter(x => !x.fork) }); 
 	
 	const { data: rateLimit } = await GithubWorker.rateLimit.get.exec();
-	await log({ rateLimit });
+	//await log({ rateLimit });
 	
 	const { data: repoContent } = await  GithubWorker.repos.getContent.exec({ owner, repo });
 	await log({ repoContent });

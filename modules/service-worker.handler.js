@@ -6,10 +6,9 @@ const require = (url) => {
 	return exports;
 };
 
-(() => {
+(async () => {
 	const swHandlers = self.handlers;
 
-	console.log('--- a new thing happened today ---');
 	const utils = require("./service-worker.utils.js");
 	utils.initMimeTypes();
 
@@ -17,6 +16,8 @@ const require = (url) => {
 	const { Router } = require("./service-worker.router.js");
 	const { UIManager } = require("./service-worker.ui.js");
 	const { ProviderManager } = require("./service-worker.provider.js");
+	const { GithubProvider } = require("./service-worker.provider.github.js");
+
 	const { ServicesManager } = require("./service-worker.services.js");
 	const { TemplateEngine } = require("./service-worker.templates.js");
 
@@ -26,7 +27,9 @@ const require = (url) => {
 	ui.init(storage.stores.handlers, storage.stores.changes);
 
 	const app = new Router({ storage, TemplateEngine, swHandlers });
-	const providers = new ProviderManager({ app, storage, utils });
+	const providers = await new ProviderManager({
+		app, storage, utils, GithubProvider
+	});
 	const services = new ServicesManager({ app, storage, providers, ui, utils });
 
 	app.get("/service/search/", storage.handlers.serviceSearch); // move handler to services

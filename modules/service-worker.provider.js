@@ -61,94 +61,12 @@
 			});
 		}
 	}
-	
-	const githubTest = () => () => 'not implemented';
-	const githubCreate = () => () => 'not implemented';
-	const githubRead = () => () => 'not implemented';
-	const githubUpdate = () => () => 'not implemented';
-	const githubDelete = () => () => 'not implemented';
-	
-	const githubServiceCreate = () => () => 'not implemented';
-	const githubServiceRead = () => () => 'not implemented';
-	const githubServiceUpdate = () => () => 'not implemented';
-	const githubServiceDelete = () => () => 'not implemented';
 
-	const githubFileCreate = () => () => 'not implemented';
-	const githubFileRead = () => () => 'not implemented';
-	const githubFileUpdate = () => () => 'not implemented';
-	const githubFileDelete = () => () => 'not implemented';
+	const handleProviderTest = ({ github}) => async (params, event) => {
+		// in the future, will cycle through ALL providers and return repsonse from one
+		const githubResponse = github && await github.handler('test', { params, event });
+		if(githubResponse) return githubResponse;
 
-	class GithubProvider {
-		constructor ({ key, storage }) {
-			return new Promise((resolve, reject) => {
-				try {
-					this.key = key;
-					this.storage = storage;
-
-					// the provider  user entered info <-> fiug providersStore
-					// store details about how each service connects to github
-					this.test = githubTest(this);
-					this.create = githubCreate(this);
-					this.read = githubRead(this);
-					this.update = githubDelete(this);
-					this.delete = githubDelete(this);
-
-					// child of the provider  gh repository <-> fiug servicesStore
-					// get repo from github, store tree in servicesStore
-					// modify service tree, sync github
-					this.services = {};
-					this.services.create = githubServiceCreate(this);
-					this.services.read = githubServiceRead(this);
-					this.services.update = githubServiceUpdate(this);
-					this.services.delete = githubServiceDelete(this);
-
-					// files from repository  gh repo files <-> fiug filesStore
-					// change a files contents, sync to github
-					this.files = {};
-					this.files.create = githubServiceCreate(this);
-					this.files.read = githubServiceRead(this);
-					this.files.update = githubServiceUpdate(this);
-					this.files.delete = githubServiceDelete(this);
-
-					resolve(this);
-				} catch(error) {
-					reject(error);
-				}
-			});
-		}
-	}
-
-	/*
-		path: file path relative to a service which is child of provider
-		code: contents of file
-		parent: the service which contains file
-		deleteFile: boolean determines if file is deleted
-	*/
-	async function providerFileChange({ path, code, parent, deleteFile }) {
-		const foundParent =
-			parent ||
-			(await this.stores.services.iterate((value, key) => {
-				if (value.name === parent || value.name === parent.name) {
-					return value;
-				}
-			}));
-		if (!foundParent || !foundParent.providerUrl)
-			throw new Error(
-				"file not saved to provider: service not associated with a provider"
-			);
-		const { providerUrl, providerRoot } = foundParent;
-		const pathWithoutParent = path.replace("./" + foundParent.name, "");
-		const filePostUrl = `${providerUrl}file/${providerRoot}${pathWithoutParent}`;
-
-		const filePostRes = await this.utils.fetchJSON(filePostUrl, {
-			method: deleteFile ? "DELETE" : "POST",
-			body: deleteFile ? undefined : code,
-		});
-		if (filePostRes.error) throw new Error(filePostRes.error);
-		return filePostRes;
-	}
-
-	const handleProviderTest = () => async (params, event) => {
 		const body = await event.request.json();
 		const { providerType, providerUrl, providerAccessToken } = body;
 		const isSupported = ["basic-bartok-provider", "github-provider"].includes(
@@ -180,7 +98,11 @@
 		return stringify({ success: true });
 	};
 
-	const handleProviderCreate = ({ create }) => async (params, event) => {
+	const handleProviderCreate = ({ create, github }) => async (params, event) => {
+		// in the future, will cycle through ALL providers and return repsonse from one
+		const githubResponse = github && await github.handler('create', { params, event });
+		if(githubResponse) return githubResponse;
+
 		try {
 			const body = await event.request.json();
 			const { providerType, providerUrl } = body;
@@ -216,58 +138,15 @@
 		);
 		return stringify({ error: "not implemented" });
 	};
-
-	const _providerUpdateServiceJson = async ({
-		service,
-		servicesStore,
-		filesStore,
-	}) => {
-		const serviceJsonFile = service.code.find((x) =>
-			x.path.includes("/service.json")
-		);
-		if (!serviceJsonFile) return;
-		const serviceJson = JSON.parse(serviceJsonFile.code);
-
-		const { code, ...serviceOther } = service;
-		const { providerUrl, providerRoot } = service;
-
-		serviceJson.tree = service.tree[service.name];
-		serviceJson.files = service.code
-			.map((x) => ({
-				name: x.name,
-				path: x.path.replace("./", ""),
-			}))
-			.sort((a, b) => {
-				if (a.name.toLowerCase() > b.name.toLowerCase()) {
-					return 1;
-				}
-				if (a.name.toLowerCase() < b.name.toLowerCase()) {
-					return -1;
-				}
-				return 0;
-			});
-		const pathWithoutParent = serviceJsonFile.path.replace(
-			"./" + service.name,
-			""
-		);
-		const filePostUrl = `${providerUrl}file/${providerRoot}${pathWithoutParent}`;
-
-		serviceJsonFile.code = stringify(serviceJson);
-		if (!serviceOther.name) {
-			console.error("cannot set services store item without service name");
-			return;
-		}
-		await servicesStore.setItem(service.id + "", serviceOther);
-		await filesStore.setItem(serviceJsonFile.path, serviceJsonFile.code);
-		await fetch(filePostUrl, {
-			method: "post",
-			body: serviceJsonFile.code,
-		});
-	};
-
-	async function providerCreateServiceHandler(event) {
+	
+	// servicesCreate
+	async function _providerCreateServiceHandler(event) {
 		const servicesStore = this.stores.services;
 		const filesStore = this.stores.files;
+		
+		// in the future, will cycle through ALL providers and return repsonse from one
+		const githubResponse = this.github && await this.github.handler('servicesCreate', { event });
+		if(githubResponse) return githubResponse;
 
 		console.warn("providerCreateServiceHandler");
 		try {
@@ -361,26 +240,131 @@
 			return stringify({ error });
 		}
 	}
+	// servicesRead
+	// servicesUpdate
+	const _providerUpdateServiceJson = async ({ service, servicesStore, filesStore, }) => {
+		// in the future, will cycle through ALL providers and return repsonse from one
+		const githubResponse = this.github && await this.github.handler('servicesUpdate', { service });
+		if(githubResponse) return githubResponse;
+
+		const serviceJsonFile = service.code.find((x) =>
+			x.path.includes("/service.json")
+		);
+		if (!serviceJsonFile) return;
+		const serviceJson = JSON.parse(serviceJsonFile.code);
+
+		const { code, ...serviceOther } = service;
+		const { providerUrl, providerRoot } = service;
+
+		serviceJson.tree = service.tree[service.name];
+		serviceJson.files = service.code
+			.map((x) => ({
+				name: x.name,
+				path: x.path.replace("./", ""),
+			}))
+			.sort((a, b) => {
+				if (a.name.toLowerCase() > b.name.toLowerCase()) {
+					return 1;
+				}
+				if (a.name.toLowerCase() < b.name.toLowerCase()) {
+					return -1;
+				}
+				return 0;
+			});
+		const pathWithoutParent = serviceJsonFile.path.replace(
+			"./" + service.name,
+			""
+		);
+		const filePostUrl = `${providerUrl}file/${providerRoot}${pathWithoutParent}`;
+
+		serviceJsonFile.code = stringify(serviceJson);
+		if (!serviceOther.name) {
+			console.error("cannot set services store item without service name");
+			return;
+		}
+		await servicesStore.setItem(service.id + "", serviceOther);
+		await filesStore.setItem(serviceJsonFile.path, serviceJsonFile.code);
+		await fetch(filePostUrl, {
+			method: "post",
+			body: serviceJsonFile.code,
+		});
+	};
+	// servicesDelete
+
+	// filesCreate
+	// filesRead
+	// filesUpdate
+	async function _providerFileChange(args) {
+		const { path, code, parent, deleteFile } = args;
+
+		// in the future, will cycle through ALL providers and return repsonse from one
+		const githubResponse = this.github && await this.github.handler('filesUpdate', args);
+		if(githubResponse) return githubResponse;
+
+		const foundParent =
+			parent ||
+			(await this.stores.services.iterate((value, key) => {
+				if (value.name === parent || value.name === parent.name) {
+					return value;
+				}
+			}));
+		if (!foundParent || !foundParent.providerUrl)
+			throw new Error(
+				"file not saved to provider: service not associated with a provider"
+			);
+		const { providerUrl, providerRoot } = foundParent;
+		const pathWithoutParent = path.replace("./" + foundParent.name, "");
+		const filePostUrl = `${providerUrl}file/${providerRoot}${pathWithoutParent}`;
+
+		const filePostRes = await this.utils.fetchJSON(filePostUrl, {
+			method: deleteFile ? "DELETE" : "POST",
+			body: deleteFile ? undefined : code,
+		});
+		if (filePostRes.error) throw new Error(filePostRes.error);
+		return filePostRes;
+	}
+	// filesDelete
 
 	class ProviderManager {
-		constructor({ app, storage, utils }) {
-			this.app = app;
-			this.store = storage.stores.providers;
+		constructor({ app, storage, utils, GithubProvider }) {
+			return new Promise(async (resolve, reject) => {
+				try {
+					this.app = app;
+					this.storage = storage;
+					this.utils = utils;
 
-			this.stores = storage.stores;
-			this.utils = utils;
-			this.handlers = {
-				testHandler: handleProviderTest(this),
-				createHandler: handleProviderCreate(this),
-				readHandler: handleProviderRead(this),
-				updateHandler: handleProviderUpdate(this),
-				deleteHandler: handleProviderDelete(this),
-			};
+					// I kinda don't like either of these (or thier usage)
+					this.store = storage.stores.providers;
+					this.stores = storage.stores;
 
-			// related to services that are hosted by provider
-			this.providerUpdateServiceJson = _providerUpdateServiceJson.bind(this);
-			this.createServiceHandler = providerCreateServiceHandler.bind(this);
-			this.fileChange = providerFileChange.bind(this);
+					this.github = await new GithubProvider(this);
+
+					this.handlers = {
+						testHandler: handleProviderTest(this),
+						createHandler: handleProviderCreate(this),
+						readHandler: handleProviderRead(this),
+						updateHandler: handleProviderUpdate(this),
+						deleteHandler: handleProviderDelete(this),
+					};
+
+					// servicesCreate
+					this.createServiceHandler = _providerCreateServiceHandler.bind(this);
+					// servicesRead
+					// servicesUpdate
+					this.providerUpdateServiceJson = _providerUpdateServiceJson.bind(this);
+					// servicesDelete
+
+					// filesCreate
+					// filesRead
+					// filesUpdate
+					this.fileChange = _providerFileChange.bind(this);
+					// filesDelete
+
+					resolve(this);
+				} catch(error) {
+					reject(error);
+				}
+			});
 		}
 
 		create = async (provider) => {

@@ -206,9 +206,9 @@
 				filesToUpdate.push(file);
 			}
 
-			// TOFO: binary files
-			console.warn(`may need to update binary files!`);
-			console.log(binaryFiles.map((x) => x.key));
+			// TODO: binary files
+			//console.warn(`may need to update binary files!`);
+			//console.log(binaryFiles.map((x) => x.key));
 
 			// delete any storage files that are not in service
 			for (let i = 0; i < allServiceFiles.length; i++) {

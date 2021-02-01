@@ -1,6 +1,6 @@
 /* doing the same thing as workbox here? */
 
-const cacheName = "v0.4.3";
+const cacheName = "v0.4.4";
 
 importScripts("/shared/vendor/localforage.min.js");
 importScripts("/shared/vendor/json5v-2.0.0.min.js");
@@ -51,17 +51,19 @@ const activateHandlers = async () => {
         (x) => x.handlerName === handlerName && x.routePattern === route
       );
     if (foundExactHandler) {
-      console.log(
-        `handler was already installed for ${foundExactHandler.routePattern}`
-      );
+      //console.log(`handler was already installed for ${foundExactHandler.routePattern}`);
       return;
     }
     let handlerFunction;
     if (!foundHandler) {
-      handlerFunction = eval(handlerText);
+      try {
+        handlerFunction = eval(handlerText);
+      } catch(e){
+        handlerFunction = self.handler;
+      }
     }
 
-    console.log(`handler installed for ${route} (from indexDB handlerStore)`);
+    //console.log(`handler installed for ${route} (from indexDB handlerStore)`);
     handlers.push({
       type,
       routePattern: route,

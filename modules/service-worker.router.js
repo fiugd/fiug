@@ -200,7 +200,7 @@
 			(x) => x.pathString === pathString && x.method === method
 		);
 		if (foundHandler) {
-			console.log(`Overwriting handler for ${method} : ${pathString}`);
+			//console.log(`Overwriting handler for ${method} : ${pathString}`);
 			foundHandler.handler = handler;
 			return;
 		}

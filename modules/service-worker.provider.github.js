@@ -152,7 +152,9 @@
 				keys.push(key);
 				if(value.name === repo) foundService = { key, ...value };
 			});
-			const newId = Math.max(...keys) + 1;
+			const newId = keys.length
+				? Math.max(...keys) + 1
+				: 3000; // this sucks
 
 			const githubToServiceTree = (githubTreeItems) => {
 				const tree = { [repo]: {} };

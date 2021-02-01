@@ -163,7 +163,7 @@ function asyncFetchHandler(event) {
   );
 }
 
-function fetchHandler(event) {
+async function fetchHandler(event) {
   const routeHandlerBlacklist = ["//(.*)"];
 
   const safeHandlers = handlers.filter(
@@ -179,11 +179,11 @@ function fetchHandler(event) {
     //return foundHandler.handler(event);
     return self.handler(event);
   }
-  event.respondWith(
-    caches.match(event.request).then(function (response) {
-      return response || fetch(event.request);
-    })
-  );
+
+  const cacheMatch = await caches.match(event.request);
+  if (cacheMatch) return cacheMatch;
+
+  return await fetch(event.request);
 }
 
 function messageHandler(event) {

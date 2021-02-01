@@ -348,11 +348,15 @@ const SystemDocs = (section, errors) => {
 					<input class="hidden" autocomplete="false" name="hidden" type="text">
 					<input name="provider-type" class="hidden" type="text" value="github-provider">
 
-					<label>Github Personal Access Token</label>
+					<label>Personal Access Token</label>
 					<input name="provider-access-token" type="text" >
 
-					<button class="provider-test">Test Provider</test>
-					<button class="provider-save">Save Provider</test>
+					<button class="provider-test">Test Provider</button>
+					<button class="provider-save">Save Provider</button>
+
+					<label style="margin-top: 30px;">Repository</label>
+					<input name="provider-repository" type="text" value="crosshj/fiug-welcome">
+
 					<button class="provider-add-service">Add Repository</button>
 				</form>
 			</li>
@@ -367,8 +371,8 @@ const SystemDocs = (section, errors) => {
 					<label>Server URL</label>
 					<input name="provider-url" type="text" value="http://localhost:3333/">
 
-					<button class="provider-test">Test Provider</test>
-					<button class="provider-save">Save Provider</test>
+					<button class="provider-test">Test Provider</button>
+					<button class="provider-save">Save Provider</button>
 					<button class="provider-add-service">Add Folder</button>
 				</form>
 			</li>
@@ -383,8 +387,8 @@ const SystemDocs = (section, errors) => {
 					<label>Server URL</label>
 					<input name="provider-url" type="text" >
 
-					<button class="provider-test">Test Provider</test>
-					<button class="provider-save">Save Provider</test>
+					<button class="provider-test">Test Provider</button>
+					<button class="provider-save">Save Provider</button>
 					<button class="provider-add-service">Add Folder</button>
 				</form>
 			</li>

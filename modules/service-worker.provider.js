@@ -1,6 +1,31 @@
 (() => {
 	const stringify = o => JSON.stringify(o,null,2);
 
+	async function _fetchFileContents(url, opts) {
+		const storeAsBlob = [
+			"image/",
+			"audio/",
+			"video/",
+			"wasm",
+			"application/zip",
+		];
+		const storeAsBlobBlacklist = ["image/svg", "image/x-portable-pixmap"];
+		const fileNameBlacklist = [
+			".ts", // mistaken as video/mp2t
+		].map(x => new RegExp(`${x}\$`.replace(/\./, '\.')));
+
+		const fetched = await fetch(url, opts);
+		const contentType = fetched.headers.get("Content-Type");
+
+		let _contents =
+			storeAsBlob.find((x) => contentType.includes(x)) &&
+			!storeAsBlobBlacklist.find((x) => contentType.includes(x)) &&
+			!fileNameBlacklist.find((x) => x.test(url))
+				? await fetched.blob()
+				: await fetched.text();
+		return _contents;
+	}
+
 	const bbpTest = () => () => 'not implemented'; //handleProviderTest
 	const bbpCreate = () => () => 'not implemented'; //handleProviderCreate
 	const bbpRead = () => () => 'not implemented'; //handleProviderRead
@@ -327,11 +352,12 @@
 
 	class ProviderManager {
 		constructor({ app, storage, utils, GithubProvider }) {
-			return new Promise(async (resolve, reject) => {
+			return new Promise(async (resolve) => {
 				try {
 					this.app = app;
 					this.storage = storage;
 					this.utils = utils;
+					this.fetchContents = _fetchFileContents.bind(this);
 
 					// I kinda don't like either of these (or thier usage)
 					this.store = storage.stores.providers;

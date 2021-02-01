@@ -1,6 +1,6 @@
 /* doing the same thing as workbox here? */
 
-const cacheName = "v0.4.4";
+const cacheName = "v0.4.5";
 
 importScripts("/shared/vendor/localforage.min.js");
 importScripts("/shared/vendor/json5v-2.0.0.min.js");
@@ -58,7 +58,7 @@ const activateHandlers = async () => {
     if (!foundHandler) {
       try {
         handlerFunction = eval(handlerText);
-      } catch(e){
+      } catch (e) {
         handlerFunction = self.handler;
       }
     }

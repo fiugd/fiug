@@ -562,6 +562,7 @@ const providerHandler = ({
 		const mappedName = {
 			"provider-url": "providerUrl",
 			"provider-access-token": "providerAccessToken",
+			"provider-repository": "providerRepository",
 			"provider-type": "providerType",
 		}[one.name];
 		if (!mappedName) {

@@ -243,7 +243,9 @@
 				: path.split("/").pop();
 			let xformedFile;
 
-			const file = await filesStore.getItem(`./${base}/${cleanPath}`);
+			// TODO: settle on just one filesStore key pattern to avoid this
+			const file = await filesStore.getItem(`${base}/${cleanPath}`)
+				|| await filesStore.getItem(`./${base}/${cleanPath}`);
 			let fileJSONString;
 			try {
 				if (typeof file !== "string") {

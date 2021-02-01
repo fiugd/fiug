@@ -179,8 +179,12 @@ function fetchHandler(event) {
     //return foundHandler.handler(event);
     return self.handler(event);
   }
-  const match = await caches.match(event.request);
-  event.respondWith(match || fetch(event.request));
+  event.respondWith(
+    caches.match(event.request)
+      .then(function (response) {
+        return response || fetch(event.request);
+      })
+  );
 }
 
 function messageHandler(event) {

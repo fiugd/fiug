@@ -1,6 +1,9 @@
 function getReadAfter(List, inlineEditor, getCodeFromService) {
 	return ({ result = {} } = {}) => {
-		console.warn('Read After');
+		// I think this console.log was here because I was trying to move away from using this
+		// it's a callback pattern and I would prefer not to use it
+		//  but I wanted to make sure it was safe to go away, dunno...
+		//console.warn('Read After');
 	};
 }
 

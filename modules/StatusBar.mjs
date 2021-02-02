@@ -80,7 +80,7 @@ function StatusBar(){
 
 	const tabSettingsEl = statusBar.querySelector('.editor-status-indentation');
 	tabSettingsEl.addEventListener("click", () => {
-		console.warn('pop up menu to select tab size and indentation style');
+		//console.warn('pop up menu to select tab size and indentation style');
 		settings.indentWithTabs = !settings.indentWithTabs;
 		localStorage.setItem('editorSettings', JSON.stringify(settings));
 		tabSettingsEl.innerHTML = tabSettingsElString(settings);

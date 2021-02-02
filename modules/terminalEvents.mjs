@@ -716,9 +716,7 @@ const operationDone = ({ viewUpdate, viewReload }) => (event) => {
 };
 
 const operations = ({ viewUpdate, getCurrentService }) => (event) => {
-	console.log(
-		`terminal event listen heard operation: ${event.detail.operation}`
-	);
+	//console.log(`terminal event listen heard operation: ${event.detail.operation}`);
 	if (event.detail.operation !== "update") {
 		return;
 	}

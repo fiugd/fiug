@@ -280,7 +280,8 @@ const SystemDocs = (section, errors) => {
 			align-items: center;
 		}
 		#settings-all-services-list {
-			min-height: 400px;
+			/*min-height: 400px;*/
+			justify-content: flex-start;
 		}
 	</style>
 	`;
@@ -939,37 +940,36 @@ const showBinaryPreview = ({ filename, path = "." } = {}) => {
 };
 
 let systemDocsDOM;
-const showSystemDocsView = ({ filename, errors }) => {
+const showSystemDocsView = ({ filename='', errors=[], op='' }) => {
 	if (!systemDocsDOM) {
 		const editorContainer = document.getElementById("editor-container");
 		systemDocsDOM = SystemDocs();
 		editorContainer.appendChild(systemDocsDOM);
 	}
 	if (filename) {
-		systemDocsDOM.querySelector(".thisSystemDoc").innerHTML = SystemDocs(
-			filename
-		);
+		systemDocsDOM.querySelector(".thisSystemDoc").innerHTML = SystemDocs(filename);
 	}
 	const allServicesList = document.getElementById("settings-all-services-list");
-	if (
-		allServicesList &&
-		(filename === "open-previous-service" || filename === "open-settings-view")
-	) {
+
+	const updateServicesListDom = async () => {
+		if(!allServicesList) return;
 		allServicesList.innerHTML = "<li>loading...</li>";
-		(async () => {
-			const services = await getAllServices();
-			allServicesList.innerHTML = services
-				.map(
-					(s) => `
-				<li>
-					<span>[ ${s.id} ] ${s.name}</span>
-					<button onclick="localStorage.setItem('lastService', '${s.id}'); document.location.reload()">LOAD</button>
-				</li>
-			`
-				)
-				.join("\n");
-		})();
-	}
+		const services = (await getAllServices()) || [];
+		const ServiceRowOnClick = (s) => [
+			`localStorage.setItem('lastService','${s.id}');`,
+			`document.location.reload();`
+		].join(' ');
+		const ServiceRow = (s) => `
+			<li>
+				<span>[ ${s.id} ] ${s.name}</span>
+				<button onclick="${ServiceRowOnClick(s)}">LOAD</button>
+			</li>
+		`.trim().replace(/^			/g, '');
+		allServicesList.innerHTML = services.map(ServiceRow).join("\n");
+	};
+	updateServicesListDom();
+
+	// TODO: this could be improved to match the button which error'ed
 	if (errors.length) {
 		errors.forEach((error) => {
 			const domForError = systemDocsDOM.querySelector(
@@ -982,6 +982,7 @@ const showSystemDocsView = ({ filename, errors }) => {
 			console.error(error);
 		});
 	}
+
 	return systemDocsDOM;
 };
 
@@ -995,6 +996,9 @@ function _Editor(callback) {
 			systemDocsErrors = systemDocsErrors.filter((x) => x.op === op);
 			systemDocsErrors.push({ op, error: result.error });
 			showSystemDocsView({ errors: systemDocsErrors });
+			return;
+		} else {
+			showSystemDocsView({ op });
 		}
 	};
 

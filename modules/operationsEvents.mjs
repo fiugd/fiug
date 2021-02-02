@@ -604,17 +604,17 @@ const operationDoneHandler = ({
 	const result = tryFn(() => event.detail.result, []);
 	const op = tryFn(() => event.detail.op, "");
 	const inboundService = tryFn(() => event.detail.result[0], {});
+	const wasAllServicesRead = !event.detail.id && event.detail.id !== 0;
 
 	const readOneServiceDone =
 		result.length === 1 &&
 		op === "read" &&
-		inboundService.id &&
-		inboundService.id !== "*";
+		(inboundService.id || inboundService.id === 0) &&
+		inboundService.id !== "*" &&
+		!wasAllServicesRead;
 
 	const handledHere = [readOneServiceDone];
-	if (!handledHere.some((x) => x === true)) {
-		return;
-	}
+	if (!readOneServiceDone) return;
 
 	// TODO: this should be handled in state event handler..
 	if (readOneServiceDone) {

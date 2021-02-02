@@ -128,7 +128,7 @@ const ProjectOpener = () => {
 				<p>Specify a service to read from and write to.</p>
 
 				<button id="open-previous-service">Load Service</button>
-				<p>Select a previously opened service.</p>
+				<p>Select a previously-loaded service.</p>
 			</div>
 		</div>
 	`);

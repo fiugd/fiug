@@ -118,7 +118,7 @@ const getCurrentServiceTree = ({ flat, folders } = {}) => {
 // has side effects of setting current code
 const getCurrentService = ({ pure } = {}) => {
 	if (pure) {
-		if (!currentService.code) debugger;
+		//if (!currentService?.code) debugger;
 		return currentService;
 	}
 	const changedArray = Object.keys(state.changedFiles).map(

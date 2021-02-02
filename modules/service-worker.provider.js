@@ -173,7 +173,6 @@
 		const githubResponse = this.github && await this.github.handler('servicesCreate', { event });
 		if(githubResponse) return githubResponse;
 
-		console.warn("providerCreateServiceHandler");
 		try {
 			const body = await event.request.json();
 			let { providerType, providerUrl, providerAccessToken, repoName } = body;

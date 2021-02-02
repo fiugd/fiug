@@ -215,8 +215,6 @@
 	const _expressHandler = ({ TemplateEngine, storage }) => async (base, msg) => {
 		const filesStore = storage.stores.files;
 
-		console.log(`registering fake express handler for ${base}`);
-		
 		//TODO: maybe all this template logic should live elsewhere
 		const templates = new TemplateEngine();
 
@@ -293,7 +291,7 @@
 		);
 
 		if (foundExactHandler) {
-			console.log(`sw handler was already installed for ${foundExactHandler.routePattern} (boot)`);
+			//console.log(`sw handler was already installed for ${foundExactHandler.routePattern} (boot)`);
 		} else {
 			swHandlers.push({
 				type,

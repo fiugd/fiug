@@ -92,14 +92,11 @@ const contextMenuSelectHandler = ({ newFile } = {}) => (e) => {
 
 const operationDoneHandler = ({ switchEditor, messageEditor }) => (e) => {
 	const { detail } = e;
-	const { op, result } = detail;
-	if (
-		!detail ||
-		!op ||
-		!["provider-test", "provider-save", "provider-add-service"].includes(op)
-	) {
-		return;
-	}
+	const { op, result } = (detail || {});
+	if (![
+		"provider-test", "provider-save", "provider-add-service"
+	].includes(op)) return;
+
 	messageEditor({
 		op: op + "-done",
 		result,

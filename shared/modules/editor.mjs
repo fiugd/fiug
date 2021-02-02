@@ -160,6 +160,9 @@ const getModeWithEffects = (opts) => {
 	if(['ocaml', 'csharp', 'fsharp', 'java', 'kotlin'].includes(mode)){
 		opts.mode = 'text/x-' + mode;
 	}
+	if(mode === 'c'){
+		opts.mode = 'text/x-' + mode;
+	}
 	return mode;
 }
 

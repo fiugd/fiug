@@ -283,7 +283,7 @@
 	const _addServiceHandler = ({ storage, expressHandler, generic, swHandlers }) => async function ({ name, msg }) {
 		const handlersStore = storage.stores.handlers;
 		const route = `^/${name}/(.*)`;
-		const handlerName = "./modules/serviceRequestHandler.js"; //TODO: this will change!
+		const handlerName = "./modules/service-worker.handler.js";
 		const foundHandler = swHandlers.find((x) => x.handlerName === handlerName);
 		const type = foundHandler ? foundHandler.type : 'fetch';
 		const handler = foundHandler ? foundHandler.handler : 'route-handler';
@@ -307,7 +307,7 @@
 			await handlersStore.setItem(route, { type, route, handlerName, handlerText });
 		}
 
-		// question: if handler is found in SW state, should serviceRequestHandler state be updated?
+		// question: if handler is found in SW state, should service-worker.handler state be updated?
 		const expHandler = await expressHandler(name, msg);
 		generic("get")(`/${name}/:path?`, expHandler);
 		// ^^^ this should add handler to express _handlers

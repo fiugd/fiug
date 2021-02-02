@@ -403,7 +403,11 @@ function _Terminal() {
 			return;
 		}
 		type !== "forceRefreshOnPersist" && updateLockIcon(locked);
-		if (!supported && !doc && !url) debugger;
+		if (!supported && !doc && !url) {
+			//TODO: maybe there is a need for having a debugger here (as before)
+			// but it was annoying so I removed it, the todo is "figure it out"
+			return;
+		};
 		let src = supported
 			? transform({ name: docName, contents: doc })
 			: (docName || "").includes("jsx")

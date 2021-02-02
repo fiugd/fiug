@@ -42,12 +42,7 @@
 
         "https://cdnjs.cloudflare.com/ajax/libs/rxjs/6.2.1/rxjs.umd.min.js",
         "https://cdnjs.cloudflare.com/ajax/libs/core-js/2.5.7/core.js",
-        "https://unpkg.com/@angular/core@9.1.1/bundles/core.umd.js",
         "https://cdnjs.cloudflare.com/ajax/libs/zone.js/0.8.26/zone.min.js",
-        "https://unpkg.com/@angular/common@9.1.1/bundles/common.umd.js",
-        "https://unpkg.com/@angular/compiler@9.1.1/bundles/compiler.umd.js",
-        "https://unpkg.com/@angular/platform-browser@9.1.1/bundles/platform-browser.umd.js",
-        "https://unpkg.com/@angular/platform-browser-dynamic@9.1.1/bundles/platform-browser-dynamic.umd.js",
 
         "https://cdn.auth0.com/js/auth0-spa-js/1.7/auth0-spa-js.production.js",
 
@@ -135,15 +130,6 @@
         "/shared/vendor/julia/hello-no-bysyncify.data",
         "/shared/vendor/julia/hello-no-bysyncify.wasm",
 
-        "https://unpkg.com/three@0.115.0/build/three.js",
-        "https://unpkg.com/three@0.115.0/examples/js/controls/OrbitControls.js",
-        "https://unpkg.com/three@0.115.0/examples/js/loaders/GLTFLoader.js",
-        "https://unpkg.com/three@0.115.0/examples/js/math/SimplexNoise.js",
-        "https://unpkg.com/three@0.115.0/examples/js/shaders/CopyShader.js",
-        "https://unpkg.com/three@0.115.0/examples/js/shaders/SSAOShader.js",
-        "https://unpkg.com/three@0.115.0/examples/js/postprocessing/EffectComposer.js",
-        "https://unpkg.com/three@0.115.0/examples/js/postprocessing/ShaderPass.js",
-        "https://unpkg.com/three@0.115.0/examples/js/postprocessing/SSAOPass.js",
         "https://rawgit.com/mrdoob/three.js/master/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf",
         "https://rawgit.com/mrdoob/three.js/master/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.bin",
         "https://rawgit.com/mrdoob/three.js/master/examples/models/gltf/DamagedHelmet/glTF/Default_albedo.jpg",
@@ -403,22 +389,22 @@
     {
       "route": "/service/(.*)",
       "type": "fetch",
-      "handler": "./modules/serviceRequestHandler.js"
+      "handler": "./modules/service-worker.handler.js"
     },
     {
       "route": "/manage/(.*)",
       "type": "fetch",
-      "handler": "./modules/serviceRequestHandler.js"
+      "handler": "./modules/service-worker.handler.js"
     },
     {
       "route": "/monitor/(.*)",
       "type": "fetch",
-      "handler": "./modules/serviceRequestHandler.js"
+      "handler": "./modules/service-worker.handler.js"
     },
     {
       "route": "/persist/(.*)",
       "type": "fetch",
-      "handler": "./modules/serviceRequestHandler.js"
+      "handler": "./modules/service-worker.handler.js"
     },
 
     "NOTE: end modules"

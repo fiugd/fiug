@@ -29,7 +29,7 @@
 
 		const changes = localforage.createInstance({
 			driver,
-			name: "serviceRequest",
+			name: "service-worker",
 			version: 1.0,
 			storeName: "changes",
 			description: "keep track of changes not pushed to provider",
@@ -37,9 +37,9 @@
 
 		const handlers = localforage.createInstance({
 			driver,
-			name: "serviceWorker",
+			name: "service-worker",
 			version: 1.0,
-			storeName: "handlerStore",
+			storeName: "handlers",
 			description: "used after app has booted when service worker is updated",
 		});
 

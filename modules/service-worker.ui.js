@@ -152,7 +152,7 @@
 		manager.changed = (await changeStore.getItem("UIManagerChanged")) || {};
 
 		const route = `^/${manager.name}/(.*)`;
-		const handler = "./modules/serviceRequestHandler.js";
+		const handler = "./modules/service-worker.handler.js";
 
 		// this is the service worker's handlers
 		let foundHandler;

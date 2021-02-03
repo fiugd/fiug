@@ -209,6 +209,7 @@ const SystemDocs = (section, errors) => {
 		#editor-system-doc::-webkit-scrollbar-track { background: transparent; }
 		#editor-system-doc:hover::-webkit-scrollbar-thumb { background: #333; }
 		#editor-system-doc::-webkit-scrollbar-thumb { background: transparent; }
+		#editor-system-doc ::placeholder { opacity: 0.35; }
 
 		#editor-system-doc h1 {
 			font-size: 1.1em;
@@ -356,8 +357,16 @@ const SystemDocs = (section, errors) => {
 					<button class="provider-save">Save Provider</button>
 
 					<label style="margin-top: 30px;">Repository</label>
-					<input name="provider-repository" type="text" value="crosshj/fiug-welcome">
-
+					<input type="text"
+						name="provider-repository"
+						value="crosshj/fiug-welcome"
+						placeholder="{user}/{repository name}"
+					>
+					<input type="text"
+						name="provider-repository-branch"
+						value="main"
+						placeholder="branch name"
+					>
 					<button class="provider-add-service">Add Repository</button>
 				</form>
 			</li>
@@ -365,7 +374,7 @@ const SystemDocs = (section, errors) => {
 				<button
 					onclick="event.target.parentNode.querySelector('.provider-settings').classList.toggle('hidden')"
 				>Bartok Basic Server</button>
-				<form class="provider-settings hidden" autocomplete="off" onsubmit="return false;">
+				<form class="provider-settings" autocomplete="off" onsubmit="return false;">
 					<input class="hidden" autocomplete="false" name="hidden" type="text">
 					<input name="provider-type" class="hidden" type="text" value="basic-bartok-provider">
 

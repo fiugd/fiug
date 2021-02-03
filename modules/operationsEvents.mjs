@@ -559,11 +559,13 @@ const providerHandler = ({
 	}
 	let { data } = detail;
 	data = data.reduce((all, one) => {
+		// this is just an extra step, probably should remove it
 		const mappedName = {
 			"provider-url": "providerUrl",
-			"provider-access-token": "providerAccessToken",
-			"provider-repository": "providerRepository",
 			"provider-type": "providerType",
+			"provider-access-token": "auth",
+			"provider-repository": "repo",
+			"provider-repository-branch": "branch",
 		}[one.name];
 		if (!mappedName) {
 			console.error("could not find data mapping!");

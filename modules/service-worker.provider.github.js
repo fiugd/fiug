@@ -36,7 +36,7 @@
 	const githubTest = (githubProvider) => async (payload, params) => {
 		try {
 			const { storage } = githubProvider;
-			const { providerAccessToken: auth, providerRepository: repo } = payload;
+			const { auth, repo, branch } = payload;
 
 			const opts = { headers: {} };
 			if(auth) opts.headers.authorization = `token ${auth}`;
@@ -57,7 +57,7 @@
 	const githubCreate = (githubProvider) => async (payload, params) => {
 		try {
 			const { storage } = githubProvider;
-			const { providerAccessToken: auth } = payload;
+			const { auth, repo, branch } = payload;
 			const providersStore = storage.stores.providers;
 
 			console.log({ payload, params });
@@ -87,7 +87,7 @@
 		try {
 			const { storage: { stores }, fetchContents, app } = githubProvider;
 			// in the future, should not use auth from this call (should exist on provider)
-			const { providerAccessToken: auth, providerRepository: repo } = payload;
+			const { auth, repo, branch } = payload;
 			const providersStore = stores.providers;
 			const servicesStore = stores.services;
 			const filesStore = stores.files;
@@ -103,7 +103,7 @@
 			// pull tree (includes files info) from github
 			const latestCommitUrl = urls.latestCommit
 				.replace('{owner}/{repo}', repo)
-				.replace('{branch}', 'main');
+				.replace('{branch}', branch);
 			const { commit: { sha } } = await fetchJSON(latestCommitUrl, opts);
 			const getTreeUrl = urls.getTreeRecursive
 				.replace('{owner}/{repo}', repo)
@@ -134,7 +134,7 @@
 			const getOneFile = async (ghFile) => {
 				const getBlobUrl = (blob) => urls.rawBlob
 					.replace('{owner}/{repo}', repo)
-					.replace('{branch}', 'main')
+					.replace('{branch}', branch)
 					.replace('{blob.path}', blob.path);
 				const contents = await fetchContents(getBlobUrl(ghFile));
 				return { ...ghFile, contents };

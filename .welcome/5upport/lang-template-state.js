@@ -1,3 +1,5 @@
+//show-preview
+
 const deps =[
 	'../shared.styl',
 	'../../index.css'

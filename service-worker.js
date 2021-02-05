@@ -101,7 +101,8 @@ function asyncFetchHandler(event) {
   if (
     event.request.url.includes("https://crosshj.auth0.com") ||
     event.request.url.includes("index.bootstrap") ||
-    event.request.url.includes("localhost:3333")
+    event.request.url.includes("localhost:3333") ||
+    event.request.url.includes("allorigins")
   ) {
     return;
   }
@@ -297,8 +298,8 @@ async function registerModule(module) {
     if (handler) {
       let foundHandler = handlers.find((x) => x.handlerName === handler);
       let handlerFunction, handlerText;
-      if(handler === "./modules/service-worker.handler.js" && self.handler){
-        handlerText = 'service-worker-handler-register-module'
+      if (handler === "./modules/service-worker.handler.js" && self.handler) {
+        handlerText = "service-worker-handler-register-module";
         handlerFunction = self.handler;
         foundHandler = { handler, handlerText };
       }
@@ -325,9 +326,7 @@ async function registerModule(module) {
       handlers.push({
         type,
         routePattern: route,
-        route: type === "fetch"
-          ? new RegExp(route)
-          : route,
+        route: type === "fetch" ? new RegExp(route) : route,
         handler: handlerFunction || foundHandler.handler,
         handlerName: handler,
         handlerText: handlerText || foundHandler.handlerText,

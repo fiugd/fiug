@@ -376,13 +376,20 @@
     "NOTE: should be bundled and minified?",
     {
       "route": "./index.css",
-      "source": "index.css",
+      "source": "index.colors.css",
       "include": [
+        "/index.css",
         "/shared/css/xterm.css",
         "/shared/css/seti-icons.css",
         "/shared/css/material-icons.css",
         "/shared/css/materialize.min.css"
       ]
+    },
+
+    "NOTE: should be bundled and minified?",
+    {
+      "route": "./colors.css",
+      "source": "index.colors.css"
     },
 
     "NOTE: external handlers",

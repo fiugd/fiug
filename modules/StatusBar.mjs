@@ -4,7 +4,7 @@ function getSettings(){
 	const storedSettings = JSON.parse(localStorage.getItem('editorSettings')||'{}');
 	return {
 		tabSize: 2,
-		indentWithTabs: false,
+		indentWithTabs: true,
 		...storedSettings
 	}
 }

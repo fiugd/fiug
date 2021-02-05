@@ -566,7 +566,7 @@ const inlineEditor = (ChangeHandler) => ({
 		);
 		return {
 			tabSize: 2,
-			indentWithTabs: false,
+			indentWithTabs: true,
 			...storedSettings,
 		};
 	}

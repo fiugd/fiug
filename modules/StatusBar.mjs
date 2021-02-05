@@ -1,5 +1,8 @@
 import { attachListeners } from './statusBarEvents.mjs';
 
+// TODO: get this from one standard place in app
+const SYSTEM_NAME = `FIUG.dev v0.4`;
+
 function getSettings(){
 	const storedSettings = JSON.parse(localStorage.getItem('editorSettings')||'{}');
 	return {
@@ -61,7 +64,7 @@ function StatusBar(){
 	<div class="bg"></div>
 
 	<div class="statusbar-item statusbar-entry left" statusbar-entry-priority="10000" statusbar-entry-alignment="0">
-		<a title="">bartok v0.4</a>
+		<a title="">${SYSTEM_NAME}</a>
 	</div>
 
 	<div class="statusbar-item right">

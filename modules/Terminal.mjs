@@ -12,6 +12,9 @@ import {
 } from "./terminalEvents.mjs";
 import { templateJSX, templateSVC3, transform } from "./Templates.mjs";
 
+// TODO: get this from one standard place in app
+const SYSTEM_NAME = `FIUG.dev v0.4`;
+
 const iframeSandboxPermissions =
 	"allow-same-origin allow-scripts allow-popups allow-modals allow-downloads allow-forms";
 
@@ -314,7 +317,7 @@ function _Terminal() {
 	} else {
 		term.write(
 			`\x1B[38;5;242m
-			Bartok Service Composer v0.4
+			${SYSTEM_NAME}
 		\x1B[0m`.replace(/\t/g, "")
 		);
 	}

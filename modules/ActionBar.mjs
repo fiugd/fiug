@@ -2,12 +2,12 @@ import { attach, attachTrigger as connectTrigger } from "./Listeners.mjs";
 
 let actionBar;
 function ActionBar() {
-  if (actionBar) {
-    return;
-  }
-  actionBar = document.getElementById("actionbar");
-  // actionBar.style = "flex: 1; display: flex; flex-direction: column;"
-  actionBar.innerHTML = `
+	if (actionBar) {
+		return;
+	}
+	actionBar = document.getElementById("actionbar");
+	// actionBar.style = "flex: 1; display: flex; flex-direction: column;"
+	actionBar.innerHTML = `
 	<style>
 		#project-splitter #actionbar {
 			flex: 1;
@@ -77,10 +77,10 @@ function ActionBar() {
 		}
 	</style>
 	${
-    /*
+		/*
 		queue_music, play_arrow, device_hub, headset, speaker, cloud, play_arrow
 	*/ ""
-  }
+	}
 	<div class="action-bar-top">
 		<ul role="toolbar" class="">
 				<li class="explorer checked" role="button" title="Code">
@@ -114,77 +114,77 @@ function ActionBar() {
 			</ul>
 	</div>
 	`;
-  actionBar.querySelector(".full-screen").addEventListener("click", () => {
-    actionBar.querySelector(".full-screen").classList.add("hidden");
-    actionBar.querySelector(".full-screen-exit").classList.remove("hidden");
-    document.documentElement.requestFullscreen();
-  });
+	actionBar.querySelector(".full-screen").addEventListener("click", () => {
+		actionBar.querySelector(".full-screen").classList.add("hidden");
+		actionBar.querySelector(".full-screen-exit").classList.remove("hidden");
+		document.documentElement.requestFullscreen();
+	});
 
-  actionBar.querySelector(".full-screen-exit").addEventListener("click", () => {
-    actionBar.querySelector(".full-screen").classList.remove("hidden");
-    actionBar.querySelector(".full-screen-exit").classList.add("hidden");
-    document.exitFullscreen();
-  });
+	actionBar.querySelector(".full-screen-exit").addEventListener("click", () => {
+		actionBar.querySelector(".full-screen").classList.remove("hidden");
+		actionBar.querySelector(".full-screen-exit").classList.add("hidden");
+		document.exitFullscreen();
+	});
 
-  const triggers = [
-    {
-      query: "li.explorer",
-      action: "showServiceCode",
-    },
-    {
-      query: "li.search",
-      action: "showSearch",
-    },
-    {
-      query: "li.services",
-      action: "showServicesMap",
-    },
-  ];
+	const triggers = [
+		{
+			query: "li.explorer",
+			action: "showServiceCode",
+		},
+		{
+			query: "li.search",
+			action: "showSearch",
+		},
+		{
+			query: "li.services",
+			action: "showServicesMap",
+		},
+	];
 
-  triggers.forEach((trigger) => {
-    connectTrigger({
-      name: "ActionBar",
-      eventName: trigger.action,
-      data: (e) => {
-        const target =
-          e.target.tagName === "I" ? e.target.parentNode : e.target;
-        actionBar.querySelector(".checked").classList.remove("checked");
-        target.classList.add("checked");
-        return;
-      },
-      filter: (e) =>
-        actionBar.contains(e.target) &&
-        ["LI", "I"].includes(e.target.tagName) &&
-        (e.target.parentNode.className.includes(
-          trigger.query.replace("li.", "")
-        ) ||
-          e.target.className.includes(trigger.query.replace("li.", ""))),
-    });
-  });
+	triggers.forEach((trigger) => {
+		connectTrigger({
+			name: "ActionBar",
+			eventName: trigger.action,
+			data: (e) => {
+				const target =
+					e.target.tagName === "I" ? e.target.parentNode : e.target;
+				actionBar.querySelector(".checked").classList.remove("checked");
+				target.classList.add("checked");
+				return;
+			},
+			filter: (e) =>
+				actionBar.contains(e.target) &&
+				["LI", "I"].includes(e.target.tagName) &&
+				(e.target.parentNode.className.includes(
+					trigger.query.replace("li.", "")
+				) ||
+					e.target.className.includes(trigger.query.replace("li.", ""))),
+		});
+	});
 
-  connectTrigger({
-    name: "ActionBar",
-    eventName: "open-settings-view",
-    filter: (e) =>
-      actionBar.contains(e.target) &&
-      ["LI", "I"].includes(e.target.tagName) &&
-      (e.target.parentNode.id === "open-settings-view" ||
-        e.target.id === "open-settings-view"),
-  });
+	connectTrigger({
+		name: "ActionBar",
+		eventName: "open-settings-view",
+		filter: (e) =>
+			actionBar.contains(e.target) &&
+			["LI", "I"].includes(e.target.tagName) &&
+			(e.target.parentNode.id === "open-settings-view" ||
+				e.target.id === "open-settings-view"),
+	});
 
-  attach({
-    name: "ActionBar",
-    eventName: "ui",
-    listener: (event) => {
-      const { detail = {} } = event;
-      const { operation } = detail;
-      if (operation !== "searchProject") {
-        return;
-      }
-      actionBar.querySelector(".checked").classList.remove("checked");
-      actionBar.querySelector("li.search").classList.add("checked");
-    },
-  });
+	attach({
+		name: "ActionBar",
+		eventName: "ui",
+		listener: (event) => {
+			const { detail = {} } = event;
+			const { operation } = detail;
+			if (operation !== "searchProject") {
+				return;
+			}
+			actionBar.querySelector(".checked").classList.remove("checked");
+			actionBar.querySelector("li.search").classList.add("checked");
+		},
+	});
 }
 
 export default ActionBar;

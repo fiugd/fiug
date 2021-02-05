@@ -12,7 +12,7 @@
 	const stringify = o => JSON.stringify(o,null,2);
 	const fetchJSON = (url, opts) => fetch(url, opts).then(x => x.json());
 
-	const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+	//const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 	const debug = () => { debugger; };
 	const NOT_IMPLEMENTED_RESPONSE = () => {
@@ -21,19 +21,25 @@
 
 	const githubRequestHandler = (githubProvider) => async (which, handlerArgs) => {
 		try {
-			if(['filesUpdate'].includes(which)){
-				const githubHandler = githubProvider[which];
-				return githubHandler && await githubHandler(handlerArgs);
-			}
+			const { params, event, service } = handlerArgs;
+			const req = event && event?.request?.clone();
+			const payload = req && await req?.json();
+			const { providerType } = (payload || {});
+			
+			const isSupported = providerType
+				? providerType === "github-provider"
+				: service?.type === 'github';
 
-			const { params, event } = handlerArgs;
-			const req = event.request.clone();
-			const payload = await req.json();
-			const { providerType } = payload;
-			const isSupported = providerType && providerType === "github-provider";
 			if(!isSupported) return;
+
 			const githubHandler = githubProvider[which];
-			return githubHandler && await githubHandler(payload, params);
+			if(!githubHandler) return;
+
+			const notANetReqHandler = ['filesUpdate'].includes(which);
+
+			return notANetReqHandler
+				? await githubHandler(handlerArgs)
+				: await githubHandler(payload, params);
 		} catch(e) {}
 		return;
 	};

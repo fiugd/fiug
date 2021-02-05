@@ -319,25 +319,24 @@
 	// filesRead
 	// filesUpdate
 	async function _providerFileChange(args) {
-		const { path, code, parent, deleteFile } = args;
+		let { path, code, parent:service, deleteFile } = args;
 
 		// in the future, will cycle through ALL providers and return repsonse from one
 		const githubResponse = this.github && await this.github.handler('filesUpdate', args);
 		if(githubResponse) return githubResponse;
 
-		const foundParent =
-			parent ||
+		service = service ||
 			(await this.stores.services.iterate((value, key) => {
-				if (value.name === parent || value.name === parent.name) {
+				if (value.name === service || value.name === service.name) {
 					return value;
 				}
 			}));
-		if (!foundParent || !foundParent.providerUrl)
+		if (!service || !service.providerUrl)
 			throw new Error(
 				"file not saved to provider: service not associated with a provider"
 			);
-		const { providerUrl, providerRoot } = foundParent;
-		const pathWithoutParent = path.replace("./" + foundParent.name, "");
+		const { providerUrl, providerRoot } = service;
+		const pathWithoutParent = path.replace("./" + service.name, "");
 		const filePostUrl = `${providerUrl}file/${providerRoot}${pathWithoutParent}`;
 
 		const filePostRes = await this.utils.fetchJSON(filePostUrl, {

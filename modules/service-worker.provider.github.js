@@ -21,6 +21,11 @@
 
 	const githubRequestHandler = (githubProvider) => async (which, handlerArgs) => {
 		try {
+			if(['filesUpdate'].includes(which)){
+				const githubHandler = githubProvider[which];
+				return githubHandler && await githubHandler(handlerArgs);
+			}
+
 			const { params, event } = handlerArgs;
 			const req = event.request.clone();
 			const payload = await req.json();
@@ -200,7 +205,7 @@
 	}
 
 	const githubServiceRead = (githubProvider) => async (payload, params) => NOT_IMPLEMENTED_RESPONSE();
-	const githubServiceUpdate = (githubProvider) => async (payload, params) => NOT_IMPLEMENTED_RESPONSE();
+	const githubServiceUpdate = (githubProvider) => async (payload, params) => NOT_IMPLEMENTED_RESPONSE(); // this should not return a network response
 	const githubServiceDelete = (githubProvider) => async (payload, params) => NOT_IMPLEMENTED_RESPONSE();
 
 	const githubFileCreate = (githubProvider) => async (payload, params) => NOT_IMPLEMENTED_RESPONSE();

@@ -203,6 +203,9 @@ const SystemDocs = (section, errors) => {
 			overflow: auto;
 			width: 100%;
 			padding-bottom: 100px;
+			padding-right: 1em;
+			padding-left: 1em;
+			box-sizing: border-box;
 		}
 		#editor-system-doc::-webkit-scrollbar { width: 5px; height: 5px; }
 		#editor-system-doc::-webkit-scrollbar-corner,

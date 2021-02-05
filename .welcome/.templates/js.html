@@ -130,7 +130,10 @@
 				: [ urls ];
 
 			for(var i=0; i<queue.length; i++){
-				const url = queue[i];
+				let url = queue[i];
+				if(url[0] === '/'){
+					url = location.origin + url;
+				}
 				if(["css"].includes(url.split('.').pop()) ){
 					await appendStyleSheet(url);
 					continue;
@@ -154,6 +157,9 @@
 				: [ urls ];
 
 			const promisedQueue = queue.map(url => {
+				if(url[0] === '/'){
+					url = location.origin + url;
+				}
 				if(Array.isArray(url)) return window.appendUrls(url);
 
 				if(["css"].includes(url.split('.').pop()) ){
@@ -176,6 +182,7 @@
 			//also would be cool to remove indentation from all lines
 			return template.content.firstChild;
 		}
+		window.newElement = window.htmlToElement;
 
 		const prismUrls = [
 			"https://unpkg.com/prism-themes@1.4.1/themes/prism-vsc-dark-plus.css",

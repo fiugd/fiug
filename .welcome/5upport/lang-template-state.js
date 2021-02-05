@@ -2,7 +2,7 @@
 
 const deps =[
 	'../shared.styl',
-	'../../index.css'
+	'/index.css'
 ];
 
 const state = {

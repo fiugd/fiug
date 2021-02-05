@@ -138,7 +138,7 @@ const fileSelectHandler = ({ switchEditor }) => async (event) => {
 	const currentService = getCurrentService({ pure: true });
 	const fileBody = currentService.code.find((x) => x.name === fileName);
 
-	if(fileBody && !fileBody.code.trim() && fileBody.path){
+	if(fileBody && !(fileBody.code||"").trim() && fileBody.path){
 		fileBody.code = await (await fetch(fileBody.path)).text();
 	}
 

@@ -1,6 +1,6 @@
 /* doing the same thing as workbox here? */
 
-const cacheName = "v0.4.6";
+const cacheName = "v0.4.7";
 
 importScripts("/shared/vendor/localforage.min.js");
 importScripts("/shared/vendor/json5v-2.0.0.min.js");
@@ -295,8 +295,13 @@ async function registerModule(module) {
 	should instantiate this function and add it to handlers, but also add to DB
 	*/
     if (handler) {
-      const foundHandler = handlers.find((x) => x.handlerName === handler);
+      let foundHandler = handlers.find((x) => x.handlerName === handler);
       let handlerFunction, handlerText;
+      if(handler === "./modules/service-worker.handler.js" && self.handler){
+        handlerText = 'service-worker-handler-register-module'
+        handlerFunction = self.handler;
+        foundHandler = { handler, handlerText };
+      }
       if (!foundHandler || !foundHandler.handler) {
         handlerText = await (await fetch(handler)).text();
         handlerFunction = eval(handlerText);
@@ -307,9 +312,7 @@ async function registerModule(module) {
           (x) => x.handlerName === handler && x.routePattern === route
         );
       if (foundExactHandler) {
-        console.log(
-          `handler was already installed for ${foundExactHandler.routePattern} (boot)`
-        );
+        //console.log(`handler was already installed for ${foundExactHandler.routePattern} (boot)`);
         return;
       }
       await handlerStore.setItem(route, {
@@ -318,11 +321,13 @@ async function registerModule(module) {
         handlerName: handler,
         handlerText: handlerText || foundHandler.handlerText,
       });
-      console.log(`handler installed for ${route} (boot)`);
+      //console.log(`handler installed for ${route} (boot)`);
       handlers.push({
         type,
         routePattern: route,
-        route: type === "fetch" ? new RegExp(route) : route,
+        route: type === "fetch"
+          ? new RegExp(route)
+          : route,
         handler: handlerFunction || foundHandler.handler,
         handlerName: handler,
         handlerText: handlerText || foundHandler.handlerText,

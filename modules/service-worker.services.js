@@ -87,23 +87,29 @@
 		} catch (e) {}
 
 		try {
-			let { path, code, command, service } = jsonData;
+			let { path, code, command, service: serviceName } = jsonData;
 			if (fileData) {
 				code = fileData || "";
 			}
-
-			if (service && service === ui.name)
+			if (serviceName && serviceName === ui.name)
 				return ui.change({ path, code, command, service });
 
-			await filesStore.setItem(path, code);
-
-			if (command === "upsert") {
-				const serviceToUpdate = await servicesStore.iterate((value, key) => {
-					if (value.name === service) return value;
+			const service = await servicesStore.iterate((value, key) => {
+					if (value.name === serviceName) return value;
 					return;
 				});
-				serviceToUpdate.tree = utils.treeInsertFile(path, serviceToUpdate.tree);
-				await servicesStore.setItem(serviceToUpdate.id + "", serviceToUpdate);
+			// github services don't store files with ./ prepended
+			// and also this should be done through provider...
+			// also, would expect to not change the file, instead add a change in changes table
+			// ^^ and restore that on read
+			if(service.type === 'github' && `${path[0]}${path[1]}` === './'){
+				path = path.slice(2);
+			}
+			await filesStore.setItem(path, code);
+
+			if (service && command === "upsert") {
+				service.tree = utils.treeInsertFile(path, service.tree);
+				await servicesStore.setItem(service.id + "", service);
 			}
 
 			const metaData = () => ""; //TODO

@@ -84,7 +84,7 @@ const require = (url) => {
 		}
 
 		let { contentType } = utils.getMime(event.request.url) || {};
-		if (!contentType && serviceAPIMatch && !res.type) {
+		if (!contentType && serviceAPIMatch && !res?.type) {
 			({ contentType } = utils.getMime(".json"));
 		}
 

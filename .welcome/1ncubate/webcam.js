@@ -14,6 +14,7 @@ const styleHTML = `
 			object-fit: cover;
 			height: auto;
 			margin-bottom: 1em;
+			filter: url(#displacement)
 		}
 	</style>
 `;
@@ -101,7 +102,18 @@ const svgFiltersHTML = `
 
 
 	<filter id="displacement" x="0%" y="0%" height="100%" width="100%">
-		<feDisplacementMap scale="100" in2="SourceGraphic" xChannelSelector="G"/>
+		<feTurbulence
+			baseFrequency=".005"
+			type="fractalNoise"
+			numOctaves="1"
+			seed="1"
+			stitchTiles="stitch"
+		/>
+		<feDisplacementMap
+			scale="300"
+			in="SourceGraphic"
+			xChannelSelector="G"
+		/>
 	</filter>
 
 	<filter id="bluefill" x="0%" y="0%" width="100%" height="100%">
@@ -129,12 +141,13 @@ const svgFiltersHTML = `
 			 </filter>
 		 </defs>
 	 </svg>
-`
+`;
 
 (async () => {
 	await appendUrls(deps);
 
 	const style = htmlToElement(styleHTML);
+	const filters = htmlToElement(svgFiltersHTML);
 	
 	const video = document.createElement('video');
 	video.muted = true;
@@ -147,7 +160,8 @@ const svgFiltersHTML = `
 		video.requestPictureInPicture(); 
 	});
 
-	document.body.append(style)
+	document.body.append(filters);
+	document.body.append(style);
 	document.body.append(video)
 	document.body.append(button);
 

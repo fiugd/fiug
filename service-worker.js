@@ -1,6 +1,6 @@
 /* doing the same thing as workbox here? */
 
-const cacheName = "v0.4.7";
+const cacheName = "v0.4.8";
 
 importScripts("/shared/vendor/localforage.min.js");
 importScripts("/shared/vendor/json5v-2.0.0.min.js");
@@ -14,7 +14,7 @@ self.addEventListener("sync", syncHandler);
 self.addEventListener("push", pushHandler);
 
 self.handlers = [];
-const driverOrder = [
+const driver = [
   localforage.INDEXEDDB,
   localforage.WEBSQL,
   localforage.LOCALSTORAGE,
@@ -25,10 +25,10 @@ function getHandlerStore() {
   return (
     handlerStore ||
     localforage.createInstance({
-      driver: driverOrder,
-      name: "serviceWorker",
+      driver,
+      name: "service-worker",
       version: 1.0,
-      storeName: "handlerStore",
+      storeName: "handlers",
       description: "used after app has booted when service worker is updated",
     })
   );

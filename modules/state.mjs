@@ -1,7 +1,8 @@
 import { isString } from "./Types.mjs";
 import { attach, attachTrigger } from "./Listeners.mjs";
-
 import ext from "/shared/icons/seti/ext.json.mjs";
+
+const SYSTEM_NAME = `fiug.dev v0.4`;
 
 let execTrigger;
 let listenerQueue = [];
@@ -340,6 +341,16 @@ function getOpenedFiles() {
 		});
 }
 
+function getSettings(){
+	const storedSettings = JSON.parse(localStorage.getItem('editorSettings')||'{}');
+	return {
+		SYSTEM_NAME,
+		tabSize: 2,
+		indentWithTabs: true,
+		...storedSettings
+	}
+}
+
 export {
 	getAllServices,
 	getCodeFromService,
@@ -353,6 +364,7 @@ export {
 	getState,
 	setState,
 	resetState,
+	getSettings,
 	openFile,
 	closeFile,
 	moveFile,

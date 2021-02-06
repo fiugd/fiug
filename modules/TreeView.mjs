@@ -677,8 +677,10 @@ const getTreeViewDOM = ({ showOpenService } = {}) => {
 		opener.classList.remove("hidden");
 		const treeMenuLabel = document.querySelector("#tree-menu .title-label h2");
 		treeMenuLabel.innerText = "NO FOLDER OPENED";
+		treeView && treeView.classList.add('nothing-open');
 	} else if (opener) {
 		opener.classList.add("hidden");
+		treeView && treeView.classList.remove('nothing-open');
 	}
 	if (treeView) {
 		return treeView;
@@ -690,7 +692,9 @@ const getTreeViewDOM = ({ showOpenService } = {}) => {
 	if (showOpenService) {
 		const treeMenuLabel = document.querySelector("#tree-menu .title-label h2");
 		treeMenuLabel.innerText = "NO FOLDER OPENED";
+		treeView.classList.add('nothing-open');
 	} else {
+		treeView.classList.remove('nothing-open');
 		opener.classList.add("hidden");
 	}
 	treeView.appendChild(opener);
@@ -922,7 +926,7 @@ function _TreeView(op) {
 				opacity: .7;
 				transition: opacity 25s;
 			}
-			#tree-view:hover {
+			#tree-view:hover, #tree-view.nothing-open {
 				opacity: 1;
 				transition: opacity 0.3s;
 			}

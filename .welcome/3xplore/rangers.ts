@@ -21,7 +21,7 @@ const deps = [
 	'https://www.unpkg.com/localforage@1.9.0/dist/localforage.min.js'
 ]; 
 
-const proxy = 'http://localhost:3333/proxy/';
+const proxy = 'https://api.allorigins.win/raw?url=';
 const lericoAPIRoot = "https://rangers.lerico.net/api/";
 const tometoUrl = 'https://vip.tometo.net/rank_list.php'
 

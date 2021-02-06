@@ -1,16 +1,7 @@
 import { attachListeners } from './statusBarEvents.mjs';
+import { getSettings } from './state.mjs';
 
-// TODO: get this from one standard place in app
-const SYSTEM_NAME = `FIUG.dev v0.4`;
-
-function getSettings(){
-	const storedSettings = JSON.parse(localStorage.getItem('editorSettings')||'{}');
-	return {
-		tabSize: 2,
-		indentWithTabs: true,
-		...storedSettings
-	}
-}
+const { SYSTEM_NAME } = getSettings();
 
 let bar;
 function StatusBar(){

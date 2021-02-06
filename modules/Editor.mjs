@@ -7,10 +7,12 @@ import {
 	CursorActivityHandler,
 } from "./editorEvents.mjs";
 import ext from "/shared/icons/seti/ext.json.mjs";
-import { getCodeFromService, getState, getAllServices } from "./state.mjs";
+import { getCodeFromService, getState, getAllServices, getSettings } from "./state.mjs";
 import { codemirrorModeFromFileType } from "/shared/modules/utilities.mjs";
-
 import "/shared/vendor/localforage.min.js";
+
+const { indentWithTabs, tabSize } = getSettings();
+
 
 function htmlToElement(html) {
 	var template = document.createElement("template");
@@ -559,19 +561,6 @@ const inlineEditor = (ChangeHandler) => ({
 		"Cmd-D": selectNextOccurrence,
 		"Ctrl-D": selectNextOccurrence,
 	};
-
-	function settings() {
-		const storedSettings = JSON.parse(
-			localStorage.getItem("editorSettings") || "{}"
-		);
-		return {
-			tabSize: 2,
-			indentWithTabs: true,
-			...storedSettings,
-		};
-	}
-
-	const { indentWithTabs, tabSize } = settings();
 
 	const editorCallback = (error, editor) => {
 		if (error) {

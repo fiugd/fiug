@@ -2,18 +2,20 @@
 //import "https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.3.0/lib/xterm-addon-fit.js";
 import "/shared/vendor/xterm.min.js";
 import "/shared/vendor/xterm-addon-fit.js";
-import { debounce } from "/shared/modules/utilities.mjs";
-
-import motd from "./motd.mjs";
 import {
 	attachEvents,
 	connectTrigger,
 	execCommand,
 } from "./terminalEvents.mjs";
+import { getSettings } from './state.mjs';
+
+import { debounce } from "/shared/modules/utilities.mjs";
+import motd from "./motd.mjs";
+
+//DEPRECATE
 import { templateJSX, templateSVC3, transform } from "./Templates.mjs";
 
-// TODO: get this from one standard place in app
-const SYSTEM_NAME = `FIUG.dev v0.4`;
+const { SYSTEM_NAME } = getSettings();
 
 const iframeSandboxPermissions =
 	"allow-same-origin allow-scripts allow-popups allow-modals allow-downloads allow-forms";

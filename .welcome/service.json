@@ -45,6 +45,7 @@
     },
     "1ncubate": {
       "auth0.md": {},
+      "browsix.js": {},
       "downloadZip.js": {},
       "dropFile.js": {},
       "editor.language.server.js": {},
@@ -530,6 +531,10 @@
     {
       "name": "brainfuck.bf",
       "path": ".welcome/examples/language/brainfuck.bf"
+    },
+    {
+      "name": "browsix.js",
+      "path": ".welcome/1ncubate/browsix.js"
     },
     {
       "name": "cart.component.css",

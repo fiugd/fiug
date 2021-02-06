@@ -45,6 +45,7 @@
     },
     "1ncubate": {
       "auth0.md": {},
+      "browsix.init.json": {},
       "browsix.js": {},
       "downloadZip.js": {},
       "dropFile.js": {},
@@ -531,6 +532,10 @@
     {
       "name": "brainfuck.bf",
       "path": ".welcome/examples/language/brainfuck.bf"
+    },
+    {
+      "name": "browsix.init.json",
+      "path": ".welcome/1ncubate/browsix.init.json"
     },
     {
       "name": "browsix.js",

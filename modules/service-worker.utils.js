@@ -118,7 +118,10 @@
 			".ts", // mistaken as video/mp2t
 		];
 		const fetched = await fetch(filename);
-		const contentType = fetched.headers.get("Content-Type");
+
+		//getting content type like this because can't trust server's CT headers
+		const mime = getMime(filename) || {};
+		const contentType = mime.contentType || fetched.headers.get("Content-Type");
 
 		let _contents =
 			storeAsBlob.find((x) => contentType.includes(x)) &&

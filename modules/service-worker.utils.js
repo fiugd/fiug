@@ -3,8 +3,10 @@
 	const xfrmMimes = (() => {
 		let cache;
 		return (m = {}) => {
-			cache =
-				cache ||
+			if(!Object.entries(m).length){
+				return cache || [];
+			}
+			cache = cache ||
 				Object.entries(m).map(([contentType, rest]) => ({
 					contentType,
 					extensions: [],

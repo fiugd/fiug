@@ -13,6 +13,20 @@ import "/shared/vendor/localforage.min.js";
 
 const { indentWithTabs, tabSize } = getSettings();
 
+let getMime = () => {};
+(async () => {
+	const source = await (await fetch('/modules/service-worker.utils.js')).text();
+	const SWUtils = eval(`
+		(function(){
+		const module = { exports: {} };
+		${source}
+		const { exports } = module;
+		return exports;
+		})()
+	`);
+	SWUtils.initMimeTypes();
+	getMime = SWUtils.getMime;
+})();
 
 function htmlToElement(html) {
 	var template = document.createElement("template");
@@ -26,8 +40,15 @@ const getExtension = (fileName) =>
 	((fileName.match(/\.[0-9a-z]+$/i) || [])[0] || "").replace(/^\./, "");
 
 function getFileType(fileName = "") {
+	const mime = getMime(fileName) || {};
+
 	let type = "default";
 	const extension = getExtension(fileName);
+	if(mime?.contentType ){
+		type = mime.contentType;
+	}
+	
+	//TODO: most of this should be able to go away with addition of getExtension above...
 	if (ext[extension]) {
 		type = ext[extension];
 	}
@@ -818,7 +839,8 @@ const showNothingOpen = () => {
 
 const showFileInEditor = (filename, contents) => {
 	const fileType = getFileType(filename);
-	return !["image", "font", "audio", "video", "zip"].includes(fileType);
+	return !["image", "font", "audio", "video", "zip"].includes(fileType) &&
+		!fileType.includes('image/');
 };
 
 let binaryPreview;

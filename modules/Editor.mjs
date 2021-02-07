@@ -840,7 +840,7 @@ const showNothingOpen = () => {
 const showFileInEditor = (filename, contents) => {
 	const fileType = getFileType(filename);
 	return !["image", "font", "audio", "video", "zip"].includes(fileType) &&
-		!fileType.includes('image/');
+		!(typeof fileType === "string" && fileType.includes('image/'));
 };
 
 let binaryPreview;

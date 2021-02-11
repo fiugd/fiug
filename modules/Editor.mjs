@@ -73,6 +73,9 @@ function getFileType(fileName = "") {
 			mimeType: "application/x-ejs",
 		};
 	}
+	if (extension === 'hbs'){
+		type = {name: "handlebars", base: "text/html"}
+	}
 	return type;
 }
 

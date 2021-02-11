@@ -10,6 +10,8 @@ var scriptName = path.basename(__filename);
 const bundleName = '../mode.bundle.js';
 const priority = [
   'simple.js',
+  'multiplex.js',
+
   'xml.js',
   'javascript.js',
   'css.js',

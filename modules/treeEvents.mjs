@@ -1,7 +1,15 @@
 import { attach, attachTrigger } from "./Listeners.mjs";
 import { getDefaultFile, getState } from "./state.mjs";
-
 import ext from "/shared/icons/seti/ext.json.mjs";
+
+const tryFn = (fn, _default) => {
+	try {
+		return fn();
+	} catch (e) {
+		return _default;
+	}
+};
+
 
 let tree;
 
@@ -91,7 +99,7 @@ function getFileType(fileName = "") {
 }
 
 const fileSelectHandler = (e) => {
-	const { name, next } = e.detail;
+	const { name, next, path } = e.detail;
 
 	Array.from(
 		document.querySelectorAll("#tree-view .selected") || []
@@ -106,9 +114,16 @@ const fileSelectHandler = (e) => {
 	const leaves = Array.from(
 		document.querySelectorAll("#tree-view .tree-leaf-content") || []
 	);
+
 	const found = leaves.find((x) => {
-		return x.innerText.includes(next || name);
+		if(!path){
+			return x.innerText.trim() === (next || name);
+		}
+		const item = tryFn(() => JSON.parse(x.dataset.item), {});
+		const itemPath = tryFn(() => x.dataset.path);
+		return item.name === (next || name) && path === itemPath;
 	});
+
 	if (found) {
 		tree.selected = name || next;
 		found.classList.add("selected");
@@ -608,11 +623,21 @@ function attachListener(
 			const collapse = true;
 			triggerFolderSelect(e, collapse);
 		});
+		
+		class TreeClick {
+			path;
+			constructor(event){
+				const target = tryFn(() => event.target.target);
+				this.path = tryFn(() => target.parentNode.dataset.path);
+			}
+		}
 
 		newTree.on("select", function (e) {
+			const { path } = new TreeClick(e);
 			const parent = e.target.target.parentNode;
 			const isFolder = parent.classList.contains("folder");
 
+			//TODO: this should probably be tracked in changes...
 			const storeTree = JSON.parse(sessionStorage.getItem("tree"));
 			storeTree.selected = e.data.name;
 			sessionStorage.setItem("tree", JSON.stringify(storeTree));
@@ -641,6 +666,7 @@ function attachListener(
 				bubbles: true,
 				detail: {
 					name: e.data.name,
+					path,
 					changed,
 				},
 			});

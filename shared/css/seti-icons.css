@@ -577,7 +577,7 @@
 }
 .icon-mustache:before {
   content: '\E05E';
-  color: white;
+  color: #e37933;
 }
 .icon-new-file:before {
   content: '\E05F';

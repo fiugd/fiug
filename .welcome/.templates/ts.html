@@ -275,7 +275,10 @@ for a more involved compile, ie errors, etc
 				import { ReactiveFormsModule } from '@angular/forms';
 				import * as LDClient from "launchdarkly-js-client-sdk";
 				import { Observable, of } from 'rxjs';
-				
+
+				import { consoleHelper } from '../.tools/misc.mjs';
+				consoleHelper();
+
 				//console.log(of);
 				appendUrls(['../shared.styl']);
 				const message: string = "hello world";
@@ -374,10 +377,10 @@ for a more involved compile, ie errors, etc
 				const xfrmScript = document.createElement('script');
 				xfrmScript.type = "module";
 				xfrmScript.id = id || 'ScriptXfrm';
-				xfrmScript.innerHTML = overrideConsole + src + `\n//# sourceURL=${document.location.href+':source'}`; 
+				xfrmScript.innerHTML = src + `\n//# sourceURL=${document.location.href+':source'}`; 
 				document.head.appendChild(xfrmScript);
 		};
-		
+
 		try {
 			const transpiled = window.ts.transpile(codeFromComment, window.tsConfig.compilerOptions);
 			await resolveDeps(transpiled, code => window.ts.transpile(code, window.tsConfig.compilerOptions));

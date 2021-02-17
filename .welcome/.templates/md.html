@@ -5,7 +5,7 @@ useDefault: false
 -->
 
 <!DOCTYPE html>
-<html>
+<html class="dark-enabled">
 <head>
 	<meta charset="utf-8">
 	<title>Markdown</title>
@@ -14,13 +14,14 @@ useDefault: false
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="mobile-web-app-capable" content="yes">
 	<link rel="stylesheet" href="/shared/css/github-markdown.min.css" />
+	<link rel="stylesheet" href="/colors.css" />
 	<base target="_blank" href="../../">
 </head>
 
 <style>
 	.markdown-body code,
 	.markdown-body pre {
-		color: #6d89a0;
+		color: rgb(var(--main-theme-highlight-color));
 	}
 
 	.no-preview {
@@ -192,6 +193,11 @@ useDefault: false
 	
 	svg.bob {
 		filter: invert(1) brightness(0.65);
+	}
+
+	.markdown-body pre,
+	.markdown-body pre code {
+		white-space: pre-wrap;
 	}
 </style>
 

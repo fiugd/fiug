@@ -2,9 +2,8 @@
 
 import ServiceTree from './ServiceTree.mjs';
 
-import { prism, importCSS, consoleHelper, htmlToElement } from './.tools/misc.mjs'
-import { createGraph } from './.tools/graph.mjs'
-import './shared.styl';
+import { prism, importCSS, consoleHelper, htmlToElement } from '../.tools/misc.mjs'
+import '../shared.styl';
 consoleHelper();
 
 /*

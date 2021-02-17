@@ -8,6 +8,7 @@
     ".templates": {
       "adoc.html": {},
       "as.html": {},
+      "avif.html": {},
       "bf.html": {},
       "bmp.html": {},
       "cljs.html": {},
@@ -17,12 +18,15 @@
       "gif.html": {},
       "gltf.html": {},
       "go.html": {},
+      "heic.html": {},
       "ipynb.html": {},
       "jl.html": {},
+      "jp2.html": {},
       "jpeg.html": {},
       "jpg.html": {},
       "js.html": {},
       "jsx.html": {},
+      "jxr.html": {},
       "lisp.html": {},
       "lua.html": {},
       "md.html": {},
@@ -39,9 +43,15 @@
       "sql.html": {},
       "svg.html": {},
       "texturepacker.html": {},
+      "tga.html": {},
       "ts.html": {},
       "wat.html": {},
+      "webp.html": {},
       "zip.html": {}
+    },
+    ".tools": {
+      "graph.mjs": {},
+      "misc.mjs": {}
     },
     "1ncubate": {
       "auth0.md": {},
@@ -63,6 +73,8 @@
       "minimap.js": {},
       "paste-image.js": {},
       "psd-converter.js": {},
+      "ServiceTree.mjs": {},
+      "ServiceTree.test.js": {},
       "systemjs.js": {},
       "webcam.js": {},
       "webtorrent_share.html": {},
@@ -482,6 +494,10 @@
       "path": ".welcome/1ncubate/auth0.md"
     },
     {
+      "name": "avif.html",
+      "path": ".welcome/.templates/avif.html"
+    },
+    {
       "name": "bartok-logo-black.png",
       "path": ".welcome/examples/image/bartok-logo-black.png"
     },
@@ -810,12 +826,20 @@
       "path": ".welcome/5upport/graph-formats.md"
     },
     {
+      "name": "graph.mjs",
+      "path": ".welcome/.tools/graph.mjs"
+    },
+    {
       "name": "grey.png",
       "path": ".welcome/examples/image/grey.png"
     },
     {
       "name": "haskell.hs",
       "path": ".welcome/examples/language/haskell.hs"
+    },
+    {
+      "name": "heic.html",
+      "path": ".welcome/.templates/heic.html"
     },
     {
       "name": "hello.css",
@@ -894,6 +918,10 @@
       "path": ".welcome/.templates/jl.html"
     },
     {
+      "name": "jp2.html",
+      "path": ".welcome/.templates/jp2.html"
+    },
+    {
       "name": "jpeg.html",
       "path": ".welcome/.templates/jpeg.html"
     },
@@ -936,6 +964,10 @@
     {
       "name": "jupyter4.ipynb",
       "path": ".welcome/examples/document/jupyter4.ipynb"
+    },
+    {
+      "name": "jxr.html",
+      "path": ".welcome/.templates/jxr.html"
     },
     {
       "name": "kotlin.kt",
@@ -996,6 +1028,10 @@
     {
       "name": "minimap.js",
       "path": ".welcome/1ncubate/minimap.js"
+    },
+    {
+      "name": "misc.mjs",
+      "path": ".welcome/.tools/misc.mjs"
     },
     {
       "name": "ml.html",
@@ -1242,6 +1278,14 @@
       "path": ".welcome/service.json"
     },
     {
+      "name": "ServiceTree.mjs",
+      "path": ".welcome/1ncubate/ServiceTree.mjs"
+    },
+    {
+      "name": "ServiceTree.test.js",
+      "path": ".welcome/1ncubate/ServiceTree.test.js"
+    },
+    {
       "name": "shared.styl",
       "path": ".welcome/shared.styl"
     },
@@ -1336,6 +1380,10 @@
     {
       "name": "texturepacker.html",
       "path": ".welcome/.templates/texturepacker.html"
+    },
+    {
+      "name": "tga.html",
+      "path": ".welcome/.templates/tga.html"
     },
     {
       "name": "the-shannara-chronicles-tree-forest-guardian-tv-series.jpg",
@@ -1472,6 +1520,10 @@
     {
       "name": "webgl-quad.js",
       "path": ".welcome/3xplore/webgl-quad/webgl-quad.js"
+    },
+    {
+      "name": "webp.html",
+      "path": ".welcome/.templates/webp.html"
     },
     {
       "name": "webtorrent_share.html",

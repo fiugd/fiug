@@ -50,9 +50,11 @@ arrows for links: http://bl.ocks.org/rkirsling/5001347
 		stroke-opacity: 0.3;
 		shape-rendering: crispEdges;
 	}
-	.link {
-		stroke: #777;
+	.link, #start-arrow path, #end-arrow path {
+		color: #6b6b5b;
 	}
+	.link { stroke: currentColor; }
+	#start-arrow path, #end-arrow path { fill: currentColor; }
 	.node text {
 		fill: white;
 		cursor: pointer;
@@ -179,8 +181,7 @@ arrows for links: http://bl.ocks.org/rkirsling/5001347
 				.attr('markerHeight', 4)
 				.attr('orient', 'auto')
 			.append('svg:path')
-				.attr('d', 'M0,-5L10,0L0,5')
-				.attr('fill', '#5c5c5c');
+				.attr('d', 'M0,-5L10,0L0,5');
 
 		svg.append('svg:defs').append('svg:marker')
 				.attr('id', 'start-arrow')
@@ -190,8 +191,7 @@ arrows for links: http://bl.ocks.org/rkirsling/5001347
 				.attr('markerHeight', 4)
 				.attr('orient', 'auto')
 			.append('svg:path')
-				.attr('d', 'M10,-5L0,0L10,5')
-				.attr('fill', '#5c5c5c');
+				.attr('d', 'M10,-5L0,0L10,5');
 		
 		const forceLayout = {
 			//x: d3.forceX(),
@@ -265,7 +265,6 @@ arrows for links: http://bl.ocks.org/rkirsling/5001347
 			.data(graph.links)
 			.enter().append("line")
 			.attr("class", "link")
-			.attr("stroke-opacity", 0.7)
 			.style("stroke-width", function (d) { return 2* Math.sqrt(d.weight); })
 			.style('marker-start', (d) => d.left ? 'url(#start-arrow)' : '')
 			.style('marker-end', (d) => d.right ? 'url(#end-arrow)' : '');

@@ -38,7 +38,6 @@ class DragAndDrop {
 		this.dragged = leaf;
 	}
 	handleDragEnter(e){
-		//TODO: if hovered over folder, should expand
 		let leaf = e.target.classList.contains('tree-leaf')
 			? e.target
 			: e.target.closest('.tree-leaf');

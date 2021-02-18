@@ -11,6 +11,13 @@ consoleHelper();
 */
 
 const checklistItems = () => { return `
+	- DnD: if hovered over folder, should expand
+	- DnD:  if dragged is already in target, don't highlght
+
+	- rename file/folder should update leaf path
+	- rename file/folder should update position in tree
+	- tree-leaf-content dataset -> tree-leaf props
+
 	- update folder children when CRUD'ing folder
 	- inside versions of CRUD ops
 	- NOTIFY for CRUD ops and expand/collapse as needed

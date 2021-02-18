@@ -1,3 +1,9 @@
+//show-preview
+import { appendUrls, addUrls, consoleHelper, htmlToElement, importCSS, prism } from '../.tools/misc.mjs';
+import { createGraph } from '../.tools/graph.mjs';
+import '../shared.styl';
+consoleHelper();
+
 /*
   https://developer.chrome.com/apps/offline_storage#managing_quota
 
@@ -12,10 +18,6 @@
   https://blog.teamtreehouse.com/building-an-html5-text-editor-with-the-filesystem-apis
 
 */
-
-const deps = [
-	'../shared.styl',
-];
 
 function formatBytes(bytes) {
   var marker = 1024; // Change to 1000 if required
@@ -68,12 +70,8 @@ function formatBytes(bytes) {
 
 
 (async () => {
-	await appendUrls(deps);
-
 	const exampleFnText = (await (await fetch('./quotaIssue.js')).text());
 	console.info(`Size of this file: ${formatBytes(window.ByteSize.count(exampleFnText))}`)
-
-
 
 	// query
 	let queryCallback = (used, granted) =>

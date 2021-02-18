@@ -1,5 +1,10 @@
+//show-preview
+import { appendUrls, addUrls, consoleHelper, htmlToElement, importCSS } from '../.tools/misc.mjs';
+import '../shared.styl';
+consoleHelper();
+
+
 const deps = [
-	'../shared.styl',
 	'/shared/vendor/localforage.min.js'
 ];
 const delay = ms => new Promise(res => setTimeout(res, ms))
@@ -233,7 +238,6 @@ function simpleStreamExample(){
 (async () => {
 	await appendUrls(deps);
 	const { metaStore, fileStore } = getStores();
-
 
 	const serviceSearch = new ServiceSearch();
 	await serviceSearch.init({

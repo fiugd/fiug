@@ -163,7 +163,7 @@ class Backup {
 ;(async () => {
 	const cachedFetch = ((cache) => async (url) => {
 		const cached = await cache.match(url);
-		const headers = { pragma: 'no-cache', 'cache-control': 'no-cache'};
+		const headers = {};
 		if(!cached) {
 			let response;
 			let tries = 0;

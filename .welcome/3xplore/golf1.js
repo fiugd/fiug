@@ -1,11 +1,10 @@
-prism = prism || console.info;
-const deps = [
-  '../shared.styl'
-];
+//show-preview
+import { appendUrls, addUrls, consoleHelper, htmlToElement, importCSS, prism } from '../.tools/misc.mjs';
+import { createGraph } from '../.tools/graph.mjs';
+import '../shared.styl';
+consoleHelper();
 
 (async() => {
-  await appendUrls(deps);
-
   console.info(`
   You are given a list of jobs to be done, where each job is represented by a start time and end time. Two jobs are compatible if they don't overlap. Find the largest subset of compatible jobs.
 

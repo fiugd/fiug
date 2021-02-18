@@ -1,3 +1,8 @@
+//show-preview
+import { appendUrls, addUrls, consoleHelper, htmlToElement, importCSS, prism } from '../.tools/misc.mjs';
+import '../shared.styl';
+consoleHelper();
+
 /*
 
 this is the brain.js that Heather Arthor started, stopped, and someone else picked up
@@ -8,7 +13,6 @@ here are more libs: https://analyticsindiamag.com/top-10-javascript-machine-lear
 
 const deps = [
 	'https://unpkg.com/brain.js@2.0.0-beta.2/dist/brain-browser.js',
-	'../shared.styl'
 ];
 
 ;(async () => {

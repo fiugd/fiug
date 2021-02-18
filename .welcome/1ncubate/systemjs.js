@@ -1,8 +1,12 @@
+//show-preview
+import { appendUrls, addUrls, consoleHelper, htmlToElement, importCSS } from '../.tools/misc.mjs';
+import '../shared.styl';
+consoleHelper();
+
 /*
 
 */
 const deps = [
-	'../shared.styl',
 	"https://unpkg.com/systemjs@6.8.1/dist/system.min.js",
 	"https://unpkg.com/systemjs@6.8.1/dist/extras/amd.min.js",
 	"https://unpkg.com/systemjs-unpkg@1.0.1/dist/systemjs-unpkg.js",

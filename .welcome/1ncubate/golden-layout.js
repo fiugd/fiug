@@ -1,3 +1,8 @@
+//show-preview
+import { appendUrls, consoleHelper, htmlToElement, importCSS } from '../.tools/misc.mjs';
+import 	'../shared.styl';
+consoleHelper();
+
 const goldenLayoutUrls = [
   './golden-layout.css',
   'https://unpkg.com/zepto@1.2.0/dist/zepto.js',

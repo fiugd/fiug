@@ -1,3 +1,9 @@
+//show-preview
+import { appendUrls, consoleHelper, htmlToElement, importCSS } from '../.tools/misc.mjs';
+import 	'../shared.styl';
+
+consoleHelper();
+
 /*
 
 drop a file from browser and it uploads to project
@@ -7,7 +13,6 @@ drop a file from browser and it uploads to project
 */
 
 const deps = [
-	'../shared.styl',
 	"https://unpkg.com/dropzone@4.0.1/dist/dropzone.js"
 ];
 

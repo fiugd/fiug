@@ -1,3 +1,9 @@
+//show-preview
+import { appendUrls, consoleHelper, htmlToElement, importCSS } from '../.tools/misc.mjs';
+import 	'../shared.styl';
+
+consoleHelper();
+
 /*
 
 package everything into one single file (or only a few)

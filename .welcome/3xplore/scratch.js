@@ -1,6 +1,7 @@
-const deps = [
-	'../shared.styl'
-];
+//show-preview
+import { appendUrls, addUrls, consoleHelper, htmlToElement, importCSS } from '../.tools/misc.mjs';
+import '../shared.styl';
+consoleHelper();
 
 async function dataWrangling(){
 	/*
@@ -449,10 +450,7 @@ async function sortingFileNames(){
 }
 
 (async () => {
-	await appendUrls(deps);
-
 	//await dataWrangling();
 	//await changeFileState();
 	//await sortingFileNames();
-
 })()

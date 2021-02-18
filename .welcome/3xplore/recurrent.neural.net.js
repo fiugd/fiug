@@ -1,3 +1,8 @@
+//show-preview
+import { appendUrls, addUrls, consoleHelper, htmlToElement, importCSS } from '../.tools/misc.mjs';
+import '../shared.styl';
+consoleHelper();
+
 /*
 
 https://github.com/karpathy/recurrentjs
@@ -14,13 +19,11 @@ https://cs.stanford.edu/people/karpathy/convnetjs/
 
 const deps = [
 	'https://unpkg.com/convnetjs@0.3.0/build/convnet.js',
-	'../shared.styl'
 ];
 
 ;(async () => {
 	await appendUrls(deps);
-	await prism('javascript', '', 'prism-preload');
-	
+
 	/*
 	const { Net, Vol, Trainer } = convnetjs;
 	var layer_defs = [

@@ -1,15 +1,14 @@
+//show-preview
+import { appendUrls, addUrls, consoleHelper, htmlToElement, importCSS, prism } from '../.tools/misc.mjs';
+import '../shared.styl';
+consoleHelper();
+
 /*
 	https://en.wikipedia.org/wiki/Operational_transformation
 */
 
-const deps = [
-	'../shared.styl'
-];
 
 (async () => {
-	await appendUrls(deps);
-	await prism('javascript', '', 'prism-preload');
-
 	class TransformString {
 		value='';
 		position=0;

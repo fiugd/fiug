@@ -1,3 +1,10 @@
+//show-preview
+import { appendUrls, consoleHelper, htmlToElement, importCSS } from '../.tools/misc.mjs';
+import '../shared.styl';
+import 'hexedit.styl';
+
+consoleHelper();
+
 /*
 
 https://github.com/thiscouldbebetter/HexEditor
@@ -11,10 +18,7 @@ Here is some example text which should load automatically so I can iterate on th
 * => 2A => 42
 `.trim();
 
-const deps = [
-	'../shared.styl',
-	'hexedit.styl'
-];
+const deps = [];
 
 function Converter(){ }
 {
@@ -529,8 +533,6 @@ async function dummyFile(){
 
 
 (async () => {
-
-	await appendUrls(deps);
 
 	const mainDiv = htmlToElement(`<div id="divMain"></div>`);
 	document.body.appendChild(mainDiv)

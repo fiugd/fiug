@@ -1,3 +1,10 @@
+//show-preview
+import { appendUrls, consoleHelper, htmlToElement, importCSS } from '../.tools/misc.mjs';
+import 	'../shared.styl';
+
+consoleHelper();
+
+
 /*
 
 https://codemirror.net/demo/lint.html
@@ -16,7 +23,6 @@ would be nice to:
 */
 
 const deps = [
-  "../shared.styl",
   "/shared/vendor/codemirror.js",
   "https://www.unpkg.com/jshint@2.9.6/dist/jshint.js",
   "https://www.unpkg.com/codemirror@5.58.1/addon/lint/lint.js",

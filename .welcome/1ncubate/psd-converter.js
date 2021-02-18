@@ -1,3 +1,8 @@
+//show-preview
+import { appendUrls, consoleHelper, htmlToElement, importCSS } from '../.tools/misc.mjs';
+import '../shared.styl';
+consoleHelper();
+
 /*
 
 	this would be a service that returns PSD when given a jpg or png
@@ -6,7 +11,6 @@
 
 */
 const deps = [
-	"../shared.styl",
 	'https://unpkg.com/ag-psd@6.2.0/dist/bundle.js',
 	"https://unpkg.com/file-saver@2.0.0-rc.2/dist/FileSaver.min.js"
 ];

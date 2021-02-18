@@ -1,3 +1,8 @@
+//show-preview
+import { appendUrls, consoleHelper, htmlToElement, importCSS } from '../.tools/misc.mjs';
+import '../shared.styl';
+consoleHelper();
+
 /*
 https://stackoverflow.com/questions/12652769/rendering-html-elements-to-canvas
 http://html2canvas.hertzen.com/

@@ -1,3 +1,8 @@
+//show-preview
+import { appendUrls, addUrls, consoleHelper, htmlToElement, importCSS } from '../.tools/misc.mjs';
+import '../shared.styl';
+consoleHelper();
+
 /*
 - [ ] open a file at a given line and column
 - [ ] proper icons for search result files
@@ -12,9 +17,6 @@
 - [LATER] should use paging and inifinite scroll to increase perf on large results
 
 */
-const deps = [
-	'../shared.styl'
-];
 
 const utils = (() => {
 	const unique = arr => Array.from(new Set(arr));
@@ -395,8 +397,6 @@ class SearchBox {
 (async () => {
 	const searchTerm = "fo"+"rc";
 	const path = './'
-
-	await appendUrls(deps);
 
 	const searchBox = new SearchBox({});
 	searchBox.updateTerm(searchTerm);

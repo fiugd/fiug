@@ -1,3 +1,7 @@
+//show-preview
+import { appendUrls, consoleHelper } from '../.tools/misc.mjs';
+consoleHelper();
+
 /*
 
 download a zip of the entire project

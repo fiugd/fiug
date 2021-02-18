@@ -2,6 +2,9 @@
 
 // see https://github.com/jvilk/BrowserFS
 
+import { appendUrls, consoleHelper } from '../.tools/misc.mjs';
+consoleHelper();
+
 const proxy = 'https://api.allorigins.win/raw?url=';
 const exampleFsUrl = proxy + 'https://unix.bpowers.net/fs';
 
@@ -17,7 +20,6 @@ const deps = [
 	await appendUrls(deps);
 
 	const { Boot } = window;
-
 
 	const getKernel = () => new Promise((resolve, reject) => {
 		const bootArgs = [

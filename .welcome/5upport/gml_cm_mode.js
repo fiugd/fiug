@@ -1,3 +1,9 @@
+//show-preview
+import { appendUrls, addUrls, consoleHelper, htmlToElement, importCSS, prism } from '../.tools/misc.mjs';
+import { createGraph } from '../.tools/graph.mjs';
+import '../shared.styl';
+consoleHelper();
+
 const ohmScript = "https://unpkg.com/ohm-js@15.2.1/dist/ohm.min.js";
 
 const gmlExample = `

@@ -1,3 +1,8 @@
+//show-preview
+import { appendUrls, addUrls, consoleHelper, htmlToElement, importCSS } from '../.tools/misc.mjs';
+import '../shared.styl';
+consoleHelper();
+
 /*
 - [ ] integrate with client
 - [x] fix concurrency issues
@@ -13,7 +18,6 @@ see defineExtension here https://codemirror.net/doc/manual.html
 */
 
 const deps = [
-	"../shared.styl",
 	"/shared/vendor/codemirror.js",
 	"/shared/css/codemirror.css",
 	"/shared/css/vscode.codemirror.css",

@@ -1,4 +1,11 @@
 //show-preview
+import { appendUrls, consoleHelper, htmlToElement, importCSS, prism } from '../.tools/misc.mjs';
+import 	'../shared.styl';
+
+consoleHelper();
+
+
+//show-preview
 
 // https://octokit.github.io/rest.js/v18
 
@@ -62,13 +69,7 @@ const sessionPrompt = (varName) => {
 }
 
 (async () => {
-	await appendUrls([
-		'../shared.styl',
-	]);
-	await prism('javascript', '', 'prism-preload');
-	const log = async (o) => await prism("json", JSON.stringify(o, null, 2));
-
-
+	const log = (o) => prism("json", JSON.stringify(o, null, 2));
 
 	const GithubWorker = new Proxy({
 		worker: new Worker('github-worker.mjs', { type: 'module' }),
@@ -107,25 +108,25 @@ const sessionPrompt = (varName) => {
 			authorization: `token ${auth}`,
 		}
 	})).json();
-	await log({ rateLimit: result })
+	log({ rateLimit: result })
 
 	await GithubWorker.init.exec({ auth }); // do this better (class)
 
 	const { data: gists } = await GithubWorker.gists.list.exec();
-	//await log({ gists });
+	//log({ gists });
 
 	const { data: repos } = await GithubWorker.repos.listForAuthenticatedUser.exec();
-	//await log({ repos: repos.filter(x => !x.fork) }); 
+	//log({ repos: repos.filter(x => !x.fork) }); 
 	
 	const { data: rateLimit } = await GithubWorker.rateLimit.get.exec();
-	//await log({ rateLimit });
+	//log({ rateLimit });
 	
 	const { data: repoContent } = await  GithubWorker.repos.getContent.exec({ owner, repo });
-	await log({ repoContent });
+	log({ repoContent });
 
 	const treeReq = args =>  GithubWorker.request.exec('GET /repos/{owner}/{repo}/git/trees/{tree_sha}', args);
 	const { data: welcomeTree } = await treeReq({ owner, repo, tree_sha });
-	await log({ welcomeTree });
+	log({ welcomeTree });
 
 	/*
 	const oct = new Octokit({ auth });

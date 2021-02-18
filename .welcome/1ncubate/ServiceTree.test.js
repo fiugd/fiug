@@ -51,7 +51,7 @@ const checklistItems = () => { return `
 // USAGE OF MODULE
 (async () => {
 	const { result: allServices } = await(await fetch('/service/read')).json();
-	const thisServiceId = allServices.find(x => x.name === 'fiug-welcome').id;
+	const thisServiceId = allServices.find(x => x.name === '.welcome').id;
 
 	const { result: [service] } = await(await fetch(`/service/read/${thisServiceId}`)).json();
 
@@ -79,7 +79,7 @@ const checklistItems = () => { return `
 			">.tree-leaf>.tree-leaf-content\n",
 			`{ padding-left:${i+1}em; }\n\n`
 		].join(''), '\n');
-	
+
 	const treeStyle = () => {
 		return `
 			body { margin-bottom: 0; }
@@ -152,6 +152,7 @@ const checklistItems = () => { return `
 				background-color: #88888813;
 			}
 
+			#tree-root.dragover .tree-leaf,
 			.tree-leaf.folder.dragover {
 				background: #232323;
 			}

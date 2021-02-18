@@ -41,26 +41,41 @@ class DragAndDrop {
 		//TODO: if hovered over folder, should expand
 		let leaf = e.target.classList.contains('tree-leaf')
 			? e.target
-			: e.target.closest('.tree-leaf')
-		if(!leaf.classList.contains('folder')){
+			: e.target.closest('.tree-leaf');
+		const isRoot = leaf && !leaf.getAttribute('path').includes('/');
+		if(leaf && !isRoot && !leaf.classList.contains('folder')){
 			leaf = leaf.parentNode.closest('.tree-leaf');
-		};
+		} else if(isRoot && !leaf.classList.contains('folder')){
+			leaf = leaf.parentNode;
+		}
+		if(e.target.id === 'tree-root'){
+			leaf = e.target;
+		}
+		if(e.target.parentNode.id === 'tree-root'){
+			leaf = e.target.parentNode;
+		}
+
 		if(this.draggedOver){
 			this.draggedOver.classList.remove('dragover');
+		}
+		if(!leaf){
+			debugger;
+			return;
 		}
 		this.draggedOver = leaf;
 		leaf.classList.add('dragover');
 	}
 	handleDrop(e){
 		const draggedOverNodes = Array.from(
-			document.querySelectorAll('.tree-leaf.dragover')
+			document.querySelectorAll('.dragover')
 		);
 		draggedOverNodes.forEach((item) => item.classList.remove('dragover'));
 		if(this.dragged && this.draggedOver){
-			console.log(this.dragged);
 			this.move(
 				this.dragged.getAttribute('path'),
-				this.draggedOver.getAttribute('path')
+				this.draggedOver.id === 'tree-root'
+					? ''
+					: this.draggedOver.getAttribute('path')
 			)
 		}
 		e.stopPropagation();
@@ -90,9 +105,13 @@ class DragAndDrop {
 			leaf.addEventListener('dragstart', this.handleDragStart, false);
 			leaf.addEventListener('dragenter', this.handleDragEnter, false);
 			leaf.addEventListener('drop', this.handleDrop, false);
-			
 			leaf.addEventListener('dragover', this.preventDefault, false);
 		});
+
+		rootNode.addEventListener('dragstart', this.handleDragStart, false);
+		rootNode.addEventListener('dragenter', this.handleDragEnter, false);
+		rootNode.addEventListener('drop', this.handleDrop, false);
+		rootNode.addEventListener('dragover', this.preventDefault, false);
 	}
 	update(){
 		this.attach(this.rootNode);
@@ -102,6 +121,7 @@ class DragAndDrop {
 class TreeNode {
 	constructor(item){
 		const { name, type, id } = item;
+
 		const expandoClass = [
 			"tree-expando",
 			"closed",
@@ -286,10 +306,55 @@ class ServiceTree {
 	}
 	
 	insertDomNode(leavesNode, domNode){
-		//TODO: should insert in the correct position
-		//OPTION 1: insert at end then sort
-		//OPTION 2: insertBefore or insertAfter correct node
-		leavesNode.append(domNode);
+		const domNodeContent = domNode.querySelector(':scope > .tree-leaf-content');
+		const { id, type, name } = tryFn(() => JSON.parse(domNodeContent.dataset.item));
+
+		const children = Array.from(leavesNode.children);
+		if(!children.length){
+			leavesNode.append(domNode);
+			return;
+		}
+		let containsFolders;
+		let firstFile;
+		const rightPlace = children.find(leaf => {
+			const treeLeafContent = leaf.querySelector(':scope > .tree-leaf-content');
+			const itemData = tryFn(() => JSON.parse(treeLeafContent.dataset.item));
+			containsFolders = containsFolders || itemData.type === 'folder';
+			firstFile = firstFile
+				? firstFile
+				: itemData.type === 'file'
+					? leaf
+					: undefined;
+			return itemData.type === type && itemData.name > name;
+		});
+		// is folder AND this is last in alpha, files exist
+		if(type === 'folder' && !rightPlace && containsFolders && firstFile){
+			leavesNode.insertBefore(domNode, firstFile);
+			return;
+		}
+		// is folder AND only files
+		if(type === 'folder' && !rightPlace && !containsFolders && firstFile){
+			leavesNode.insertBefore(domNode, children[0]);
+			return;
+		}
+		// is folder AND this is last in alpha, no files
+		// is folder AND no folders,no file
+		// all other cases
+		if(type === 'folder' && !rightPlace){
+			leavesNode.append(domNode);
+			return;
+		}
+
+		// is file AND last in alpha
+		// is file AND no files
+		// is file AND no files, no folders
+		if(type === 'file' && !rightPlace){
+			leavesNode.append(domNode);
+			return;
+		}
+
+		// golden path case
+		leavesNode.insertBefore(domNode, rightPlace);
 	}
 
 	add(type, name, target){
@@ -312,9 +377,8 @@ class ServiceTree {
 	move(path, target){
 		// change the dom
 		const domNode = this.select(path, 'skipDomUpdate');
-		const treeLeafContent = domNode.querySelector('.tree-leaf-content');
-
-		const children = domNode.querySelector('.tree-child-leaves');
+		const treeLeafContent = domNode.querySelector(':scope > .tree-leaf-content');
+		const children = domNode.querySelector(':scope > .tree-child-leaves');
 		
 		const targetNode = this.select(target, 'skipDomUpdate');
 		const targetChildLeaves = targetNode.querySelector(':scope > .tree-child-leaves');
@@ -325,13 +389,12 @@ class ServiceTree {
 			? [...target.split('/'), itemData.name].join('/')
 			: itemData.name;
 		treeLeafContent.dataset.item = JSON.stringify(itemData);
-
-		this.select(itemData.id);
-
-
+		domNode.setAttribute('path', itemData.id);
 
 		if(children){
 			console.error('TREE MOVE: descendants must have their id(path) updated');
+		} else {
+			this.select(itemData.id);
 		}
 		
 		// tell the outside world this happened

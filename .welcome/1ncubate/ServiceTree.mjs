@@ -30,7 +30,6 @@ class DragAndDrop {
 
 		this.update();
 	}
-
 	handleDragStart(e){
 		const leaf = e.target.classList.contains('tree-leaf')
 			? e.target
@@ -149,6 +148,105 @@ class TreeNode {
 	}
 }
 
+class NewTreeNode {
+	container; //the created dom
+	focus; // a function to call after dom appended
+	callback; // a function from outer context called after user finished naming
+
+	constructor(item){
+		this.finishedHandler = this.finishedHandler.bind(this);
+		this.container = this.createContainer(item);
+		const input = this.getBoundInput.bind(this)();
+
+		//maybe should call this something diff than "focus", like "start"?
+		this.focus = (siblings=[], callback) => {
+			//TODO: pass sibling names so input can warn
+			this.callback = callback;
+			input.focus();
+		};
+		this.updateDataItem = (name) => {
+			const treeLeafContent = this.container.querySelector('.tree-leaf-content');
+			const dataItem = tryFn(() => JSON.parse(treeLeafContent.dataset.item));
+			dataItem.id = dataItem.id === '/.newItem'
+				? name
+				: dataItem.id.replace(/\.newItem/g, name);
+			dataItem.name = name;
+			treeLeafContent.dataset.item = JSON.stringify(dataItem);
+			this.container.setAttribute('path', dataItem && dataItem.id);
+		};
+	}
+
+	createContainer(item){
+		const { type } = item;
+		const expandoClass = [
+			"tree-expando",
+			"closed",
+			type === 'folder' ? '' : 'hidden'
+		].join(' ');
+		return  htmlToElement(`
+			<div class="tree-leaf new">
+				<div class="tree-leaf-content" data-item='${JSON.stringify(item)}'>
+					<div class="${expandoClass}">+</div>
+					<div class="tree-leaf-text icon-default">
+						<input type="text"
+							autocomplete="off"
+							autocorrect="off"
+							autocapitalize="off"
+							spellcheck="false"
+						>
+					</div>
+				</div>
+				${ type === 'folder'
+					? `<div class="tree-child-leaves hidden"></div>`
+					: ''
+				}
+			</div>
+		`);
+	}
+	getBoundInput(){
+		const input = this.container.querySelector('input');
+		const thisFinish = finish.bind(this);
+		const keydownListener = (e) => {
+			const ENTER_KEY_CODE = 13;
+			const ESCAPE_KEY_CODE = 27;
+			if (e.keyCode == ENTER_KEY_CODE) thisFinish();
+			if (e.keyCode == ESCAPE_KEY_CODE) thisFinish('cancel');
+			
+			//TODO: keep track of name and if folder already contains this name then popup error message
+		};
+		const focusListener = (e) => {
+			input.removeEventListener("focus", focusListener, false);
+			input.addEventListener("blur", thisFinish, false)
+		};
+		function finish(cancel){
+			input.removeEventListener("keydown", keydownListener, false);
+			input.removeEventListener("blur", thisFinish, false);
+			this.finishedHandler(cancel ? '' : input.value);
+		};
+		input.addEventListener("keydown", keydownListener, false);
+		input.addEventListener("focus", focusListener, false);
+		return input;
+	}
+
+	finishedHandler(name){
+		if(!name){
+			this.callback('no name provided');
+			return;
+		}
+
+		this.container.querySelector('.tree-leaf-text').innerHTML = name;
+		this.updateDataItem(name);
+
+		// TODO: remove this when rewriting underlying js-treeview (use listener at top level)
+		Array.from(this.container.querySelectorAll('.tree-leaf-text, .tree-expando'))
+			.forEach(function (node) {
+				const hijacked = document.querySelector('.tree-leaf-text').onclick
+				node.onclick = hijacked;
+			});
+		this.callback();
+	}
+}
+
 class TreeMapper {
 	constructor(service, state){
 		this.state = state;
@@ -229,13 +327,15 @@ class ServiceTree {
 
 	constructor(service, domRoot, treeState){
 		this.mappedTree = new TreeMapper(service, treeState);
-		this.jstreeview = new TreeView(this.mappedTree, domRoot);
 
+		this.jstreeview = new TreeView(this.mappedTree, domRoot);
+		this.emit = this.emit.bind(this.jstreeview);
 		const exposedAPI = ['on', 'off', 'collapse', 'collapseAll', 'expand', 'expandAll'];
 		for(var i=0, len=exposedAPI.length; i<len; i++){
 			const key = exposedAPI[i];
 			this[key] = this.jstreeview[key].bind(this.jstreeview);
 		}
+
 		this.add = this.add.bind(this);
 		this.select = this.select.bind(this);
 		this.delete = this.delete.bind(this);
@@ -249,6 +349,7 @@ class ServiceTree {
 			this.currentFolder = treeState.select.split('/').slice(0,-1).join('/');
 		}
 		
+		// LISTENING to jstreeview to update ServiceTree
 		this.on('select', ({ target, data }) => {
 			this.currentFile = data.id;
 			this.currentFolder = data.id.split('/').slice(0,-1).join('/');
@@ -264,6 +365,18 @@ class ServiceTree {
 		// on collapse, currentFolder is currentFile's parent
 	}
 
+	// this mimics/exposes js-treeview event trigger handled by this.on
+	emit(name){
+		if (!this.handlers[name] || !this.handlers[name] instanceof Array) return;
+		const args = [].slice.call(arguments, 1);
+
+		this.handlers[name].forEach((handle) => {
+			window.setTimeout(() => {
+				handle.callback.apply(handle.context, args);
+			}, 0);
+		});
+	}
+
 	/*
 		this is for programmatically selecting a file/folder
 	*/
@@ -271,6 +384,7 @@ class ServiceTree {
 		const splitPath = path.split('/');
 		let success = false;
 		let currentNode = this.rootNode;
+
 		//TODO: dom traversal sucks, would be better to traverse an internal model?
 		for(var i=0, len=splitPath.length; i<len; i++){
 			const nodeName = splitPath[i];
@@ -289,7 +403,7 @@ class ServiceTree {
 			const leaves = found.querySelector(':scope > .tree-child-leaves');
 			if(!skipDomUpdate){
 				if(leaves){
-					this.expand(node, leaves, 'skipEmit')
+					this.expand(node, leaves)
 				} else {
 					Array.from(this.rootNode.querySelectorAll('.selected'))
 						.forEach(s => s.classList.remove('selected'));
@@ -299,8 +413,17 @@ class ServiceTree {
 			currentNode = leaves || found;
 		}
 		const isFolder = [...currentNode.classList].includes('tree-child-leaves');
-		if(isFolder) currentNode = currentNode.closest('.tree-leaf');
+		if(isFolder) return currentNode.closest('.tree-leaf');
 
+		if(skipDomUpdate) return currentNode;
+
+		const data = tryFn(() => JSON.parse(
+			currentNode.querySelector(':scope > .tree-leaf-content').dataset.item
+		));
+		this.emit('select', {
+			target: { target: currentNode.querySelector(':scope > .tree-leaf-content .tree-leaf-text') },
+			data
+		});
 		return currentNode;
 	}
 	
@@ -357,20 +480,40 @@ class ServiceTree {
 	}
 
 	add(type, name, target){
-		// trigger a box to come up (in the right place) that allows adding a folder or file
-		// when box is entered or dismissed, trigger the add or dismiss
-		if(!name || typeof target === 'undefined') return console.error(type + ' add ui: not implemented');
+		let newTreeNode;
+		if(!name) {
+			newTreeNode = new NewTreeNode({
+				type, name:".newItem", id: target + '/.newItem'
+			});
+		}
 
 		const id = target
 			? target + '/' + name
 			: name;
-		const domNode = new TreeNode({ name, type, id });
+		const domNode = newTreeNode
+			? newTreeNode.container
+			: new TreeNode({ name, type, id });
 		const targetNode = this.select(target, 'skipDomUpdate');
 		const targetChildLeaves = targetNode.querySelector(':scope > .tree-child-leaves');
 		this.insertDomNode(targetChildLeaves || targetNode, domNode);
 
-		this.dragAndDrop.update();
-		// tell the outside world that this happened
+		const nodeAddDone = () => {
+			this.dragAndDrop.update();
+			// tell the outside world that this happened
+		};
+		
+		if(!newTreeNode) return nodeAddDone();
+
+		const doneCreating = (err, data) => {
+			if(err) {
+				domNode.remove()
+				return;
+			}
+			this.insertDomNode(targetChildLeaves || targetNode, domNode);
+			nodeAddDone();
+		};
+		const siblings = ['TODOErrorPopup'];
+		newTreeNode.focus(siblings, doneCreating);
 	}
 
 	move(path, target){
@@ -395,13 +538,15 @@ class ServiceTree {
 		} else {
 			this.select(itemData.id);
 		}
-		
 		// tell the outside world this happened
 	}
 
 	rename(path, newName){
+		if(typeof newName === 'undefined'){
 		// trigger a box to come up that allows a rename
 		// when box is entered or dismissed, trigger the rename or dismiss
+			return console.error('rename ui: not implemented');
+		}
 
 		const domNode = this.select(path, 'skipDomUpdate');
 		const treeLeafContent = domNode.querySelector('.tree-leaf-content');
@@ -411,20 +556,29 @@ class ServiceTree {
 		const itemData = tryFn(() => JSON.parse(treeLeafContent.dataset.item));
 		itemData.name = newName;
 		itemData.id = [...itemData.id.split('/').slice(0,-1), newName].join('/');
+
 		treeLeafContent.dataset.item = JSON.stringify(itemData);
 		treeLeafText.textContent = newName;
+		domNode.setAttribute('path', itemData.id);
+		
+		//insertDomNode knows how to sort
+		const parent = !itemData.id.includes('/')
+			? domNode.closest('#tree-root')
+			: domNode.closest('.tree-child-leaves');
+		this.insertDomNode(domNode.closest('.tree-child-leaves'), domNode);
 
 		if(children){
 			console.error('TREE RENAME: descendants must have their id(path) updated');
+		} else {
+			this.select(itemData.id);
 		}
-
-		// TODO: tell the outside world that this happened
+		// tell the outside world that this happened
 	}
 
 	delete(path){
 		const domNode = this.select(path, 'skipDomUpdate');
 		domNode.remove();
-		// TODO: tell the outer world that this was deleted
+		// tell the outer world that this was deleted
 	}
 
 	/*

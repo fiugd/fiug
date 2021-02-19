@@ -402,7 +402,8 @@
     "paste-image.png": {},
     "Readme.md": {},
     "service.json": {},
-    "shared.styl": {}
+    "shared.styl": {},
+    "tree-musing.png": {}
   },
   "files": [
     {
@@ -1436,6 +1437,10 @@
     {
       "name": "top-bar.component.ts",
       "path": ".welcome/examples/ui frameworks/angular/top-bar/top-bar.component.ts"
+    },
+    {
+      "name": "tree-musing.png",
+      "path": ".welcome/tree-musing.png"
     },
     {
       "name": "ts.html",

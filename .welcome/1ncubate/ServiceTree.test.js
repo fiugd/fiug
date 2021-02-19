@@ -58,22 +58,27 @@ how to get to this:
 */
 
 const checklistItems = () => { return `
+	
+	# prima
 	- rename item element
 	- update folder children when CRUD'ing folder
 	- crud ops NOTIFY outside
 
-	- tree-leaf-content dataset -> tree-leaf props
+	# proxima
+	- add classes to files depending on type
 	- keep duplicate files/folders from happening
 	- DnD: if hovered over folder, should expand
 	- DnD:  if dragged is already in target, don't highlght
 	- don't select (but expand folder?) after move
 
-	- add classes to files depending on type
+	# postera
+	- tree-leaf-content dataset -> tree-leaf props
 	- scroll into view when an out-of-view file is selected [PORT]
 	- drag file out of tree into another view
 	- cut (move w/o target) and paste (move w/o source)
 	- mult-select with all associated ops [EPIC]
 
+	# plena
 	- [X] add file element
 	- [X] add folder element
 	- [X] rename file/folder should update leaf path
@@ -181,7 +186,6 @@ const checklistItems = () => { return `
 					<input type="text" autocomplete="nope" value="addedFolder"/>
 				</div>
 				<div class="checklist">
-					<h4>Requirements:</h4>
 				</div>
 			</div>
 		</div>
@@ -247,27 +251,40 @@ const checklistItems = () => { return `
 	tree.on('expand', ({ target }) => updateTest('current-folder', tree.currentFolder));
 	tree.on('collapse', ({ target }) => updateTest('current-folder', tree.currentFolder));
 
-	tests.querySelector('.checklist').innerHTML += '<div style="overflow-y: auto;">' + 
+	tests.querySelector('.checklist').innerHTML += '<div style="overflow-y: auto; border-top:1px solid; border-bottom:1px solid; border-color: #0e1110; margin-top:1em; padding-bottom: 2em;">' + 
 		checklistItems()
 			.split('\n')
 			.filter(x=>!!(x.trim()))
 			.map(x => {
 				if(x.toLowerCase().includes('[x]')){
 					x = x.split(/\[X\]/i)[1];
-					return { checked: true, value: x }
+					return {
+						checked: true,
+						value: x,
+						type: 'item'
+					}
 				}
-				return { value: x.split(/-\s/i)[1] };
+				return {
+					value: x.split(/-\s|#/i)[1],
+					type: x.includes('- ') ? 'item' : 'header'
+				};
 			})
 			.sort((a,b) => (a.checked && b.checked) || (!a.checked && !b.checked)
 				? 0
 				: a.checked && !b.checked ? 1 : -1
 			)
-			.map((x, i) => `
-				<div ${x.checked ? 'disabled' : ''}>
-					<input type="checkbox" name="checkbox-${i}" ${x.checked ? 'checked' : ''} />
-					<label for="checkbox-${i}">${x.value}</label>
-				</div>
-			`)
+			.map((x, i) => {
+					if(x.type === 'item') return `
+						<div ${x.checked ? 'disabled' : ''}>
+							<input type="checkbox" name="checkbox-${i}" ${x.checked ? 'checked' : ''} />
+							<label for="checkbox-${i}">${x.value}</label>
+						</div>
+					`;
+					if(x.type === 'header') return `
+						<h4 style="margin-bottom:.5em;opacity: .4;border-bottom: 1px dashed;">${x.value}</h4>
+					`;
+					return x.value;
+			})
 			.join('\n') +
 		'</div>';
 	

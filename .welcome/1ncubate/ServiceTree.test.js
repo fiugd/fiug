@@ -1,10 +1,10 @@
 //show-preview
-
-import ServiceTree from './ServiceTree.mjs';
-
 import { prism, importCSS, consoleHelper, htmlToElement } from '../.tools/misc.mjs'
 import '../shared.styl';
 consoleHelper();
+
+import ServiceTree from './ServiceTree.mjs';
+import './ServiceTree.styl';
 
 /*
 	https://stackoverflow.com/questions/5894879/calculate-minimal-operations-to-make-two-tree-structures-identical
@@ -68,10 +68,11 @@ const checklistItems = () => { return `
 	- DnD:  if dragged is already in target, don't highlght
 	- don't select (but expand folder?) after move
 
-	- drag file out of tree into another view
-	- scroll into view when an out-of-view file is selected
-	- cut (move w/o target) and paste (move w/o source)
 	- add classes to files depending on type
+	- scroll into view when an out-of-view file is selected [PORT]
+	- drag file out of tree into another view
+	- cut (move w/o target) and paste (move w/o source)
+	- mult-select with all associated ops [EPIC]
 
 	- [X] add file element
 	- [X] add folder element
@@ -125,6 +126,7 @@ const checklistItems = () => { return `
 	const tree = new ServiceTree(service, 'tree-root', treeState);
 
 	//OH WELL?: feels kinda dirty in some senses, very reasonable in others
+	//TODO: do this with stylus??
 	const treeDepthStyles = (max) => new Array(max).fill()
 		.reduce((all, one, i) => [
 			all,
@@ -135,174 +137,10 @@ const checklistItems = () => { return `
 			`{ padding-left:${(i+1)*0.7}em; }\n\n`
 		].join(''), '\n');
 
-	const treeStyle = () => {
-		return `
-			@font-face {
-				font-family: "codicon";
-				src: url("/shared/fonts/codicon.ttf") format("truetype");
-			}
-			@font-face {
-				font-family: "seti";
-				src: url("/shared/fonts/seti.woff2") format("woff2");
-			}
-
-			#tree-container {
-				height: calc(100vh - 3em);
-				display: flex;
-				flex-direction: column;
-				background: #172030;
-				width: 360px; /* set by pane width */
-			}
-			#tree-controls { background: #202717; margin-bottom: 1em; }
-			#tree-controls button { margin-bottom: 0; min-width: unset; }
-			#tree-root {
-				background: #171717;
-				flex: 1;
-				overflow-y: auto;
-				padding: 0;
-				padding-bottom: 5em;
-				color: rgb(194, 194, 194);
-				font-size: 15px;
-			}
-
-			body { margin-bottom: 0; }
-			div#test-container {
-				width: 100%;
-				display: flex;
-			}
-			div#tests {
-				flex: 1;
-				background: hsl(177deg 11% 13%);
-				padding: 0.5em 1em;
-				display: flex;
-				flex-direction: column;
-				height: calc(100vh - 3em);
-				box-sizing: border-box;
-			}
-			div#tests > * { box-sizing: border-box; }
-			#tests h4 { margin-top: 1em; }
-			#tests > div { margin-bottom: 1em; display: flex; }
-			#tests > div:before {
-				font-variant: all-petite-caps;
-				opacity: .5;
-				min-width: 8.5em;
-				display: inline-block;
-			}
-			#tests > div input[type="text"] {
-				background: #6663; border: 0; color: white;
-				flex: 1;
-			}
-			#tests > div input[type="checkbox"] {
-				filter: invert(1) saturate(0);
-				mix-blend-mode: screen;
-				width: 1.1em;
-				height: 1.1em;
-				text-align: center;
-			}
-			#tests > div [disabled] { opacity: 0.6; }
-			#tests > div button {
-				min-width: 9em; margin-bottom: 0; height: 100%;
-				margin-right: 1em; padding: 3px 10px; border: 0px;
-				background: #7771
-			}
-			#tests > div button:hover { background: #9995 }
-			#tests .current-file:before { content: 'Current File: '; }
-			#tests .current-folder:before { content: 'Current Folder: '; }
-			#tests .checklist { flex-direction: column; overflow-y: auto; }
-
-
-			.tree-leaf{position:relative}
-			.tree-leaf .tree-child-leaves{display:block;}
-			.tree-leaf .hidden{display:none;visibility:hidden}
-
-			.tree-leaf .tree-expando { display: none; }
-			.tree-leaf-text:before {
-				content: '';
-				width: 0.8em;
-				height: 0.8em;
-				display: inline-flex;
-				justify-content: center;
-				align-items: center;
-				margin-left: 0.6em;
-				margin-right: 0.2em;
-				text-decoration: none;
-				text-rendering: auto;
-				text-align: center;
-				user-select: none;
-			}
-			.tree-expando.hidden + .tree-leaf-text:before {
-				font-family: 'seti';
-				content: '\\E020';
-				font-size: 1.525em;
-				vertical-align: top;
-				margin-top: -0.05em;
-				margin-left: .25em;
-				margin-right: 0.2em;
-				
-				/*content: '\\E047';*/
-				/*color: #a074c4; */
-				color: #607673
-			}
-			.tree-expando:not(.hidden) + .tree-leaf-text:before {
-				font-family: codicon;
-				content: "\\eab4";
-				font-size: 1.1em;
-				margin-right: 0.4em;
-			}
-			.tree-expando.expanded:not(.hidden) + .tree-leaf-text:before {
-				transform: translateY(0.15em) translateX(0.02em);
-			}
-			.tree-expando:not(.expanded,.hidden) + .tree-leaf-text:before {
-				transform: rotate(-90deg) translateX(-0.15em);
-			}
-			.tree-leaf-text input[type="text"] {
-				background: #1e2524;
-				color: currentColor;
-				outline: 1px solid #4d9de4;
-				border: 0;
-				height: 100%;
-				width: calc(100% - 30px) !important;
-				box-sizing: border-box !important;
-				padding-left: 5px !important;
-				margin-left: -5px !important;
-			}
-
-			.tree-leaf-content.selected {
-				background: #8888882e;
-			}
-			.tree-leaf {
-				min-width: 200px;
-				user-select: none;
-			}
-			.tree-leaf .tree-leaf-text {
-				cursor: pointer;
-				flex: 1;
-				white-space: nowrap;
-				padding-top: .08em;
-				padding-bottom: .08em;
-			}
-			.tree-leaf-content { display: flex; }
-			.tree-leaf-content:hover {
-				background-color: #00d9ff1a;
-			}
-
-			#tree-root.dragover .tree-leaf,
-			.tree-leaf.folder.dragover {
-				background: #232323;
-			}
-
-
-
-
-		`.replace(/^\t\t\t/gm, '');
-	};
-
 	const treeRootDom = htmlToElement(`
 		<div id="test-container">
+			<style>${treeDepthStyles(20)}</style>
 			<div id="tree-container">
-				<style>${treeStyle()}</style>
-				<style>${treeDepthStyles(20)}</style>
-
 				<div id="tree-controls">
 					<button class="control collapse-all">Min</button>
 					<button class="control expand-all">Max</button>

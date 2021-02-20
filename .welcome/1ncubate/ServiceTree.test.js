@@ -3,6 +3,9 @@ import { prism, importCSS, consoleHelper, htmlToElement } from '../.tools/misc.m
 import '../shared.styl';
 consoleHelper();
 
+import ext from "/shared/icons/seti/ext.json.mjs";
+import '/shared/css/seti-icons.css';
+
 import ServiceTree from './ServiceTree.mjs';
 import './ServiceTree.styl';
 
@@ -60,18 +63,16 @@ how to get to this:
 const checklistItems = () => { return `
 	
 	# prima
-	- rename item element
 	- update folder children when CRUD'ing folder
-	- crud ops NOTIFY outside
 
 	# proxima
-	- add classes to files depending on type
 	- keep duplicate files/folders from happening
-	- DnD: if hovered over folder, should expand
-	- DnD:  if dragged is already in target, don't highlght
-	- don't select (but expand folder?) after move
+	- don't select file (but expand folder?) after move
 
 	# postera
+	- DnD: if hovered over folder, should expand
+	- DnD: if dragged is already in target, don't highlght
+	- DnD: change dragging icon to something different
 	- tree-leaf-content dataset -> tree-leaf props
 	- scroll into view when an out-of-view file is selected [PORT]
 	- drag file out of tree into another view
@@ -79,6 +80,9 @@ const checklistItems = () => { return `
 	- mult-select with all associated ops [EPIC]
 
 	# plena
+	- [X] crud ops NOTIFY outside
+	- [X] add classes to files depending on type
+	- [X] rename item element
 	- [X] add file element
 	- [X] add folder element
 	- [X] rename file/folder should update leaf path
@@ -93,18 +97,18 @@ const checklistItems = () => { return `
 	- [X] MOVE a FOLDER from outside by path
 	- [X] DELETE a FOLDER from outside by path
 	- [X] ADD a FOLDER from outside by path
-	- [X] collapse a parent without closing child branches (+programmatically)
+	- [X] collapsed parent with uncollapsed descendant
 	- [X] SELECT a FILE from outside by path, eg. via tab selection
-	- [X] open parent folders when child file selected from outside
-	- [X] provide context to file clicks and especially right clicks, ie. path info
+	- [X] open parent folders when child selected
+	- [X] context tree clicks, esp. right clicks, ie. path info
 	- [X] open and close all branches
-	- [X] translate between UI trees and saved trees (and decide the diff)
+	- [X] map between UI trees and saved trees (difference?)
 	- [X] does not confuse files with same names in different dirs
 	- [X] properly sort files and folders
-	- [X] I don't really like the way that js-treeview dumps items into the dom
-		- [X] maybe would prefer the way that es6tree uses shadow dom?
-		- [X] but I could live with it since toJSON proxy let me clean that up
-	- [X] I don't really like that css has to be included - mimic es6tree?
+	- [X] js-treeview muddies dom w/ item metadata, sucks
+		- [X] use shadow dom? like es6tree?
+		- [X] TreeMap proxy allows clean-up via toJSON prop
+	- [X] minimize need for external CSS, like es6tree?
 	- [X] should be very responsive
 `.trim().replace(/\t/gm, '');
 };
@@ -123,12 +127,18 @@ const checklistItems = () => { return `
 			'examples',
 			'examples/binary'
 		],
-		select: 'examples/binary/audio.mp3' //TODO: js-treeview does not support creating dom with this
+		select: 'examples/binary/audio.mp3'
+	};
+	const extensionMapper = (extension) => {
+		const override = {
+			md: 'info'
+		};
+		return 'icon-' + (override[extension] || ext[extension] || 'default');
 	};
 
 	const treeRoot = htmlToElement(`<div id="tree-root"></div>`);
 	document.body.append(treeRoot);
-	const tree = new ServiceTree(service, 'tree-root', treeState);
+	const tree = new ServiceTree(service, 'tree-root', treeState, extensionMapper);
 
 	//OH WELL?: feels kinda dirty in some senses, very reasonable in others
 	//TODO: do this with stylus??
@@ -156,36 +166,46 @@ const checklistItems = () => { return `
 				</div>
 			</div>
 			<div id="tests">
+				<div class="select">
+					<button>select</button>
+					<input type="text" value="4rchive/search.js"/>
+				</div>
 				<div class="current-file">${tree.currentFile}</div>
 				<div class="rename-file">
 					<button>rename</button>
-					<input type="text" autocomplete="nope" value="renamedFile.jpg"/>
+					<input type="text" value="renamedFile.jpg"/>
 				</div>
 				<div class="move-file">
 					<button>move</button>
-					<input type="text" autocomplete="nope" value="examples/data"/>
+					<input type="text" value="examples/data"/>
 				</div>
 				<div class="delete-file"><button>delete</button></div>
 
 				<div class="current-folder">${tree.currentFolder}</div>
 				<div class="rename-folder">
 					<button>rename</button>
-					<input type="text" autocomplete="nope" value="renamedFolder"/>
+					<input type="text" value="renamedFolder"/>
 				</div>
 				<div class="move-folder">
 					<button>move</button>
-					<input type="text" autocomplete="nope" value="examples/data"/>
+					<input type="text" value="examples/data"/>
 				</div>
 				<div class="delete-folder"><button>delete</button></div>
 				<div class="add-file-in-folder">
 					<button>add file</button>
-					<input type="text" autocomplete="nope" value="addedFile.jpg"/>
+					<input type="text" value="addedFile.jpg"/>
 				</div>
 				<div class="add-folder-in-folder">
 					<button>add folder</button>
-					<input type="text" autocomplete="nope" value="addedFolder"/>
+					<input type="text" value="addedFolder"/>
+				</div>
+				<div class="last-op">
+					<div>History:</div>
+					<div class="list"></div>
 				</div>
 				<div class="checklist">
+					<div>TODO:</div>
+					<div class="list"></div>
 				</div>
 			</div>
 		</div>
@@ -207,86 +227,107 @@ const checklistItems = () => { return `
 		'.rename-file': () => tree.rename(tree.currentFile),
 		'.rename-folder': () => tree.rename(tree.currentFolder)
 	}).forEach(([k,v]) => {
+		//TODO: should also create the div here
 		treeControls.querySelector(k).addEventListener('click', v);
 	})
+	
+	Object.entries({
+		'.select': (i) => tree.select(i),
+		'.rename-file': (i) => tree.rename(tree.currentFile, i),
+		'.move-file': (i) => tree.move(tree.currentFile, i),
+		'.delete-file': (i) => tree.delete(tree.currentFile),
+		'.rename-folder': (i) => tree.rename(tree.currentFolder, i),
+		'.move-folder': (i) => tree.move(tree.currentFolder, i),
+		'.delete-folder': (i) => tree.delete(tree.currentFolder),
+		'.add-file-in-folder': (i) => tree.add('file', i, tree.currentFolder),
+		'.add-folder-in-folder': (i) => tree.add('folder', i, tree.currentFolder)
+	}).forEach(([k,v]) => {
+		//TODO: should also create the div here
+		const button = tests.querySelector(k +  ' button');
+		const input = tests.querySelector(k +  ' input');
+		const handler = () => v(input && input.value);
+		button.onclick = handler;
+		if(!input) return;
+		input.addEventListener('keydown', (e) => {
+			const ENTER_KEY_CODE = 13;
+			if(e.keyCode === ENTER_KEY_CODE) { v(input.value); }
+		}, false);
+		input.setAttribute('autocomplete', "off");
+		input.setAttribute('autocorrect', "off");
+		input.setAttribute('autocapitalize', "off");
+		input.setAttribute('spellcheck', "false");
+	})
 
-	// file tests
-	tests.querySelector('.rename-file button').addEventListener('click', (event) => {
-		const newName = event.target.closest('div').querySelector('input').value;
-		tree.rename(tree.currentFile, newName);
-	});
-	tests.querySelector('.move-file button').addEventListener('click', (event) => {
-		const targetDir = event.target.closest('div').querySelector('input').value;
-		tree.move(tree.currentFile, targetDir);
-	});
-	tests.querySelector('.delete-file button').addEventListener('click', () => {
-		tree.delete(tree.currentFile);
-	});
-
-	// folder tests
-	tests.querySelector('.rename-folder button').addEventListener('click', (event) => {
-		const newName = event.target.closest('div').querySelector('input').value;
-		tree.rename(tree.currentFolder, newName);
-	});
-	tests.querySelector('.move-folder button').addEventListener('click', (event) => {
-		const targetDir = event.target.closest('div').querySelector('input').value;
-		tree.move(tree.currentFolder, targetDir);
-	});
-	tests.querySelector('.delete-folder button').addEventListener('click', () => {
-		tree.delete(tree.currentFolder);
-	});
-	tests.querySelector('.add-file-in-folder button').addEventListener('click', (event) => {
-		const newName = event.target.closest('div').querySelector('input').value;
-		tree.add('file', newName, tree.currentFolder);
-	});
-	tests.querySelector('.add-folder-in-folder button').addEventListener('click', (event) => {
-		const newName = event.target.closest('div').querySelector('input').value;
-		tree.add('folder', newName, tree.currentFolder);
-	});
-
-	tree.on('select', ({ target }) => {
+	tree.on('select', () => {
 		updateTest('current-file', tree.currentFile);
 		updateTest('current-folder', tree.currentFolder);
 	});
-	tree.on('expand', ({ target }) => updateTest('current-folder', tree.currentFolder));
-	tree.on('collapse', ({ target }) => updateTest('current-folder', tree.currentFolder));
 
-	tests.querySelector('.checklist').innerHTML += '<div style="overflow-y: auto; border-top:1px solid; border-bottom:1px solid; border-color: #0e1110; margin-top:1em; padding-bottom: 2em;">' + 
-		checklistItems()
-			.split('\n')
-			.filter(x=>!!(x.trim()))
-			.map(x => {
-				if(x.toLowerCase().includes('[x]')){
-					x = x.split(/\[X\]/i)[1];
-					return {
-						checked: true,
-						value: x,
-						type: 'item'
-					}
-				}
+	Object.entries({
+		fileSelect: '',
+		fileAdd: '',
+		fileRename: '',
+		fileMove: '',
+		fileDelete: '',
+
+		folderSelect: '',
+		folderAdd: '',
+		folderRename: '',
+		folderMove: '',
+		folderDelete: '',
+	}).forEach(([k, v]) => {
+		const historyDiv = document.querySelector('.last-op .list');
+		tree.on(k, (args) => {
+			updateTest('current-file', tree.currentFile);
+			updateTest('current-folder', tree.currentFolder);
+			
+			const summary = `${k}: ${args}`;
+			historyDiv.innerHTML += `
+				<div>
+					<div>${new Date().toLocaleTimeString('AZ')}</div>
+					<div>${k}</div>
+					<div>${args.source || ''}</div>
+					<div>${args.target || ''}</div>
+				</div>
+			`;
+		});
+	})
+
+	tests.querySelector('.checklist .list').innerHTML += checklistItems()
+		.split('\n')
+		.filter(x=>!!(x.trim()))
+		.map(x => {
+			if(x.toLowerCase().includes('[x]')){
+				x = x.split(/\[X\]/i)[1];
 				return {
-					value: x.split(/-\s|#/i)[1],
-					type: x.includes('- ') ? 'item' : 'header'
-				};
-			})
-			.sort((a,b) => (a.checked && b.checked) || (!a.checked && !b.checked)
-				? 0
-				: a.checked && !b.checked ? 1 : -1
-			)
-			.map((x, i) => {
-					if(x.type === 'item') return `
-						<div ${x.checked ? 'disabled' : ''}>
-							<input type="checkbox" name="checkbox-${i}" ${x.checked ? 'checked' : ''} />
-							<label for="checkbox-${i}">${x.value}</label>
-						</div>
-					`;
-					if(x.type === 'header') return `
-						<h4 style="margin-bottom:.5em;opacity: .4;border-bottom: 1px dashed;">${x.value}</h4>
-					`;
-					return x.value;
-			})
-			.join('\n') +
-		'</div>';
+					checked: true,
+					value: x,
+					type: 'item'
+				}
+			}
+			return {
+				value: x.split(/-\s|#/i)[1],
+				type: x.includes('- ') ? 'item' : 'header'
+			};
+		})
+		.sort((a,b) => (a.checked && b.checked) || (!a.checked && !b.checked)
+			? 0
+			: a.checked && !b.checked ? 1 : -1
+		)
+		.map((x, i) => {
+				if(x.type === 'item') return `
+					<div ${x.checked ? 'disabled' : ''}>
+						<input type="checkbox" name="checkbox-${i}" ${x.checked ? 'checked' : ''} />
+						<label for="checkbox-${i}">${x.value}</label>
+					</div>
+				`;
+				if(x.type === 'header') return `
+					<h4 style="margin-bottom:.5em;opacity: .4;border-bottom: 1px dashed;">${x.value}</h4>
+				`;
+				return x.value;
+		})
+		.join('\n');
 	
 	window.tree = tree;
 })();
+

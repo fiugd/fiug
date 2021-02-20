@@ -1,3 +1,8 @@
+@ https://github.com/PlanetAPL/node-apl
+@ k language which is like apl - https://github.com/JohnEarnest/ok
+
+@ https://codemirror.net/mode/apl/index.html
+
 @ This program is very simple in APL!
 
 'Hello World!'
@@ -19,3 +24,11 @@ h
 @ fibonacci 2
 
 ⌊.5+(((1+PHI)÷2)*⍳N)÷PHI←5*.5
+
+@ fibo from replit examples 7
+
+{⍵<2:⍵ ⋄ (∇⍵-1)+∇⍵-2}7
+
+
+@ all APL chars in unicode
+@ ¯ × ÷ ∘ ∣ ∼ ≠ ≤ ≥ ≬ ⌶ ⋆ ⌾ ⍟ ⌽ ⍉ ⍝ ⍦ ⍧ ⍪ ⍫ ⍬ ⍭ ← ↑ → ↓ ∆ ∇ ∧ ∨ ∩ ∪ ⌈ ⌊ ⊤ ⊥ ⊂ ⊃ ⌿ ⍀ ⍅ ⍆ ⍏ ⍖ ⍊ ⍑ ⍋ ⍒ ⍎ ⍕ ⍱ ⍲ ○ ⍳ ⍴ ⍵ ⍺ ⍶ ⍷ ⍸ ⍹ ⍘ ⍙ ⍚ ⍛ ⍜ ⍮ ¨ ⍡ ⍢ ⍣ ⍤ ⍥ ⍨ ⍩

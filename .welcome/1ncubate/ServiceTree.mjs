@@ -175,7 +175,6 @@ class NewTreeNode {
 			this.container.setAttribute('path', dataItem && dataItem.id);
 		};
 	}
-
 	createContainer(item){
 		const { type } = item;
 		const expandoClass = [
@@ -187,7 +186,7 @@ class NewTreeNode {
 			<div class="tree-leaf new">
 				<div class="tree-leaf-content" data-item='${JSON.stringify(item)}'>
 					<div class="${expandoClass}">+</div>
-					<div class="tree-leaf-text icon-default">
+					<div class="tree-leaf-text">
 						<input type="text"
 							autocomplete="off"
 							autocorrect="off"
@@ -227,7 +226,6 @@ class NewTreeNode {
 		input.addEventListener("focus", focusListener, false);
 		return input;
 	}
-
 	finishedHandler(name){
 		if(!name){
 			this.callback('no name provided');
@@ -244,6 +242,56 @@ class NewTreeNode {
 				node.onclick = hijacked;
 			});
 		this.callback();
+	}
+}
+
+class RenameUI {
+	container;
+	constructor(context){
+		this.container = context.domNode;
+		this.treeLeafContent = context.treeLeafContent;
+		this.treeLeafText = context.treeLeafText;
+		this.siblings = context.siblings;
+
+		this.done = this.done.bind(this);
+		this.getInput = this.getInput.bind(this);
+		this.keydownListener = this.keydownListener.bind(this);
+
+		return new Promise(this.getInput);
+	}
+	done(cancel){
+		const { callback, currentName, done, input, keydownListener, treeLeafText } = this;
+		input.removeEventListener("keydown", keydownListener, false);
+		input.removeEventListener("blur", done, false);
+		const name = cancel ? '' : input.value;
+		treeLeafText.innerHTML = name || currentName;
+		callback(name);
+	}
+	getInput(callback){
+		const { container, done, keydownListener, treeLeafText } = this;
+		this.currentName = treeLeafText.textContent;
+		const newInput = `
+		<input type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+		`;
+		treeLeafText.innerHTML = newInput;
+		const input = container.querySelector('input');
+		input.value = this.currentName;
+		input.addEventListener("keydown", keydownListener, false);
+		input.addEventListener("blur", done, false)
+
+		this.input = input;
+		this.callback = callback;
+
+		input.focus();
+	}
+	keydownListener(e){
+		const { done, siblings } = this;
+		const ENTER_KEY_CODE = 13;
+		const ESCAPE_KEY_CODE = 27;
+		if (e.keyCode == ENTER_KEY_CODE) return done();
+		if (e.keyCode == ESCAPE_KEY_CODE) return done('cancel');
+		//TODO: keep track of name and if folder already contains this name then popup error message
+		//see this.siblings
 	}
 }
 
@@ -320,12 +368,24 @@ class TreeMapper {
 
 }
 
+const updateTreeTextClass = (mapper) => {
+	const fileNodes = Array.from(
+		document.querySelectorAll('.tree-leaf.file > .tree-leaf-content > .tree-leaf-text')
+	);
+	fileNodes.forEach(x => {
+		const filename = x.textContent;
+		const ext = x.textContent.split('.').pop();
+		const mapped = mapper(ext);
+		x.classList.add(mapped);
+	});
+};
+
 class ServiceTree {
 	mappedTree;
 	jstreeview;
 	rootNode;
 
-	constructor(service, domRoot, treeState){
+	constructor(service, domRoot, treeState, extensionMapper){
 		this.mappedTree = new TreeMapper(service, treeState);
 
 		this.jstreeview = new TreeView(this.mappedTree, domRoot);
@@ -335,6 +395,19 @@ class ServiceTree {
 			const key = exposedAPI[i];
 			this[key] = this.jstreeview[key].bind(this.jstreeview);
 		}
+		
+		const jsTreeViewEvents = ['expand', 'expandAll', 'collapse', 'collapseAll', 'select'];
+		this.jstreeviewOn = this.on;
+		this.on = (name, callback, scope) => {
+			if(jsTreeViewEvents.includes(name)) {
+				return this.jstreeviewOn(name, callback, scope);
+			}
+			this.jstreeview.handlers[name] = this.jstreeview.handlers[name] || [];
+			this.jstreeview.handlers[name].push({
+				callback: callback,
+				context: scope
+			});
+		};
 
 		this.add = this.add.bind(this);
 		this.select = this.select.bind(this);
@@ -342,6 +415,9 @@ class ServiceTree {
 		this.move = this.move.bind(this);
 		this.rootNode = document.getElementById(domRoot);
 		this.dragAndDrop = new DragAndDrop(this);
+
+		this.updateIcons = () => updateTreeTextClass(extensionMapper);
+		this.updateIcons();
 
 		if(treeState.select){
 			this.select(treeState.select);
@@ -367,6 +443,7 @@ class ServiceTree {
 
 	// this mimics/exposes js-treeview event trigger handled by this.on
 	emit(name){
+		// FYI "this" is ServiceTree.jstreeview
 		if (!this.handlers[name] || !this.handlers[name] instanceof Array) return;
 		const args = [].slice.call(arguments, 1);
 
@@ -424,6 +501,8 @@ class ServiceTree {
 			target: { target: currentNode.querySelector(':scope > .tree-leaf-content .tree-leaf-text') },
 			data
 		});
+
+		this.emit('fileSelect', { source: data.id });
 		return currentNode;
 	}
 	
@@ -499,7 +578,12 @@ class ServiceTree {
 
 		const nodeAddDone = () => {
 			this.dragAndDrop.update();
+			this.updateIcons();
 			// tell the outside world that this happened
+			
+			const treeLeafContent = domNode.querySelector(':scope > .tree-leaf-content');
+			const itemData = tryFn(() => JSON.parse(treeLeafContent.dataset.item));
+			this.emit(type+'Add', { source: itemData.id });
 		};
 		
 		if(!newTreeNode) return nodeAddDone();
@@ -536,22 +620,26 @@ class ServiceTree {
 		if(children){
 			console.error('TREE MOVE: descendants must have their id(path) updated');
 		} else {
-			this.select(itemData.id);
+			if(itemData.selected){ //domNode.classList.contains('selected')
+				this.currentFile = itemData.id;
+				this.currentFolder = itemData.id.split('/').slice(0,-1).join('/');
+			}
 		}
 		// tell the outside world this happened
+		this.emit(itemData.type+'Move', { source: path, target: itemData.id });
 	}
 
-	rename(path, newName){
-		if(typeof newName === 'undefined'){
-		// trigger a box to come up that allows a rename
-		// when box is entered or dismissed, trigger the rename or dismiss
-			return console.error('rename ui: not implemented');
-		}
-
+	async rename(path, _newName){
 		const domNode = this.select(path, 'skipDomUpdate');
 		const treeLeafContent = domNode.querySelector('.tree-leaf-content');
 		const treeLeafText = domNode.querySelector('.tree-leaf-text');
 		const children = domNode.querySelector(':scope > .tree-child-leaves');
+
+		const newName = _newName || await new RenameUI({
+			domNode, treeLeafContent, treeLeafText, children
+		});
+
+		if(!newName) return;
 
 		const itemData = tryFn(() => JSON.parse(treeLeafContent.dataset.item));
 		itemData.name = newName;
@@ -559,26 +647,43 @@ class ServiceTree {
 
 		treeLeafContent.dataset.item = JSON.stringify(itemData);
 		treeLeafText.textContent = newName;
+		treeLeafText.className = 'tree-leaf-text';
+
 		domNode.setAttribute('path', itemData.id);
 		
-		//insertDomNode knows how to sort
+		//insertDomNode handles sort
 		const parent = !itemData.id.includes('/')
 			? domNode.closest('#tree-root')
 			: domNode.closest('.tree-child-leaves');
 		this.insertDomNode(domNode.closest('.tree-child-leaves'), domNode);
 
+		this.emit(itemData.type+'Rename', { source: path, target: itemData.id });
+
 		if(children){
 			console.error('TREE RENAME: descendants must have their id(path) updated');
 		} else {
-			this.select(itemData.id);
+			if(itemData.selected){ //domNode.classList.contains('selected')
+				this.currentFile = itemData.id;
+				this.currentFolder = itemData.id.split('/').slice(0,-1).join('/');
+			}
+			this.updateIcons();
 		}
 		// tell the outside world that this happened
 	}
 
 	delete(path){
 		const domNode = this.select(path, 'skipDomUpdate');
+		const treeLeafContent = domNode.querySelector('.tree-leaf-content');
+		const item = tryFn(() => JSON.parse(treeLeafContent.dataset.item));
+
+		if(item.selected){ //domNode.classList.contains('selected')
+			this.currentFile = undefined;
+			this.currentFolder = undefined;
+		}
+		
 		domNode.remove();
 		// tell the outer world that this was deleted
+		this.emit(item.type+'Delete', { source: path });
 	}
 
 	/*

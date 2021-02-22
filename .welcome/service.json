@@ -74,6 +74,7 @@
       "paste-image.js": {},
       "psd-converter.js": {},
       "ServiceTree.mjs": {},
+      "ServiceTree.styl": {},
       "ServiceTree.test.js": {},
       "systemjs.js": {},
       "webcam.js": {},
@@ -403,6 +404,7 @@
     "Readme.md": {},
     "service.json": {},
     "shared.styl": {},
+    "textTools.mjs": {},
     "tree-musing.png": {}
   },
   "files": [
@@ -1283,6 +1285,10 @@
       "path": ".welcome/1ncubate/ServiceTree.mjs"
     },
     {
+      "name": "ServiceTree.styl",
+      "path": ".welcome/1ncubate/ServiceTree.styl"
+    },
+    {
       "name": "ServiceTree.test.js",
       "path": ".welcome/1ncubate/ServiceTree.test.js"
     },
@@ -1377,6 +1383,10 @@
     {
       "name": "templateMessages.js",
       "path": ".welcome/4rchive/templateMessages.js"
+    },
+    {
+      "name": "textTools.mjs",
+      "path": ".welcome/textTools.mjs"
     },
     {
       "name": "texturepacker.html",

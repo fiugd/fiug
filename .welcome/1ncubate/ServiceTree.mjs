@@ -1,4 +1,5 @@
-import TreeView from '/shared/vendor/js-treeview.1.1.5.js';
+let TREE_ROOT_ID;
+
 const tryFn = (fn, _default) => {
 	try {
 		return fn();
@@ -12,6 +13,232 @@ function htmlToElement(html) {
 	template.innerHTML = html.trim();
 	return template.content.firstChild;
 }
+
+// js-treeview 1.1.5
+const TreeView = (function () {
+	var events = ['expand', 'expandAll', 'collapse', 'collapseAll', 'select'];
+
+	function isDOMElement(obj) {
+		try {
+			return obj instanceof HTMLElement;
+		} catch (e) {
+			return typeof obj === 'object' &&
+				obj.nodeType === 1 &&
+				typeof obj.style === 'object' &&
+				typeof obj.ownerDocument === 'object';
+		}
+	}
+	function forEach(arr, callback, scope) {
+		var i, len = arr.length;
+
+		for (i = 0; i < len; i += 1) {
+			callback.call(scope, arr[i], i);
+		}
+	}
+
+	function emit(instance, name) {
+		var args = [].slice.call(arguments, 2);
+		if (events.indexOf(name) > -1) {
+			if (instance.handlers[name] &&
+					instance.handlers[name] instanceof Array
+			 ) {
+				forEach(instance.handlers[name], function (handle) {
+					window.setTimeout(function () {
+						handle.callback.apply(handle.context, args);
+					}, 0);
+				});
+			}
+		} else {
+			throw new Error(name + ' event cannot be found on TreeView.');
+		}
+	}
+
+	function render(self) {
+		var container = isDOMElement(self.node)
+			? self.node
+			: document.getElementById(self.node);
+		var leaves = [],
+			click;
+
+		var renderLeaf = function (item) {
+			var leaf = document.createElement('div');
+			var content = document.createElement('div');
+			var text = document.createElement('div');
+			var expando = document.createElement('div');
+			leaf.setAttribute('class', 'tree-leaf');
+			if(item.name === '.keep'){
+				leaf.classList.add('hidden-leaf')
+			}
+			content.setAttribute('class', 'tree-leaf-content');
+			content.setAttribute('data-item', JSON.stringify(item));
+			text.setAttribute('class', 'tree-leaf-text');
+			text.textContent = item.name;
+			expando.setAttribute('class', 'tree-expando ' + (item.expanded
+				? 'expanded open'
+				: 'closed')
+			);
+			expando.textContent = item.expanded ? '-' : '+';
+			content.appendChild(expando);
+			content.appendChild(text);
+			leaf.appendChild(content);
+
+			if (item.children && item.children.length > 0) {
+				var children = document.createElement('div');
+				children.setAttribute('class', 'tree-child-leaves');
+				forEach(item.children, function (child) {
+					var childLeaf = renderLeaf(child);
+					children.appendChild(childLeaf);
+				});
+				if (!item.expanded) {
+					children.classList.add('hidden');
+				}
+				leaf.appendChild(children);
+			} else {
+				expando.classList.add('hidden');
+			}
+			return leaf;
+		};
+
+		forEach(self.data, function (item) {
+			leaves.push(renderLeaf.call(self, item));
+		});
+		container.innerHTML = leaves.map(function (leaf) {
+			return leaf.outerHTML;
+		}).join('');
+
+		click = function (e) {
+			var parent = (e.target || e.currentTarget).parentNode;
+			var data = JSON.parse(parent.getAttribute('data-item'));
+			var leaves = parent.parentNode.querySelector('.tree-child-leaves');
+
+			if (leaves) {
+				if (leaves.classList.contains('hidden')) {
+					self.expand(parent, leaves);
+				} else {
+					self.collapse(parent, leaves);
+				}
+			} else {
+				emit(self, 'select', {
+					target: e,
+					data: data
+				});
+			}
+		};
+
+		forEach(container.querySelectorAll('.tree-leaf-text'), function (node) {
+			node.onclick = click;
+		});
+		forEach(container.querySelectorAll('.tree-expando'), function (node) {
+			node.onclick = click;
+		});
+	}
+
+	function TreeView(data, node) {
+		(this || _global).handlers = {};
+		(this || _global).node = node;
+		(this || _global).data = data;
+		render(this || _global);
+	}
+
+	TreeView.prototype.expand = function (node, leaves, skipEmit) {
+		var expando = node.querySelector('.tree-expando');
+		expando.classList.add('expanded', 'open');
+		expando.classList.remove('closed');
+		expando.textContent = '-';
+		leaves.classList.remove('hidden');
+
+		if (skipEmit) {
+			return;
+		}
+
+		emit(this || _global, 'expand', {
+			target: node,
+			leaves: leaves
+		});
+	};
+
+	TreeView.prototype.expandAll = function () {
+		var self = this || _global;
+		var nodes = document.getElementById(self.node).querySelectorAll('.tree-expando');
+		forEach(nodes, function (node) {
+			var parent = node.parentNode;
+			var leaves = parent.parentNode.querySelector('.tree-child-leaves');
+
+			if (parent && leaves && parent.hasAttribute('data-item')) {
+				self.expand(parent, leaves, true);
+			}
+		});
+		emit(this || _global, 'expandAll', {});
+	};
+
+	TreeView.prototype.collapse = function (node, leaves, skipEmit) {
+		var expando = node.querySelector('.tree-expando');
+		expando.classList.remove('expanded', 'open');
+		expando.classList.add('closed');
+		expando.textContent = '+';
+		leaves.classList.add('hidden');
+
+		if (skipEmit) {
+			return;
+		}
+
+		emit(this || _global, 'collapse', {
+			target: node,
+			leaves: leaves
+		});
+	};
+
+
+	TreeView.prototype.collapseAll = function () {
+		var self = this || _global;
+		var nodes = document.getElementById(self.node).querySelectorAll('.tree-expando');
+		forEach(nodes, function (node) {
+			var parent = node.parentNode;
+			var leaves = parent.parentNode.querySelector('.tree-child-leaves');
+
+			if (parent && leaves && parent.hasAttribute('data-item')) {
+				self.collapse(parent, leaves, true);
+			}
+		});
+		emit(this || _global, 'collapseAll', {});
+	};
+
+	TreeView.prototype.on = function (name, callback, scope) {
+		if (events.indexOf(name) > -1) {
+			if (!(this || _global).handlers[name]) {
+				(this || _global).handlers[name] = [];
+			}
+
+			(this || _global).handlers[name].push({
+				callback: callback,
+				context: scope
+			});
+		} else {
+			throw new Error(name + ' is not supported by TreeView.');
+		}
+	};
+
+	TreeView.prototype.off = function (name, callback) {
+		var index,
+			found = false;
+
+		if ((this || _global).handlers[name] instanceof Array) {
+			(this || _global).handlers[name].forEach(function (handle, i) {
+				index = i;
+
+				if (handle.callback === callback && !found) {
+					found = true;
+				}
+			});
+
+			if (found) {
+				(this || _global).handlers[name].splice(index, 1);
+			}
+		}
+	};
+
+	return TreeView;
+})();
 
 class DragAndDrop {
 	rootNode;
@@ -35,6 +262,7 @@ class DragAndDrop {
 			? e.target
 			: e.target.closest('.tree-leaf');
 		this.dragged = leaf;
+		// attach all drag listeners here instead?
 	}
 	handleDragEnter(e){
 		let leaf = e.target.classList.contains('tree-leaf')
@@ -46,10 +274,10 @@ class DragAndDrop {
 		} else if(isRoot && !leaf.classList.contains('folder')){
 			leaf = leaf.parentNode;
 		}
-		if(e.target.id === 'tree-root'){
+		if(e.target.id === TREE_ROOT_ID){
 			leaf = e.target;
 		}
-		if(e.target.parentNode.id === 'tree-root'){
+		if(e.target.parentNode.id === TREE_ROOT_ID){
 			leaf = e.target.parentNode;
 		}
 
@@ -71,7 +299,7 @@ class DragAndDrop {
 		if(this.dragged && this.draggedOver){
 			this.move(
 				this.dragged.getAttribute('path'),
-				this.draggedOver.id === 'tree-root'
+				this.draggedOver.id === TREE_ROOT_ID
 					? ''
 					: this.draggedOver.getAttribute('path')
 			)
@@ -119,7 +347,6 @@ class DragAndDrop {
 // wrap a pre-existing node in a helper
 //input: tree-leaf-text, tree-leaf-content, tree-child-leaves
 //output: LeafNode helper which is bound to tree-leaf
-
 class LeafNode {
 	node;
 	constructor(element){
@@ -163,7 +390,7 @@ class LeafNode {
 		loop(MAX_ITERATIONS, () => {
 			path.push(this.getName(currentNode));
 			currentNode = this.getParent(currentNode);
-			return currentNode.id !== 'tree-root';
+			return currentNode.id !== TREE_ROOT_ID;
 		});
 		return path.reverse().join('/');
 	}
@@ -360,6 +587,7 @@ class RenameUI {
 	}
 }
 
+// this is cool, but only necessary with js-treeview seen as untouchable and external, move away from using this
 class TreeMapper {
 	constructor(service, state){
 		this.state = state;
@@ -446,14 +674,14 @@ const updateTreeTextClass = (mapper) => {
 };
 
 class ServiceTree {
-	mappedTree;
 	jstreeview;
 	rootNode;
 
 	constructor(service, domRoot, treeState, extensionMapper){
-		this.mappedTree = new TreeMapper(service, treeState);
-
-		this.jstreeview = new TreeView(this.mappedTree, domRoot);
+		TREE_ROOT_ID = domRoot;
+		const mappedTree = new TreeMapper(service, treeState);
+		this.jstreeview = new TreeView(mappedTree, domRoot);
+		
 		this.emit = this.emit.bind(this.jstreeview);
 		const exposedAPI = ['on', 'off', 'collapse', 'collapseAll', 'expand', 'expandAll'];
 		for(var i=0, len=exposedAPI.length; i<len; i++){
@@ -691,7 +919,7 @@ class ServiceTree {
 
 		//insertDomNode handles sort
 		const parent = !leaf.path.includes('/')
-			? domNode.closest('#tree-root')
+			? domNode.closest('#'+TREE_ROOT_ID)
 			: domNode.closest('.tree-child-leaves');
 		this.insertDomNode(domNode.closest('.tree-child-leaves'), domNode);
 

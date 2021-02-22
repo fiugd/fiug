@@ -834,6 +834,185 @@ function attachListener(
 	});
 }
 
+const OperationDoneListener = (UpdateTree) => (e) => {
+	const { newTree } = UpdateTree;
+
+	const { id, result, op } = e.detail;
+
+	let selected,
+		expanded = [];
+
+	if (!id) {
+		//console.log(`No ID for: ${e.type} - ${op}`);
+		return;
+	}
+
+	//console.log(e.detail);
+	if (e.type === "operationDone" && op === "update") {
+		//TODO: maybe pay attention to what branches are expanded/selected?
+		selected = tree ? tree.selected : undefined;
+		expanded = (tree ? tree.expanded : undefined) || expanded;
+		//debugger;
+		tree && tree.off();
+		tree = undefined;
+	}
+
+	if (result.length > 1) {
+		return; // TODO: this is right???
+	}
+
+	/*
+		when operationDone, probably means service has been loaded
+
+		get newTree method from UpdateTree to create tree
+			- requires tree state and service
+			- those are safe to get here
+	*/
+
+	// probably get this fron state?
+	const treeState = {
+		expand: [
+			'.tools',
+			'frontend/react',
+			'examples',
+			'examples/binary'
+		],
+		select: 'examples/binary/audio.mp3',
+		changed: [
+			'examples/binary/video.mp4'
+		],
+		new: [
+			'1ncubate/auth0.md'
+		]
+	};
+	newTree({ service: result[0], treeState })
+
+	/*
+		this returns "on" which uses tree events to trigger system events
+		should this be wrapped in UI methods, ie connectTrigger?
+
+		also, handlers here need to trigger tree events
+			tree.select => fileSelect handler here is doing way too much, should only tell UI to select file
+			tree.rename => context menu will tell tree to rename file/folder
+			tree.move => this will be used by context menu cut/paste
+			tree.delete => context menu will tell tree to delete file
+			tree.add => newFolder, newFile
+		it's probably better that the view use wrapped methods to do these
+	*/
+
+};
+
+function newAttachListener(
+	UpdateTree,
+	{ newFile, newFolder, showSearch, updateTreeMenu, showServiceChooser }
+){
+	const saveTree = (fn) => (...args) => {
+		const result = fn(...args);
+		if (tree) {
+			try {
+				const storeTree = JSON.parse(sessionStorage.getItem("tree"));
+				// console.log(JSON.stringify({
+				// 	oldSelected: storeTree.selected,
+				// 	newSelected: tree.selected
+				// }, null, 2));
+				// console.log(JSON.stringify({
+				// 	oldExpanded: storeTree.expanded,
+				// 	newExpanded: tree.expanded
+				// }, null, 2));
+				storeTree.selected = tree.selected;
+				//storeTree.expanded = tree.expanded;
+				sessionStorage.setItem("tree", JSON.stringify(storeTree));
+			} catch (e) {
+				debugger;
+			}
+		}
+		return result;
+	};
+	const { updateTree, treeView } = UpdateTree;
+
+	attach({
+		name: "Explorer",
+		eventName: "noServiceSelected",
+		listener: (event) => showServiceChooser(),
+	});
+	// triggered by Hot Key
+	attach({
+		name: "Explorer",
+		eventName: "ui",
+		listener: (event) => {
+			const { detail = {} } = event;
+			const { operation } = detail;
+			if (operation !== "searchProject") {
+				return;
+			}
+			searchProject({ showSearch });
+		},
+	});
+	// triggered by Action Bar
+	attach({
+		name: "Explorer",
+		eventName: "showSearch",
+		listener: (event) => searchProject({ showSearch, hideSearch: false }),
+	});
+
+	attach({
+		name: "Explorer",
+		eventName: "showServiceCode",
+		listener: (event) => searchProject({ showSearch, hideSearch: true }),
+	});
+
+	attach({
+		name: "Explorer",
+		eventName: "operationDone",
+		listener: OperationDoneListener(UpdateTree),
+	});
+	attach({
+		name: "Explorer",
+		eventName: "fileSelect",
+		listener: saveTree(fileSelectHandler),
+	});
+	attach({
+		name: "Explorer",
+		eventName: "folderSelect",
+		listener: folderSelectHandler,
+	});
+	attach({
+		name: "Explorer",
+		eventName: "fileClose",
+		listener: saveTree(fileSelectHandler),
+	});
+	attach({
+		name: "Explorer",
+		eventName: "fileChange",
+		listener: saveTree(fileChangeHandler(updateTree)),
+	});
+	attach({
+		name: "Explorer",
+		eventName: "contextmenu",
+		listener: contextMenuHandler({
+			treeView,
+			showMenu: () => window.showMenu,
+		}),
+	});
+	attach({
+		name: "Explorer",
+		eventName: "contextmenu-select",
+		listener: contextMenuSelectHandler({ newFile, newFolder }),
+	});
+	attach({
+		name: "Explorer",
+		eventName: "new-file",
+		listener: () =>
+			console.warn("new-file handler not implemented, use right click menu"),
+	});
+	attach({
+		name: "Explorer",
+		eventName: "new-folder",
+		listener: () =>
+			console.warn("new-folder handler not implemented, use right click menu"),
+	});
+}
+
 const connectTrigger = (args) => attachTrigger({ ...args, name: "Explorer" });
 
-export { attachListener, connectTrigger };
+export { newAttachListener as attachListener, connectTrigger };

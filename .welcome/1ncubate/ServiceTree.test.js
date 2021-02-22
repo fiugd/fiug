@@ -61,20 +61,30 @@ how to get to this:
 */
 
 const checklistItems = () => { return `
-	
+
 	# prima
+	- integrate with app
+	- A (Added)
+	- M (Modified)
+	- D (Deleted)
+	- U (Untracked)
+	- C (Conflict)
+	- R (Renamed)
+	- or maybe just changed/new
+	- right-click/context menu handler
+	- keep duplicate files/folders from happening
+	- DnD: fix issues related to path not changing
 
 	# proxima
-	- keep duplicate files/folders from happening
+	- remove tree-leaf-content dataset
+	- scroll into view when an out-of-view file is selected [PORT]
+	- cut (move w/o target) and paste (move w/o source)
 
 	# postera
 	- DnD: if hovered over folder, should expand
 	- DnD: if dragged is already in target, don't highlght
 	- DnD: change dragging icon to something different
-	- tree-leaf-content dataset -> tree-leaf props
-	- scroll into view when an out-of-view file is selected [PORT]
 	- drag file out of tree into another view
-	- cut (move w/o target) and paste (move w/o source)
 	- mult-select with all associated ops [EPIC]
 
 	# plena
@@ -127,8 +137,15 @@ const checklistItems = () => { return `
 			'examples',
 			'examples/binary'
 		],
-		select: 'examples/binary/audio.mp3'
+		select: 'examples/binary/audio.mp3',
+		changed: [
+			'examples/binary/video.mp4'
+		],
+		new: [
+			'1ncubate/auth0.md'
+		]
 	};
+
 	const extensionMapper = (extension) => {
 		const override = {
 			md: 'info'

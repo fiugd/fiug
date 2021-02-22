@@ -218,7 +218,7 @@
       "route": "./_/modules/TreeView.mjs",
       "type": "domComponent",
       "source": "modules/TreeView.mjs",
-      "resources": ["/shared/vendor/js-treeview.1.1.5.js"]
+      "resources": ["/shared/modules/TreeView.mjs"]
     },
     {
       "route": "./_/modules/LoaderBar.mjs",

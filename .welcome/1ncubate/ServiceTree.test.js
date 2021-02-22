@@ -63,11 +63,9 @@ how to get to this:
 const checklistItems = () => { return `
 	
 	# prima
-	- update folder children when CRUD'ing folder
 
 	# proxima
 	- keep duplicate files/folders from happening
-	- don't select file (but expand folder?) after move
 
 	# postera
 	- DnD: if hovered over folder, should expand
@@ -80,6 +78,8 @@ const checklistItems = () => { return `
 	- mult-select with all associated ops [EPIC]
 
 	# plena
+	- [X] expand folders that contain selected file after move/rename
+	- [X] update folder children when CRUD'ing folder
 	- [X] crud ops NOTIFY outside
 	- [X] add classes to files depending on type
 	- [X] rename item element

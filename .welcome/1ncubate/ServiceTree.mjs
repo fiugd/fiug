@@ -6,7 +6,7 @@ const tryFn = (fn, _default) => {
 		return _default;
 	}
 };
-
+const loop = (MAX, fn) => { let it = 0; while(fn() && it++ < MAX){} };
 function htmlToElement(html) {
 	const template = document.createElement('template');
 	template.innerHTML = html.trim();
@@ -116,6 +116,69 @@ class DragAndDrop {
 	}
 }
 
+// wrap a pre-existing node in a helper
+//input: tree-leaf-text, tree-leaf-content, tree-child-leaves
+//output: LeafNode helper which is bound to tree-leaf
+
+class LeafNode {
+	node;
+	constructor(element){
+		this.node = element.classList.contains('tree-leaf')
+			? element
+			: element.closest('.tree-leaf');
+
+		const Getter = (name, fn) =>
+			 Object.defineProperty(this, name, { get: fn });
+
+		this.getPath = this.getPath.bind(this);
+
+		Getter('name', () => this.getName(this.node));
+		Getter('parent', () => this.getParent(this.node));
+		Getter('path', () => this.getPath(this.node));
+		Getter('type', () => this.getType(this.node));
+		Getter('selected', () => this.getSelected(this.node));
+
+		this.getItem = () => ({
+			name: this.getName(this.node),
+			id: this.getPath(this.node),
+			path: this.getPath(this.node),
+			type: this.getType(this.node),
+			selected: this.getSelected(this.node),
+		});
+	}
+	getName(node){
+		const treeLeafText = node.querySelector(
+			':scope > .tree-leaf-content > .tree-leaf-text'
+		);
+		return treeLeafText && treeLeafText.textContent;
+	}
+	getParent(node){
+		const parentChildLeaves = node.closest('.tree-child-leaves');
+		return (parentChildLeaves || node).parentNode;
+	}
+	getPath(node){
+		let currentNode = node;
+		const path = [];
+		const MAX_ITERATIONS = 50;
+		loop(MAX_ITERATIONS, () => {
+			path.push(this.getName(currentNode));
+			currentNode = this.getParent(currentNode);
+			return currentNode.id !== 'tree-root';
+		});
+		return path.reverse().join('/');
+	}
+	getType(node){
+		return node.classList.contains('folder') ? 'folder' : 'file';
+	}
+	getSelected(node){
+		const treeLeafContent = node.querySelector(
+			':scope > .tree-leaf-content'
+		);
+		return treeLeafContent && treeLeafContent.classList.contains('selected');
+	}
+}
+
+// add node with name
 class TreeNode {
 	constructor(item){
 		const { name, type, id } = item;
@@ -148,6 +211,7 @@ class TreeNode {
 	}
 }
 
+// add node without name, get from user
 class NewTreeNode {
 	container; //the created dom
 	focus; // a function to call after dom appended
@@ -245,6 +309,7 @@ class NewTreeNode {
 	}
 }
 
+// change a prev-existing node
 class RenameUI {
 	container;
 	constructor(context){
@@ -467,13 +532,7 @@ class ServiceTree {
 			const nodeName = splitPath[i];
 			const immediateChildren = currentNode.querySelectorAll(':scope > .tree-leaf');
 			const found = Array.from(immediateChildren)
-				.find(child => {
-					const { item: itemSource } = tryFn(() =>
-						child.querySelector(':scope > .tree-leaf-content').dataset
-					, {});
-					const { name } = tryFn(() => JSON.parse(itemSource), {});
-					return name === nodeName;
-				});
+				.find(child => new LeafNode(child).name === nodeName);
 			if(!found) break;
 
 			const node = found.querySelector(':scope > .tree-leaf-content');
@@ -489,27 +548,26 @@ class ServiceTree {
 			}
 			currentNode = leaves || found;
 		}
-		const isFolder = [...currentNode.classList].includes('tree-child-leaves');
+		const isFolder = currentNode.classList.contains('tree-child-leaves');
 		if(isFolder) return currentNode.closest('.tree-leaf');
 
 		if(skipDomUpdate) return currentNode;
 
-		const data = tryFn(() => JSON.parse(
-			currentNode.querySelector(':scope > .tree-leaf-content').dataset.item
-		));
+		const leaf = new LeafNode(currentNode);
 		this.emit('select', {
 			target: { target: currentNode.querySelector(':scope > .tree-leaf-content .tree-leaf-text') },
-			data
+			data: leaf.getItem()
 		});
 
-		this.emit('fileSelect', { source: data.id });
+		this.emit('fileSelect', { source: leaf.path });
 		return currentNode;
 	}
-	
+
 	insertDomNode(leavesNode, domNode){
+		//NOTE: cannot use a LeafNode helper here
+		//TODO: this breaks the assumption that dataset.item use can be deprecated
 		const domNodeContent = domNode.querySelector(':scope > .tree-leaf-content');
 		const { id, type, name } = tryFn(() => JSON.parse(domNodeContent.dataset.item));
-
 		const children = Array.from(leavesNode.children);
 		if(!children.length){
 			leavesNode.append(domNode);
@@ -518,15 +576,14 @@ class ServiceTree {
 		let containsFolders;
 		let firstFile;
 		const rightPlace = children.find(leaf => {
-			const treeLeafContent = leaf.querySelector(':scope > .tree-leaf-content');
-			const itemData = tryFn(() => JSON.parse(treeLeafContent.dataset.item));
-			containsFolders = containsFolders || itemData.type === 'folder';
+			const child = new LeafNode(leaf);
+			containsFolders = containsFolders || child.type === 'folder';
 			firstFile = firstFile
 				? firstFile
-				: itemData.type === 'file'
+				: child.type === 'file'
 					? leaf
 					: undefined;
-			return itemData.type === type && itemData.name > name;
+			return child.type === type && child.name > name;
 		});
 		// is folder AND this is last in alpha, files exist
 		if(type === 'folder' && !rightPlace && containsFolders && firstFile){
@@ -545,7 +602,6 @@ class ServiceTree {
 			leavesNode.append(domNode);
 			return;
 		}
-
 		// is file AND last in alpha
 		// is file AND no files
 		// is file AND no files, no folders
@@ -553,7 +609,6 @@ class ServiceTree {
 			leavesNode.append(domNode);
 			return;
 		}
-
 		// golden path case
 		leavesNode.insertBefore(domNode, rightPlace);
 	}
@@ -579,11 +634,8 @@ class ServiceTree {
 		const nodeAddDone = () => {
 			this.dragAndDrop.update();
 			this.updateIcons();
-			// tell the outside world that this happened
-			
-			const treeLeafContent = domNode.querySelector(':scope > .tree-leaf-content');
-			const itemData = tryFn(() => JSON.parse(treeLeafContent.dataset.item));
-			this.emit(type+'Add', { source: itemData.id });
+			const leaf = new LeafNode(domNode);
+			this.emit(type+'Add', { source: leaf.path });
 		};
 		
 		if(!newTreeNode) return nodeAddDone();
@@ -603,30 +655,21 @@ class ServiceTree {
 	move(path, target){
 		// change the dom
 		const domNode = this.select(path, 'skipDomUpdate');
-		const treeLeafContent = domNode.querySelector(':scope > .tree-leaf-content');
-		const children = domNode.querySelector(':scope > .tree-child-leaves');
-		
 		const targetNode = this.select(target, 'skipDomUpdate');
 		const targetChildLeaves = targetNode.querySelector(':scope > .tree-child-leaves');
 		this.insertDomNode(targetChildLeaves || targetNode, domNode);
-		
-		const itemData = tryFn(() => JSON.parse(treeLeafContent.dataset.item));
-		itemData.id = target.trim()
-			? [...target.split('/'), itemData.name].join('/')
-			: itemData.name;
-		treeLeafContent.dataset.item = JSON.stringify(itemData);
-		domNode.setAttribute('path', itemData.id);
 
-		if(children){
-			console.error('TREE MOVE: descendants must have their id(path) updated');
-		} else {
-			if(itemData.selected){ //domNode.classList.contains('selected')
-				this.currentFile = itemData.id;
-				this.currentFolder = itemData.id.split('/').slice(0,-1).join('/');
-			}
+		const leaf = new LeafNode(domNode);
+		const selectedChild = domNode.querySelector(':scope .selected');
+		const selected = selectedChild
+			? selectedChild && new LeafNode(selectedChild)
+			: leaf.type === 'file' && leaf.selected && leaf;
+		if(selected){
+			this.currentFile = selected.path;
+			this.currentFolder = selected.path.split('/').slice(0,-1).join('/');
+			this.select(selected.path);
 		}
-		// tell the outside world this happened
-		this.emit(itemData.type+'Move', { source: path, target: itemData.id });
+		this.emit(leaf.type+'Move', { source: path, target: leaf.path });
 	}
 
 	async rename(path, _newName){
@@ -641,49 +684,47 @@ class ServiceTree {
 
 		if(!newName) return;
 
-		const itemData = tryFn(() => JSON.parse(treeLeafContent.dataset.item));
-		itemData.name = newName;
-		itemData.id = [...itemData.id.split('/').slice(0,-1), newName].join('/');
+		const leaf = new LeafNode(domNode);
 
-		treeLeafContent.dataset.item = JSON.stringify(itemData);
 		treeLeafText.textContent = newName;
 		treeLeafText.className = 'tree-leaf-text';
 
-		domNode.setAttribute('path', itemData.id);
-		
 		//insertDomNode handles sort
-		const parent = !itemData.id.includes('/')
+		const parent = !leaf.path.includes('/')
 			? domNode.closest('#tree-root')
 			: domNode.closest('.tree-child-leaves');
 		this.insertDomNode(domNode.closest('.tree-child-leaves'), domNode);
 
-		this.emit(itemData.type+'Rename', { source: path, target: itemData.id });
-
-		if(children){
-			console.error('TREE RENAME: descendants must have their id(path) updated');
-		} else {
-			if(itemData.selected){ //domNode.classList.contains('selected')
-				this.currentFile = itemData.id;
-				this.currentFolder = itemData.id.split('/').slice(0,-1).join('/');
-			}
-			this.updateIcons();
+		const selectedChild = domNode.querySelector(':scope .selected');
+		const selected = selectedChild
+			? selectedChild && new LeafNode(selectedChild)
+			: leaf.type === 'file' && leaf.selected && leaf;
+		if(selected){
+			this.currentFile = selected.path;
+			this.currentFolder = selected.path.split('/').slice(0,-1).join('/');
+			this.select(selected.path);
 		}
-		// tell the outside world that this happened
+		if(leaf.type === 'file') this.updateIcons();
+		this.emit(leaf.type+'Rename', { source: path, target: leaf.path });
 	}
 
 	delete(path){
 		const domNode = this.select(path, 'skipDomUpdate');
-		const treeLeafContent = domNode.querySelector('.tree-leaf-content');
-		const item = tryFn(() => JSON.parse(treeLeafContent.dataset.item));
 
-		if(item.selected){ //domNode.classList.contains('selected')
+		const leaf = new LeafNode(domNode);
+		
+		const selectedChild = domNode.querySelector(':scope .selected');
+		const selected = selectedChild
+			? selectedChild && new LeafNode(selectedChild)
+			: leaf.type === 'file' && leaf.selected && leaf;
+		if(selected){
 			this.currentFile = undefined;
 			this.currentFolder = undefined;
 		}
-		
+
+		const { path: source, type } = leaf; 
 		domNode.remove();
-		// tell the outer world that this was deleted
-		this.emit(item.type+'Delete', { source: path });
+		this.emit(type+'Delete', { source });
 	}
 
 	/*

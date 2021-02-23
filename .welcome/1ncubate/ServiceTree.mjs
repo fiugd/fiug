@@ -14,6 +14,81 @@ function htmlToElement(html) {
 	return template.content.firstChild;
 }
 
+
+// wrap a pre-existing node in a helper
+//input: tree-leaf-text, tree-leaf-content, tree-child-leaves
+//output: LeafNode helper which is bound to tree-leaf
+class LeafNode {
+	node;
+	constructor(element){
+		this.node = element.classList.contains('tree-leaf') || element.id === TREE_ROOT_ID
+			? element
+			: element.closest('.tree-leaf');
+
+		const Getter = (name, fn) =>
+			 Object.defineProperty(this, name, { get: fn });
+
+		this.getPath = this.getPath.bind(this);
+		this.getParentLeaves = this.getParentLeaves.bind(this);
+
+		Getter('name', () => this.getName(this.node));
+		Getter('parent', () => this.getParent(this.node));
+		Getter('parentLeaves', () => this.getParentLeaves());
+		Getter('path', () => this.getPath(this.node));
+		Getter('type', () => this.getType(this.node));
+		Getter('selected', () => this.getSelected(this.node));
+
+		this.getItem = () => ({
+			name: this.getName(this.node),
+			id: this.getPath(this.node),
+			path: this.getPath(this.node),
+			type: this.getType(this.node),
+			selected: this.getSelected(this.node),
+		});
+	}
+	getName(node){
+		const treeLeafText = node.querySelector(
+			':scope > .tree-leaf-content > .tree-leaf-text'
+		);
+		return treeLeafText && treeLeafText.textContent;
+	}
+	getParent(node){
+		if(node.id === TREE_ROOT_ID) return;
+		const parentChildLeaves = node.closest('.tree-child-leaves');
+		return (parentChildLeaves || node).parentNode;
+	}
+	getParentLeaves(){
+		const parentLeaves = !this.path.includes('/')
+			? this.node.closest('#'+TREE_ROOT_ID)
+			: this.node.closest('.tree-child-leaves');
+		return parentLeaves;
+	}
+	getPath(node){
+		if(node.id === TREE_ROOT_ID) return '';
+		let currentNode = node;
+		const path = [];
+		const MAX_ITERATIONS = 50;
+		loop(MAX_ITERATIONS, () => {
+			path.push(this.getName(currentNode));
+			currentNode = this.getParent(currentNode);
+			return currentNode.id !== TREE_ROOT_ID;
+		});
+		return path.reverse().join('/');
+	}
+	getType(node){
+		if(node.id === TREE_ROOT_ID) return 'folder';
+		return node.querySelector(':scope > .tree-child-leaves')
+			? 'folder'
+			: 'file';
+	}
+	getSelected(node){
+		const treeLeafContent = node.querySelector(
+			':scope > .tree-leaf-content'
+		);
+		return treeLeafContent && treeLeafContent.classList.contains('selected');
+	}
+}
+
 // js-treeview 1.1.5
 const TreeView = (function () {
 	var events = ['expand', 'expandAll', 'collapse', 'collapseAll', 'select'];
@@ -108,20 +183,18 @@ const TreeView = (function () {
 
 		click = function (e) {
 			var parent = (e.target || e.currentTarget).parentNode;
-			var data = JSON.parse(parent.getAttribute('data-item'));
 			var leaves = parent.parentNode.querySelector('.tree-child-leaves');
 
-			if (leaves) {
-				if (leaves.classList.contains('hidden')) {
-					self.expand(parent, leaves);
-				} else {
-					self.collapse(parent, leaves);
-				}
-			} else {
+			if (!leaves) {
 				emit(self, 'select', {
-					target: e,
-					data: data
+					target: e.target
 				});
+				return;
+			}
+			if (leaves.classList.contains('hidden')) {
+				self.expand(parent, leaves);
+			} else {
+				self.collapse(parent, leaves);
 			}
 		};
 
@@ -242,68 +315,76 @@ const TreeView = (function () {
 
 class DragAndDrop {
 	rootNode;
+	dragged;
+	draggedOver;
 
 	constructor({ rootNode, move }){
 		this.rootNode = rootNode;
 
 		this.attach = this.attach.bind(this);
-		this.update = this.update.bind(this);
-
 		this.handleDragEnter = this.handleDragEnter.bind(this);
 		this.handleDragStart = this.handleDragStart.bind(this);
 		this.handleDrop = this.handleDrop.bind(this);
 
-		this.move = move;
+		this.drop = (dragged, draggedOver) => {
+			if(!dragged || !draggedOver) return;
+			move(dragged.path, draggedOver.path)
+		};
 
-		this.update();
+		this.attach(this.rootNode);
+		this.update = () => this.attach(this.rootNode);
 	}
 	handleDragStart(e){
-		const leaf = e.target.classList.contains('tree-leaf')
-			? e.target
-			: e.target.closest('.tree-leaf');
-		this.dragged = leaf;
+		e.stopPropagation();
+		e.dataTransfer.setData('text/plain', 'some_dummy_data');
+		/*
+		e.dataTransfer.effectAllowed = 'move';
+
+		var dragImage = document.createElement('div');
+		dragImage.setAttribute('style', `
+			position: absolute; left: 0px; top: 0px; width: 40px; height: 40px; background: red; z-index: -1
+		`);
+		document.body.appendChild(dragImage);
+		evt.dataTransfer.setDragImage(dragImage, 20, 20);
+		*/
+		this.dragged = new LeafNode(e.target);
+		this.draggedParent = new LeafNode(this.dragged.parent);
 		// attach all drag listeners here instead?
 	}
 	handleDragEnter(e){
-		let leaf = e.target.classList.contains('tree-leaf')
-			? e.target
-			: e.target.closest('.tree-leaf');
-		const isRoot = leaf && !leaf.getAttribute('path').includes('/');
-		if(leaf && !isRoot && !leaf.classList.contains('folder')){
-			leaf = leaf.parentNode.closest('.tree-leaf');
-		} else if(isRoot && !leaf.classList.contains('folder')){
-			leaf = leaf.parentNode;
+		let target = new LeafNode(e.target);
+		if(target.type === "file"){
+			target = new LeafNode(target.parent);
 		}
-		if(e.target.id === TREE_ROOT_ID){
-			leaf = e.target;
-		}
-		if(e.target.parentNode.id === TREE_ROOT_ID){
-			leaf = e.target.parentNode;
-		}
+		if(this.draggedOver && target.node === this.draggedOver.node) return;
 
 		if(this.draggedOver){
-			this.draggedOver.classList.remove('dragover');
+			this.draggedOver.node.classList.remove('dragover');
 		}
-		if(!leaf){
-			debugger;
+		if(target.node === this.draggedParent.node){
+			this.draggedOver = undefined;
 			return;
 		}
-		this.draggedOver = leaf;
-		leaf.classList.add('dragover');
+		if(this.dragged.node === target.node){
+			this.draggedOver = undefined;
+			return;
+		}
+		if(this.dragged.node.contains(target.node)){
+			this.draggedOver = undefined;
+			return;
+		}
+
+		this.draggedOver = target;
+		target.node.classList.add('dragover');
 	}
 	handleDrop(e){
 		const draggedOverNodes = Array.from(
 			document.querySelectorAll('.dragover')
 		);
 		draggedOverNodes.forEach((item) => item.classList.remove('dragover'));
-		if(this.dragged && this.draggedOver){
-			this.move(
-				this.dragged.getAttribute('path'),
-				this.draggedOver.id === TREE_ROOT_ID
-					? ''
-					: this.draggedOver.getAttribute('path')
-			)
-		}
+
+		this.drop(this.dragged, this.draggedOver);
+		this.dragged = this.draggedOver = undefined;
 		e.stopPropagation();
 		return false;
 	}
@@ -313,95 +394,28 @@ class DragAndDrop {
 	}
 
 	attach(rootNode){
+		// do event listeners need to be cleaned up before re-attach?
+		// NO, not as long as they are exact equals
 		const allLeaves = Array.from(rootNode.querySelectorAll('.tree-leaf:not([draggable])'));
 		allLeaves.forEach(leaf => {
-			//TODO: would be better if this were done elsewhere
-			const contentNode = leaf.querySelector(':scope > .tree-leaf-content');
-			const { type, id:path } = tryFn(() => JSON.parse(contentNode.dataset.item));
-			leaf.setAttribute('path', path);
-			leaf.classList.add(type);
-
 			leaf.draggable = true;
+			const leafNode = new LeafNode(leaf);
+			//TODO: do this elsewhere???
+			leaf.classList.add(leafNode.type);
+			//if(leafNode.type === 'file') {
+				//leaf.addEventListener('dragstart', this.handleDragStart, false);
+				//return;
+			//}
 
-			if(type !== 'folder') {
-				leaf.addEventListener('dragstart', this.handleDragStart, false);
-				return;
-			}
-
-			leaf.addEventListener('dragstart', this.handleDragStart, false);
-			leaf.addEventListener('dragenter', this.handleDragEnter, false);
-			leaf.addEventListener('drop', this.handleDrop, false);
-			leaf.addEventListener('dragover', this.preventDefault, false);
+			//leaf.addEventListener('dragstart', this.handleDragStart, false);
+			//leaf.addEventListener('dragenter', this.handleDragEnter, false);
+			//leaf.addEventListener('drop', this.handleDrop, false);
+			//leaf.addEventListener('dragover', this.preventDefault, false);
 		});
-
 		rootNode.addEventListener('dragstart', this.handleDragStart, false);
 		rootNode.addEventListener('dragenter', this.handleDragEnter, false);
 		rootNode.addEventListener('drop', this.handleDrop, false);
 		rootNode.addEventListener('dragover', this.preventDefault, false);
-	}
-	update(){
-		this.attach(this.rootNode);
-	}
-}
-
-// wrap a pre-existing node in a helper
-//input: tree-leaf-text, tree-leaf-content, tree-child-leaves
-//output: LeafNode helper which is bound to tree-leaf
-class LeafNode {
-	node;
-	constructor(element){
-		this.node = element.classList.contains('tree-leaf')
-			? element
-			: element.closest('.tree-leaf');
-
-		const Getter = (name, fn) =>
-			 Object.defineProperty(this, name, { get: fn });
-
-		this.getPath = this.getPath.bind(this);
-
-		Getter('name', () => this.getName(this.node));
-		Getter('parent', () => this.getParent(this.node));
-		Getter('path', () => this.getPath(this.node));
-		Getter('type', () => this.getType(this.node));
-		Getter('selected', () => this.getSelected(this.node));
-
-		this.getItem = () => ({
-			name: this.getName(this.node),
-			id: this.getPath(this.node),
-			path: this.getPath(this.node),
-			type: this.getType(this.node),
-			selected: this.getSelected(this.node),
-		});
-	}
-	getName(node){
-		const treeLeafText = node.querySelector(
-			':scope > .tree-leaf-content > .tree-leaf-text'
-		);
-		return treeLeafText && treeLeafText.textContent;
-	}
-	getParent(node){
-		const parentChildLeaves = node.closest('.tree-child-leaves');
-		return (parentChildLeaves || node).parentNode;
-	}
-	getPath(node){
-		let currentNode = node;
-		const path = [];
-		const MAX_ITERATIONS = 50;
-		loop(MAX_ITERATIONS, () => {
-			path.push(this.getName(currentNode));
-			currentNode = this.getParent(currentNode);
-			return currentNode.id !== TREE_ROOT_ID;
-		});
-		return path.reverse().join('/');
-	}
-	getType(node){
-		return node.classList.contains('folder') ? 'folder' : 'file';
-	}
-	getSelected(node){
-		const treeLeafContent = node.querySelector(
-			':scope > .tree-leaf-content'
-		);
-		return treeLeafContent && treeLeafContent.classList.contains('selected');
 	}
 }
 
@@ -456,6 +470,7 @@ class NewTreeNode {
 			input.focus();
 		};
 		this.updateDataItem = (name) => {
+			return;
 			const treeLeafContent = this.container.querySelector('.tree-leaf-content');
 			const dataItem = tryFn(() => JSON.parse(treeLeafContent.dataset.item));
 			dataItem.id = dataItem.id === '/.newItem'
@@ -719,15 +734,17 @@ class ServiceTree {
 		}
 		
 		// LISTENING to jstreeview to update ServiceTree
-		this.on('select', ({ target, data }) => {
-			this.currentFile = data.id;
-			this.currentFolder = data.id.split('/').slice(0,-1).join('/');
+		this.on('select', ({ target }) => {
+			const leaf = new LeafNode(target);
+			this.currentFile = leaf.path;
+			this.currentFolder = leaf.path.split('/').slice(0,-1).join('/');
 
 			Array.from(this.rootNode.querySelectorAll('.selected'))
-					.forEach(s => s.classList.remove('selected'));
-			const { target: node } = target;
-			const leafContent = node.closest('.tree-leaf-content');
-			leafContent.classList.add('selected');
+				.forEach(s => s.classList.remove('selected'));
+
+			leaf.node.querySelector(':scope > .tree-leaf-content')
+				.classList.add('selected');
+			this.emit('fileSelect', { source: leaf.path });
 		});
 		
 		// on expand, currentFolder is expanded folder
@@ -781,26 +798,20 @@ class ServiceTree {
 
 		if(skipDomUpdate) return currentNode;
 
-		const leaf = new LeafNode(currentNode);
-		this.emit('select', {
-			target: { target: currentNode.querySelector(':scope > .tree-leaf-content .tree-leaf-text') },
-			data: leaf.getItem()
-		});
-
-		this.emit('fileSelect', { source: leaf.path });
+		this.emit('select', { target: currentNode });
 		return currentNode;
 	}
 
 	insertDomNode(leavesNode, domNode){
-		//NOTE: cannot use a LeafNode helper here
-		//TODO: this breaks the assumption that dataset.item use can be deprecated
-		const domNodeContent = domNode.querySelector(':scope > .tree-leaf-content');
-		const { id, type, name } = tryFn(() => JSON.parse(domNodeContent.dataset.item));
+		const nodeToInsert = new LeafNode(domNode);
+		
 		const children = Array.from(leavesNode.children);
 		if(!children.length){
+			domNode.remove();
 			leavesNode.append(domNode);
 			return;
 		}
+
 		let containsFolders;
 		let firstFile;
 		const rightPlace = children.find(leaf => {
@@ -811,29 +822,32 @@ class ServiceTree {
 				: child.type === 'file'
 					? leaf
 					: undefined;
-			return child.type === type && child.name > name;
+			return child.type === nodeToInsert.type && child.name > nodeToInsert.name;
 		});
+
+		domNode.remove();
+
 		// is folder AND this is last in alpha, files exist
-		if(type === 'folder' && !rightPlace && containsFolders && firstFile){
+		if(nodeToInsert.type === 'folder' && !rightPlace && containsFolders && firstFile){
 			leavesNode.insertBefore(domNode, firstFile);
 			return;
 		}
 		// is folder AND only files
-		if(type === 'folder' && !rightPlace && !containsFolders && firstFile){
+		if(nodeToInsert.type === 'folder' && !rightPlace && !containsFolders && firstFile){
 			leavesNode.insertBefore(domNode, children[0]);
 			return;
 		}
 		// is folder AND this is last in alpha, no files
 		// is folder AND no folders,no file
 		// all other cases
-		if(type === 'folder' && !rightPlace){
+		if(nodeToInsert.type === 'folder' && !rightPlace){
 			leavesNode.append(domNode);
 			return;
 		}
 		// is file AND last in alpha
 		// is file AND no files
 		// is file AND no files, no folders
-		if(type === 'file' && !rightPlace){
+		if(nodeToInsert.type === 'file' && !rightPlace){
 			leavesNode.append(domNode);
 			return;
 		}
@@ -892,12 +906,8 @@ class ServiceTree {
 		const selected = selectedChild
 			? selectedChild && new LeafNode(selectedChild)
 			: leaf.type === 'file' && leaf.selected && leaf;
-		if(selected){
-			this.currentFile = selected.path;
-			this.currentFolder = selected.path.split('/').slice(0,-1).join('/');
-			this.select(selected.path);
-		}
 		this.emit(leaf.type+'Move', { source: path, target: leaf.path });
+		selected && this.select(selected.path);
 	}
 
 	async rename(path, _newName){
@@ -918,22 +928,15 @@ class ServiceTree {
 		treeLeafText.className = 'tree-leaf-text';
 
 		//insertDomNode handles sort
-		const parent = !leaf.path.includes('/')
-			? domNode.closest('#'+TREE_ROOT_ID)
-			: domNode.closest('.tree-child-leaves');
-		this.insertDomNode(domNode.closest('.tree-child-leaves'), domNode);
+		this.insertDomNode(leaf.parentLeaves, domNode);
 
 		const selectedChild = domNode.querySelector(':scope .selected');
 		const selected = selectedChild
 			? selectedChild && new LeafNode(selectedChild)
 			: leaf.type === 'file' && leaf.selected && leaf;
-		if(selected){
-			this.currentFile = selected.path;
-			this.currentFolder = selected.path.split('/').slice(0,-1).join('/');
-			this.select(selected.path);
-		}
 		if(leaf.type === 'file') this.updateIcons();
 		this.emit(leaf.type+'Rename', { source: path, target: leaf.path });
+		selected && this.select(selected.path);
 	}
 
 	delete(path){
@@ -955,13 +958,6 @@ class ServiceTree {
 		this.emit(type+'Delete', { source });
 	}
 
-	/*
-		rewrite the interface for on select (instead rewrite on?)
-			- current returns a target mouse event and data
-			- would prefer to return path (and no more/less?)
-		select and expand should be the same thing?
-	*/
-	onSelect(){}
 }
 
 export default ServiceTree;

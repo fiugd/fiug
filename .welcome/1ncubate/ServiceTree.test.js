@@ -73,21 +73,23 @@ const checklistItems = () => { return `
 	- or maybe just changed/new
 	- right-click/context menu handler
 	- keep duplicate files/folders from happening
-	- DnD: fix issues related to path not changing
 
 	# proxima
 	- remove tree-leaf-content dataset
 	- scroll into view when an out-of-view file is selected [PORT]
 	- cut (move w/o target) and paste (move w/o source)
+	- DnD: should not be able to drag parent into itself
+	- DnD: weird issue where unhovered drop targets flash on/off quickly
 
 	# postera
 	- DnD: if hovered over folder, should expand
-	- DnD: if dragged is already in target, don't highlght
 	- DnD: change dragging icon to something different
 	- drag file out of tree into another view
 	- mult-select with all associated ops [EPIC]
 
 	# plena
+	- [X] DnD: if dragged is already in target, don't highlght
+	- [X] DnD: fix issues related to path not changing
 	- [X] expand folders that contain selected file after move/rename
 	- [X] update folder children when CRUD'ing folder
 	- [X] crud ops NOTIFY outside

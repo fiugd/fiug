@@ -902,6 +902,11 @@ class ServiceTree {
 		this.insertDomNode(targetChildLeaves || targetNode, domNode);
 
 		const leaf = new LeafNode(domNode);
+
+		//open parent folder after move
+		const parentPath = leaf.path.split('/').slice(0,-1).join('/');
+		parentPath && this.select(parentPath);
+
 		const selectedChild = domNode.querySelector(':scope .selected');
 		const selected = selectedChild
 			? selectedChild && new LeafNode(selectedChild)

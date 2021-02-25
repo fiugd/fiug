@@ -5,7 +5,7 @@
 
 ### model each person as an imperfect "mirror" of self and environment
   - overall level of imperfection may vary by individual
-  - imperfections how an individual perceives each person can vary (bias)
+  - imperfections in how an individual perceives each person can vary (bias)
   - individuals can communicate to affect perception
   - explorer: imperfection of perception as a function of limited resources
   - ...

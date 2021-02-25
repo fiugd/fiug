@@ -111,7 +111,12 @@ function getDefaultFile(service) {
 const getCurrentServiceTree = ({ flat, folders } = {}) => {
 	return flat
 		? flattenTree(currentService.tree, folders)
-				.map(({ name, path } = {}) => ({ name, path, type: getFileType(name) }))
+				.map(({ name, path } = {}) => ({
+					name,
+					path,
+					relativePath: path.split(currentService.name).slice(1).join(''),
+					type: getFileType(name)
+				}))
 				.sort(sortAlg((x) => x.name))
 		: currentService.tree;
 };

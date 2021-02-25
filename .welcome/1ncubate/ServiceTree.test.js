@@ -63,14 +63,15 @@ how to get to this:
 const checklistItems = () => { return `
 
 	# prima
+	- creating folder at root fails to attach expand/collapse handler
 	- integrate with app
-	- A (Added)
-	- M (Modified)
-	- D (Deleted)
-	- U (Untracked)
-	- C (Conflict)
-	- R (Renamed)
-	- or maybe just changed/new
+		- A (Added)
+		- M (Modified)
+		- D (Deleted)
+		- U (Untracked)
+		- C (Conflict)
+		- R (Renamed)
+		- or maybe just changed/new
 	- right-click/context menu handler
 	- keep duplicate files/folders from happening
 
@@ -88,6 +89,7 @@ const checklistItems = () => { return `
 	- mult-select with all associated ops [EPIC]
 
 	# plena
+	- [X] tree.context fires when node is right-clicked, provides context
 	- [X] DnD: if dragged is already in target, don't highlght
 	- [X] DnD: fix issues related to path not changing
 	- [X] expand folders that contain selected file after move/rename

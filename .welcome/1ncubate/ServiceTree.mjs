@@ -488,11 +488,15 @@ class NewTreeNode {
 			"closed",
 			type === 'folder' ? '' : 'hidden'
 		].join(' ');
+		const textClass = [
+			'tree-leaf-text',
+			type === 'file' ? 'icon-default' : ''
+		].join(' ');
 		return  htmlToElement(`
-			<div class="tree-leaf new">
+			<div class="tree-leaf ${type} new">
 				<div class="tree-leaf-content" data-item='${JSON.stringify(item)}'>
 					<div class="${expandoClass}">+</div>
-					<div class="tree-leaf-text">
+					<div class="${textClass}">
 						<input type="text"
 							autocomplete="off"
 							autocorrect="off"
@@ -539,6 +543,8 @@ class NewTreeNode {
 		}
 
 		this.container.querySelector('.tree-leaf-text').innerHTML = name;
+		this.container.querySelector('.tree-leaf-text').classList.remove('icon-default');
+		this.container.classList.remove('new');
 		this.updateDataItem(name);
 
 		// TODO: remove this when rewriting underlying js-treeview (use listener at top level)
@@ -963,6 +969,22 @@ class ServiceTree {
 		this.emit(type+'Delete', { source });
 	}
 
+	context(domNode){
+		const leaf = new LeafNode(domNode);
+		const path = leaf.path;
+		return {
+			name: leaf.name,
+			type: leaf.type,
+			node: leaf.node,
+			selected: leaf.selected,
+			path,
+			parent: {
+				path: path.split('/').slice(0, -1).join('//'),
+				node: leaf.parent
+			},
+		};
+	}
+	
 }
 
 export default ServiceTree;

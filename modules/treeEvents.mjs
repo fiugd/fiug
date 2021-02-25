@@ -98,54 +98,59 @@ function getFileType(fileName = "") {
 	return type;
 }
 
-const fileSelectHandler = (e) => {
+const getParent = (data) => {
+	let parent;
+	if (data.type === "folder") {
+		try {
+			const state = getState({ folderPaths: true, serviceRelative: true });
+			parent = state.paths.find((x) => x.name === data.name).path;
+		} catch (e) {
+			parent = "";
+		}
+	} else {
+		try {
+			const state = getState({ serviceRelative: true });
+			parent = state.paths
+				.find((x) => x.name === data.name)
+				.path.split("/")
+				.slice(0, -1)
+				.join("/");
+		} catch (e) {}
+	}
+	return parent;
+};
+
+const noFrontSlash = (path) => {
+	if(!path) return path;
+	if(!path.includes('/')) return path;
+	if(path[0] === '/') return path.slice(1);
+	return path;
+};
+
+
+
+
+const fileSelectHandler = (treeSelect) => (e) => {
+	if(e?.detail?.source === 'Explorer') return;
+
 	const { name, next, path } = e.detail;
+	const fileNameWithPath = path
+		? noFrontSlash(`${path}/${name}`)
+		: name;
+	treeSelect(fileNameWithPath);
 
-	Array.from(
-		document.querySelectorAll("#tree-view .selected") || []
-	).forEach((x) => x.classList.remove("selected"));
-	tree && (tree.selected = undefined);
-
-	if (e.type === "fileClose" && !next) {
-		tree && (tree.selected = "noneSelected");
-		return;
+	/* TODO: add this to TreeView module
+	if (found.scrollIntoViewIfNeeded) {
+		const opt_center = true;
+		found.scrollIntoViewIfNeeded(opt_center);
+	} else {
+		found.scrollIntoView({
+			behavior: "smooth",
+			block: "center",
+		});
 	}
+	*/
 
-	const leaves = Array.from(
-		document.querySelectorAll("#tree-view .tree-leaf-content") || []
-	);
-
-	const found = leaves.find((x) => {
-		if(!path){
-			return x.innerText.trim() === (next || name);
-		}
-		const item = tryFn(() => JSON.parse(x.dataset.item), {});
-		const itemPath = tryFn(() => x.dataset.path);
-		return item.name === (next || name) && path === itemPath;
-	});
-
-	if (found) {
-		tree.selected = name || next;
-		found.classList.add("selected");
-
-		//also open all parent folders
-		let parentNode = found.parentNode;
-		while (parentNode.id ? parentNode.id !== "tree-view" : true) {
-			if (parentNode.classList.contains("tree-child-leaves")) {
-				parentNode.classList.remove("hidden");
-			}
-			parentNode = parentNode.parentNode;
-		}
-		if (found.scrollIntoViewIfNeeded) {
-			const opt_center = true;
-			found.scrollIntoViewIfNeeded(opt_center);
-		} else {
-			found.scrollIntoView({
-				behavior: "smooth",
-				block: "center",
-			});
-		}
-	}
 };
 
 const folderSelectHandler = (e) => {
@@ -199,11 +204,19 @@ const fileChangeHandler = (updateTree) => (event) => {
 	updateTree("dirty", { name, id, file });
 };
 
-const contextMenuHandler = ({ treeView, showMenu }) => (e) => {
+const contextMenuHandler = ({ treeView, treeContext, showMenu }) => (e) => {
+	/*
+		TreeView module should have a right click listener
+		it should call handler with info about the thing that was clicked
+		
+		this should be wired up in UI, each menu item should contain trigger
+	*/
 	if (!treeView.contains(e.target)) {
 		return true;
 	}
 	e.preventDefault();
+	
+	const context = treeContext(e.target);
 
 	const listItems = [
 		{
@@ -221,12 +234,10 @@ const contextMenuHandler = ({ treeView, showMenu }) => (e) => {
 		},
 		{
 			name: "Open in Terminal",
-			disabled: true,
 		},
 		"seperator",
 		{
 			name: "Copy",
-			disabled: true,
 		},
 		{
 			name: "Copy Path",
@@ -234,7 +245,6 @@ const contextMenuHandler = ({ treeView, showMenu }) => (e) => {
 		"seperator",
 		{
 			name: "Rename",
-			disabled: true,
 		},
 		{
 			name: "Delete",
@@ -243,12 +253,10 @@ const contextMenuHandler = ({ treeView, showMenu }) => (e) => {
 	// ^^^ this list should be built based on what was clicked
 	let data;
 	try {
-		const treeLeafContent = e.target.classList.contains(".tree-leaf-content")
-			? e.target
-			: e.target.closest(".tree-leaf-content");
 		data = {
-			name: treeLeafContent.querySelector(".tree-leaf-text").innerText,
-			type: treeLeafContent.classList.contains("folder") ? "folder" : "file",
+			name: context.name,
+			type: context.type,
+			parent: context.parent.path
 		};
 	} catch (e) {
 		data = {
@@ -273,89 +281,33 @@ const contextMenuHandler = ({ treeView, showMenu }) => (e) => {
 	return false;
 };
 
-const getParent = (data) => {
-	let parent;
-	if (data.type === "folder") {
-		try {
-			const state = getState({ folderPaths: true, serviceRelative: true });
-			parent = state.paths.find((x) => x.name === data.name).path;
-		} catch (e) {
-			parent = "";
-		}
-	} else {
-		try {
-			const state = getState({ serviceRelative: true });
-			parent = state.paths
-				.find((x) => x.name === data.name)
-				.path.split("/")
-				.slice(0, -1)
-				.join("/");
-		} catch (e) {}
-	}
-	return parent;
-};
 
-const contextMenuSelectHandler = ({ newFile, newFolder }) => (e) => {
+const contextMenuSelectHandler = ({ newFile, newFolder, rename }) => (e) => {
 	const { which, parent, data } = e.detail || {};
 	if (parent !== "TreeView") {
 		//console.log('TreeView ignored a context-select event');
 		return;
 	}
+	
+	// this should in a listener for 'addFile'
 	if (which === "New File") {
-		const parent = getParent(data);
 		return newFile({
-			parent,
-			onDone: (filename, parent) => {
-				if (!filename) {
-					return;
-				}
-
-				const storeTree = JSON.parse(sessionStorage.getItem("tree"));
-				storeTree.expanded = storeTree.expanded || [];
-				const parentName = parent.split("/").pop();
-				if (!storeTree.expanded.includes(parentName)) {
-					storeTree.expanded.push(parentName);
-					sessionStorage.setItem("tree", JSON.stringify(storeTree));
-				}
-				const event = new CustomEvent("operations", {
-					bubbles: true,
-					detail: {
-						operation: "addFile",
-						filename,
-						parent,
-						body: {}, //TODO: sucks that body is needed!!!
-					},
-				});
-				document.body.dispatchEvent(event);
-			},
+			parent: data.type === 'folder'
+				? `${data.parent}/${data.name}`
+				: data.parent
 		});
 	}
 
 	if (which === "New Folder") {
-		const parent = getParent(data);
 		return newFolder({
-			parent,
-			onDone: (folderName, parent) => {
-				if (!folderName) {
-					return;
-				}
-				const event = new CustomEvent("operations", {
-					bubbles: true,
-					detail: {
-						operation: "addFolder",
-						folderName,
-						parent,
-						body: {}, //TODO: sucks that body is needed!!!
-					},
-				});
-				document.body.dispatchEvent(event);
-			},
+			parent: data.type === 'folder'
+				? `${data.parent}/${data.name}`
+				: data.parent
 		});
 	}
 
 	if (which === "Delete") {
-		const parent = getParent(data);
-		const { name, type } = data;
+		const { name, type, parent } = data;
 
 		if (!["folder", "file"].includes(type)) {
 			console.error("cannot delete object of unknown type");
@@ -441,6 +393,11 @@ const contextMenuSelectHandler = ({ newFile, newFolder }) => (e) => {
 			detail: { name },
 		});
 		document.body.dispatchEvent(event);
+	}
+	
+	if (which === "Rename") {
+		const { name, parent } = data;
+		return rename({ parent, name });
 	}
 };
 
@@ -790,7 +747,7 @@ function attachListener(
 	attach({
 		name: "Explorer",
 		eventName: "fileSelect",
-		listener: saveTree(fileSelectHandler),
+		listener: saveTree((treeSelect) => fileSelectHandler),
 	});
 	attach({
 		name: "Explorer",
@@ -870,41 +827,32 @@ const OperationDoneListener = (UpdateTree) => (e) => {
 	*/
 
 	// probably get this fron state?
+	// just do this in module???
+	
 	const treeState = {
-		expand: [
-			'.tools',
-			'frontend/react',
-			'examples',
-			'examples/binary'
-		],
-		select: 'examples/binary/audio.mp3',
-		changed: [
-			'examples/binary/video.mp4'
-		],
-		new: [
-			'1ncubate/auth0.md'
-		]
+		expand: [],
+		select: '',
+		changed: [],
+		new: []
 	};
-	newTree({ service: result[0], treeState })
-
 	/*
-		this returns "on" which uses tree events to trigger system events
-		should this be wrapped in UI methods, ie connectTrigger?
-
-		also, handlers here need to trigger tree events
-			tree.select => fileSelect handler here is doing way too much, should only tell UI to select file
-			tree.rename => context menu will tell tree to rename file/folder
-			tree.move => this will be used by context menu cut/paste
-			tree.delete => context menu will tell tree to delete file
-			tree.add => newFolder, newFile
-		it's probably better that the view use wrapped methods to do these
+	const serviceName = result[0].name;
+	const storedTreeName = 
+	tree = JSON.parse(sessionStorage.getItem(`tree-${serviceName}`)) || tree;
 	*/
+	
+	//assemble tree state here
+	
+	newTree({ service: result[0], treeState })
 
 };
 
 function newAttachListener(
 	UpdateTree,
-	{ newFile, newFolder, showSearch, updateTreeMenu, showServiceChooser }
+	{
+		treeAdd, treeDelete, treeSelect, treeMove, treeRename, treeContext,
+		showSearch, updateTreeMenu, showServiceChooser
+	}
 ){
 	const saveTree = (fn) => (...args) => {
 		const result = fn(...args);
@@ -969,17 +917,17 @@ function newAttachListener(
 	attach({
 		name: "Explorer",
 		eventName: "fileSelect",
-		listener: saveTree(fileSelectHandler),
+		listener: saveTree(fileSelectHandler(treeSelect)),
 	});
 	attach({
 		name: "Explorer",
 		eventName: "folderSelect",
-		listener: folderSelectHandler,
+		listener: fileSelectHandler(treeSelect),
 	});
 	attach({
 		name: "Explorer",
 		eventName: "fileClose",
-		listener: saveTree(fileSelectHandler),
+		listener: saveTree(fileSelectHandler(treeSelect)),
 	});
 	attach({
 		name: "Explorer",
@@ -990,26 +938,28 @@ function newAttachListener(
 		name: "Explorer",
 		eventName: "contextmenu",
 		listener: contextMenuHandler({
-			treeView,
+			treeView, treeContext,
 			showMenu: () => window.showMenu,
 		}),
 	});
 	attach({
 		name: "Explorer",
 		eventName: "contextmenu-select",
-		listener: contextMenuSelectHandler({ newFile, newFolder }),
+		listener: contextMenuSelectHandler({
+			newFile: ({ parent }) => treeAdd('file', null, noFrontSlash(parent)),
+			newFolder: ({ parent }) => treeAdd('folder', null, noFrontSlash(parent)),
+			rename: ({ parent, name }) => treeRename(noFrontSlash(`${parent||''}/${name}`)),
+		}),
 	});
 	attach({
 		name: "Explorer",
 		eventName: "new-file",
-		listener: () =>
-			console.warn("new-file handler not implemented, use right click menu"),
+		listener: () => treeAdd('file')
 	});
 	attach({
 		name: "Explorer",
 		eventName: "new-folder",
-		listener: () =>
-			console.warn("new-folder handler not implemented, use right click menu"),
+		listener: () => treeAdd('folder'),
 	});
 }
 

@@ -56,6 +56,7 @@ Some clarity and simplicity is lost in adding this dimension.  Something is lost
 Misc: other models
 ------------------
 
+https://en.m.wikipedia.org/wiki/Trilemma
 
 ### Dungeons and Dragons
   <svg

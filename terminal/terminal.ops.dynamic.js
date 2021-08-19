@@ -30,7 +30,10 @@ export const readSourceDir = async (dir) => {
 	const root = site.includes('beta')
 		? `https://api.github.com/repos/crosshj/fiug-beta`
 		: `https://api.github.com/repos/crosshj/fiug`;
-	const githubContentsUrl = `${root}/contents${dir||''}?ref=gh-pages`;
+	const branch = site.includes('beta')
+		? 'gh-pages'
+		: 'master';
+	const githubContentsUrl = `${root}/contents${dir||''}?ref=${branch}`;
 	let response, error;
 	try {
 		const cache = await caches.open(cacheName);

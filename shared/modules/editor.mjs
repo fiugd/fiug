@@ -123,7 +123,7 @@ const setupEditor = (text, opts) => {
 	//console.log({ options });
 	CodeMirror.keyMap.default["Shift-Tab"] = "indentLess";
 	CodeMirror.keyMap.default["Tab"] = "indentMore";
-
+  
 	editor.getDoc().setValue(text);
 	return editor;
 };

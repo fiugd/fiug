@@ -1,14 +1,26 @@
+//2021-06-19 01:54
+
 import { isString } from "./Types.mjs";
 import { attach, attachTrigger } from "./Listeners.mjs";
 import ext from "/shared/icons/seti/ext.json.mjs";
 
-const SYSTEM_NAME = `fiug.dev v0.4`;
+import "/shared/vendor/localforage.min.js";
+import packageJson from "/package.json" assert { type: "json" };
 
-let execTrigger;
+const SYSTEM_NAME = `${packageJson.name} v${packageJson.version}`;
+
+const execTrigger = attachTrigger({
+	name: "State",
+	eventName: "operations",
+	type: "raw",
+});
+
 let listenerQueue = [];
 
 let currentService;
 let currentFile;
+let currentFilePath;
+
 let currentFolder;
 let allServices;
 
@@ -16,6 +28,131 @@ const state = {
 	changedFiles: {},
 	openedFiles: {},
 };
+
+// TODO: fix the following fails for extensionless files
+const isFolder = filename => {
+	return filename.split('/').pop().split('.').length === 1;
+};
+
+/*
+steps to opened/closed/selected files state sanity:
+- [x] when a file is loaded from service worker (selected)
+	- [x] it is considered selected
+	- [x] it is pushed to opened array
+	- [x] if a file was selected previously
+		- and was changed: keep it in opened array
+		- and was not changed: pop it from opened array
+- [x] when a previously selected file is selected again
+	- it is considered selected
+	- it gets order:0 and other files get order:+1
+- [x] when a file is deleted
+	- if selected: next file in order is selected & file is removed from opened array
+	- if opened: it is removed from opened, following files get bumped up in order
+- [ ] when a file is moved or renamed
+	- it stays in order and selected state, it's details are updated
+- [x] what if file is loaded from service worker, but not used by editor?
+	- handle this by doing tracking in app state module versus in SW
+
+Currently, storage writes for this state are here:
+modules/TreeView#L23
+- https://github.com/crosshj/fiug-beta/blob/694dcfbe73e2c29c8c6c6e7f86cfe23010841612/modules/TreeView.mjs#L23
+*/
+
+class StateTracker {
+	constructor(){
+		const driver = [
+			localforage.INDEXEDDB,
+			localforage.WEBSQL,
+			localforage.LOCALSTORAGE,
+		];
+		this.store = localforage.createInstance({
+			driver,
+			name: "service-worker",
+			version: 1.0,
+			storeName: "changes",
+			description: "keep track of changes not pushed to provider",
+		});
+		this.getState = this.getState.bind(this);
+		this.setState = this.setState.bind(this);
+		this.withState = this.withState.bind(this);
+		this.closeFile = this.withState(['opened'], this.closeFile);
+		this.openFile = this.withState(['changed', 'opened'], this.openFile);
+	}
+
+	async setState({ opened=[], selected={} }={}){
+		const { store } = this;
+		opened && await store.setItem(`state-${currentService.name}-opened`, opened);
+		selected && await store.setItem(`tree-${currentService.name}-selected`, selected.name);
+	}
+
+	async getState(which=[]){
+		const { store } = this;
+		const state = {
+			opened: () => store.getItem(`state-${currentService.name}-opened`),
+			changed: async () => (await store.keys())
+				.filter(key => key.startsWith(currentService.name))
+				.map(key => key.replace(currentService.name+'/', ''))
+		};
+		const results = {};
+		for(let i=0, len=which.length; i<len; i++){
+			const whichProp = which[i];
+			results[whichProp] = (await state[whichProp]()) || undefined;
+		}
+		return results;
+	}
+
+	withState(depends, fn){
+		return async (arg) => {
+			if(!currentService) return;
+			const { setState, getState } = this;
+			const current = await getState(depends);
+			const result = await fn(current, arg);
+			setState(result);
+		};
+	}
+
+	// close a file (or folder)
+	closeFile({ opened=[] }, filename){
+		if(!filename) return {};
+		if(filename.startsWith('/')) filename = filename.slice(1);
+		filename = filename.replace(currentService.name+'/', '');
+		const filterOpened = isFolder(filename)
+			? x => !x.name.startsWith(filename)
+			: x => x.name !== filename;
+		opened = opened.filter(filterOpened);
+		[...opened]
+			.sort((a,b)=>a.order - b.order)
+			.forEach((x,i)=>x.order=i);
+		const selected = opened.find(x => x.order === 0);
+		return { opened, selected };
+	}
+
+	openFile({ changed=[], opened=[] }, filename){
+		if(!filename) return {};
+		if(filename.startsWith('/')) filename = filename.slice(1);
+		filename = filename.replace(currentService.name+'/', '');
+		const lastFile = opened[opened.length-1];
+		const lastFileIsChanged = lastFile
+			? changed.includes(lastFile.name)
+			: true;
+		let selected = opened.find(x => x.name === filename);
+
+		opened.forEach(x => x.order += 1);
+		if(!selected && !lastFileIsChanged){
+			opened = opened.filter(x => x.name !== lastFile.name);
+		}
+		if(!selected){
+			selected = { name: filename };
+			opened.push(selected);
+		}
+		selected.order = -Number.MAX_VALUE;
+		[...opened]
+			.sort((a,b)=>a.order - b.order)
+			.forEach((x,i)=>x.order=i);
+		return { opened, selected };
+	}
+}
+const stateTracker = new StateTracker();
 
 const sortAlg = (propFn = (x) => x, alg = "alpha") => {
 	if (alg === "alpha") {
@@ -111,7 +248,12 @@ function getDefaultFile(service) {
 const getCurrentServiceTree = ({ flat, folders } = {}) => {
 	return flat
 		? flattenTree(currentService.tree, folders)
-				.map(({ name, path } = {}) => ({ name, path, type: getFileType(name) }))
+				.map(({ name, path } = {}) => ({
+					name,
+					path,
+					relativePath: path.split(currentService.name).slice(1).join(''),
+					type: getFileType(name)
+				}))
 				.sort(sortAlg((x) => x.name))
 		: currentService.tree;
 };
@@ -131,7 +273,10 @@ const getCurrentService = ({ pure } = {}) => {
 
 	// SIDE EFFECTS!!!
 	mostRecent.forEach((m) => {
-		const found = currentService.code.find((x) => x.name === m.filename);
+		const found = currentService.code.find((x) => {
+			x.path === `/${currentService.name}/${m.filename}` ||
+			x.name === m.filename
+		});
 		if (!found) {
 			console.error({
 				changedArray,
@@ -152,6 +297,41 @@ const getCurrentService = ({ pure } = {}) => {
 // this should really be broken out into:
 //    setCurrentFile, setCurrentService
 //    getCurrentFile, getCurrentService
+
+function setCurrentFile({ filePath, fileName }){
+	if(filePath){
+		currentFile = filePath.split('/').pop();
+		//currentFilePath = `/${currentService.name}/${filePath}`;
+		currentFilePath = filePath;
+		return;
+	}
+	currentFile = fileName;
+	currentFilePath = undefined;
+}
+
+function getCurrentFile(){
+	return currentFilePath || currentFile;
+}
+async function getCurrentFileFull({ noFetch } = {}){
+	const pathWithServiceName = currentFilePath.includes(currentService.name)
+		? currentFilePath
+		: `/${currentService.name}/${currentFilePath}`;
+	if(noFetch) return { path: pathWithServiceName };
+
+	const fileBody = currentFilePath
+		? currentService.code.find((x) => x.path === pathWithServiceName)
+		: currentService.code.find((x) => x.name === currentFile);
+
+	if(fileBody && fileBody.path){
+		fileBody.code = await (await fetch(fileBody.path, {
+			headers: {
+				'x-requestor': 'editor-state'
+			}
+		})).text();
+	}
+
+	return fileBody;
+}
 
 function setCurrentService(service) {
 	return getCodeFromService(service);
@@ -192,8 +372,6 @@ function getCodeFromService(service, file) {
 		? currentService.code
 		: "";
 
-	//TODO: if file has a path, then fetch and return that
-
 	return {
 		name: currentService.name,
 		id: currentService.id,
@@ -221,6 +399,7 @@ function setState(change) {
 	//console.log(change);
 	const stateKey = `${id}|${name}|${filename}`;
 
+/*
 	if (!state.changedFiles[stateKey]) {
 		state.changedFiles[stateKey] = [
 			{
@@ -231,12 +410,11 @@ function setState(change) {
 		];
 	}
 	state.changedFiles[stateKey].push({ name, id, code, filename });
-
+*/
 	openFile({ name: filename });
 	return currentFile;
 }
 
-const getCurrentFile = () => currentFile;
 const getCurrentFolder = () => currentFolder;
 const setCurrentFolder = (path) => {
 	currentFolder = path;
@@ -272,60 +450,64 @@ async function getAllServices() {
 	return await queueListener();
 }
 
-const operationDoneHandler = (event) => {
-	if (listenerQueue.length === 0) {
-		//console.warn('nothing listening!');
-		return;
+function openFile({ name, parent, path, ...other }) {
+	path = path || parent;
+	const fullName = path
+		? `${path}/${name}`
+		: name;
+	if(!state.openedFiles[fullName] || !state.openedFiles[fullName].selected){
+		//purposefully not awaiting this, should listen not block
+		stateTracker.openFile(fullName);
 	}
-	const { detail } = event;
-	const { op, id, result, operation, listener } = detail;
 
-	const foundQueueItem =
-		listener && listenerQueue.find((x) => x.id === listener);
-	if (!foundQueueItem) {
-		//console.warn(`nothing listening for ${listener}`);
-		return false;
-	}
-	listenerQueue = listenerQueue.filter((x) => x.id !== listener);
-	foundQueueItem.after && foundQueueItem.after({ result: { result } });
-	return true;
-};
-
-execTrigger = attachTrigger({
-	name: "State",
-	eventName: "operations",
-	type: "raw",
-});
-
-attach({
-	name: "State",
-	eventName: "operationDone",
-	listener: operationDoneHandler,
-});
-
-function openFile({ name, ...other }) {
-	const order = state.openedFiles[name]
-		? state.openedFiles[name].order
-		: (Math.max(Object.entries(state.openedFiles).map(([k, v]) => v.order)) ||
-				-1) + 1;
-	state.openedFiles[name] = {
-		name,
+	const SOME_BIG_NUMBER = Math.floor(Number.MAX_SAFE_INTEGER/1.1);
+	Object.entries(state.openedFiles)
+		.forEach(([k,v]) => {
+			v.selected = false;
+		});
+	state.openedFiles[fullName] = {
+		name: fullName,
 		...other,
-		order,
+		selected: true,
+		order: SOME_BIG_NUMBER,
 	};
+	//NOTE: well-intentioned, but not currently working right
+	//currentFile = fullName;
+	Object.entries(state.openedFiles)
+		.sort(([ka,a],[kb,b]) => a.order - b.order)
+		.forEach(([k,v], i) => {
+			v.order = i;
+		});
 }
 
-function closeFile({ name }) {
-	state.openedFiles = Object.fromEntries(
-		Object.entries(state.openedFiles)
-			.map(([key, value]) => value)
-			.filter((x) => x.name !== name)
-			.sort((a, b) => a.order - b.order)
-			.map((x, i) => {
-				return { ...x, order: i };
-			})
-			.map((x) => [x.name, x])
-	);
+function closeFile({ name, filename, parent, path, next, nextPath }) {
+	path = path || parent;
+	name = name || filename;
+	const fullName = path
+		? `${path}/${name}`
+		: name;
+	const nextFullName = nextPath
+		? `${nextPath}/${next}`
+		: next;
+
+	//purposefully not awaiting this, should listen not block
+	stateTracker.closeFile(fullName);
+
+	const objEntries = Object.entries(state.openedFiles)
+		.map(([key, value]) => value)
+		.filter((x) => x.name !== fullName)
+		.sort((a, b) => a.order - b.order)
+		.map((x, i) => {
+			const selected = x.name === nextFullName;
+			return { ...x, order: i, selected };
+		})
+		.map((x) => {
+			const fullName = x.parent
+				? `${x.parent}/${x.name}`
+				: x.name;
+			return [fullName, x]
+		});
+	state.openedFiles = Object.fromEntries(objEntries);
 }
 
 function moveFile({ name, order }) {
@@ -351,10 +533,65 @@ function getSettings(){
 	}
 }
 
+const operationDoneHandler = (event) => {
+	if (listenerQueue.length === 0) {
+		//console.warn('nothing listening!');
+		return;
+	}
+	const { detail } = event;
+	const { op, id, result, operation, listener } = detail;
+
+	const foundQueueItem =
+		listener && listenerQueue.find((x) => x.id === listener);
+	if (!foundQueueItem) {
+		//console.warn(`nothing listening for ${listener}`);
+		return false;
+	}
+	listenerQueue = listenerQueue.filter((x) => x.id !== listener);
+	foundQueueItem.after && foundQueueItem.after({ result: { result } });
+	return true;
+};
+
+const operationsHandler = (event) => {
+	const { operation } = event.detail || {};
+	if(!operation || !['deleteFile'].includes(operation)) return;
+
+	if(operation === 'deleteFile'){
+		closeFile(event.detail);
+		return;
+	}
+};
+
+const events = [{
+	eventName: "operationDone",
+	listener: operationDoneHandler,
+}, {
+	eventName: "operations",
+	listener: operationsHandler,
+}, {
+	eventName: "fileClose",
+	listener: (event) => closeFile(event.detail),
+}, {
+	eventName: "fileSelect",
+	listener: (event) => openFile(event.detail),
+}, {
+	eventName: "open-settings-view",
+	listener: (event) => openFile({
+		name: "system::open-settings-view"
+	})
+}];
+events.map((args) =>
+	attach({ name: 'State', ...args })
+);
+
 export {
 	getAllServices,
 	getCodeFromService,
+
 	getCurrentFile,
+	getCurrentFileFull,
+	setCurrentFile,
+
 	getCurrentService,
 	getCurrentServiceTree,
 	getDefaultFile,

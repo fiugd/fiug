@@ -44,8 +44,12 @@ further reference, see defineExtension here https://codemirror.net/doc/manual.ht
 	"use strict";
 
 	let currentDoc;
-	const SCROLL_MARGIN = 50;
-	const allDocs = {};
+	let currentMode;
+
+	const SCROLL_MARGIN = 100;
+	let docsInStore = [];
+	let docsLoad;
+	const docsCache = {};
 
 	CodeMirror.defineOption('docStore', () => {}, (cm, localforage) => {
 		if(!localforage || !localforage.createInstance) return;
@@ -55,7 +59,7 @@ further reference, see defineExtension here https://codemirror.net/doc/manual.ht
 			localforage.WEBSQL,
 			localforage.LOCALSTORAGE,
 		];
-		cm.options.docStore = localforage
+		const docStore = localforage
 			.createInstance({
 					driver: driverOrder,
 					name: 'editorState',
@@ -63,6 +67,23 @@ further reference, see defineExtension here https://codemirror.net/doc/manual.ht
 					storeName: 'editor',
 					description: 'scroll and cursor position, history, selection'
 			});
+		cm.options.docStore = {
+			setItem: (key, value) => {
+				docsCache[key] = value;
+				docStore.setItem(key, value);
+			},
+			getItem: async (key) => {
+				if(docsCache[key]) return docsCache[key];
+				const value = await docStore.getItem(key);
+				docsCache[key] = value;
+				docsInStore.push(key);
+				return value;
+			}
+		};
+		docsLoad = docStore.keys();
+		(async () => {
+			docsInStore = await docsLoad;
+		})();
 	});
 
 	function prepareStorageDoc(cmDoc){
@@ -73,30 +94,30 @@ further reference, see defineExtension here https://codemirror.net/doc/manual.ht
 		other.scrollTop = cmDoc.scrollTop;
 		other.scrollLeft = cmDoc.scrollLeft;
 		other.mode = cmDoc.mode.name;
+		other.history = cmDoc.getHistory();
+		try {
+			other.folded = cmDoc.getAllMarks()
+				.filter(m => m.__isFold)
+				.map(m => m.lines[0].lineNo());
+		} catch(e){}
 		return other;
 	}
 
-	function rehydrateDoc(newDoc, stored){
-		if(stored.text){
-			newDoc.setValue(stored.text)
+	const persistDoc = (ref) => () => {
+		if(!currentDoc.path) return;
+		ref.options.docStore.setItem(
+			currentDoc.path,
+			prepareStorageDoc(ref.doc)
+		);
+		if(!docsInStore.find(x => x === currentDoc.path)){
+			docsInStore.push(currentDoc.path);
 		}
-		if(stored.scrollTop){
-			newDoc.scrollTop = stored.scrollTop;
-		}
-		if(stored.scrollLeft){
-			newDoc.scrollLeft = stored.scrollLeft;
-		}
-		if(stored.history){
-			newDoc.clearHistory()
-			newDoc.setHistory(stored.history);
-		}
-		if(stored.cursor){
-			newDoc.setCursor(stored.cursor);
-		}
-		if(stored.sel){
-			newDoc.setSelections(stored.sel.ranges);
-		}
-		return newDoc;
+	}
+
+	function foldLine(doc, line){
+		try {
+			doc.foldCode({ line, ch: 0 }, null, "fold");
+		} catch(e){}
 	}
 
 	const debounce = (func, wait, immediate) => {
@@ -114,60 +135,186 @@ further reference, see defineExtension here https://codemirror.net/doc/manual.ht
 			};
 		};
 
-	CodeMirror.defineExtension('loadDoc', async function ({
-		name, text, mode, scrollTop, scrollLeft, line, ch
-	}){
-		if(currentDoc && name === currentDoc.name) return;
+	const selectLine = (cm, doc, line, ch) => {
+		const newLine = ch ? { line, ch } : line;
 
-		const initialized = !!allDocs[name];
-		const storedDoc = await this.options.docStore.getItem(name);
+		//const t = doc.cm.charCoords(newLine, "local").top;
+		//cm.scrollTo(0,·t·-·SCROLL_MARGIN);
+		cm.scrollIntoView(newLine, SCROLL_MARGIN);
 
-		let newDoc = (allDocs[name] || {}).editor || CodeMirror.Doc('', mode || storedDoc.mode);
-		newDoc.name = name;
-		if(storedDoc){
-			newDoc = rehydrateDoc(newDoc, { ...storedDoc, ...{ text, mode, scrollTop, scrollLeft }});
-		} else {
-			newDoc = rehydrateDoc(newDoc, { text, mode, scrollTop, scrollLeft });
+		doc.setSelections([])
+		const active = Array.from(document.querySelectorAll('.activeline'));
+		active.forEach(l => l.classList.remove('activeline'));
+
+		setTimeout(() => {
+			cm.focus();
+			doc.setCursor(newLine);
+			doc.addLineClass(newLine, null, 'activeline')
+		}, 1);
+	};
+
+	class PerfMonitor {
+		constructor(key){
+			this.key = key;
+			this.t0 = performance.now();
+			this.events = [
+				[key,this.t0]
+			];
+			this.track = this.track.bind(this);
+			this.log = this.log.bind(this);
 		}
-		currentDoc = {
-			name,
-			editor: newDoc,
-			swapping: true
-		};
-		allDocs[name] = currentDoc;
-
-		this.swapDoc(newDoc);
-		if(initialized) return;
-
-		const thisOptions = this.options;
-		async function persistDoc(){
-			await thisOptions.docStore.setItem(
-				name,
-				prepareStorageDoc(currentDoc.editor)
+		track(event){
+			this.events.push([event, performance.now()]);
+		}
+		log(){
+			const fNum = (number) => number.toFixed().padStart(3);
+			const colors = [
+				'color:#CE9178;',
+				'color:#9CDCFE;',
+				'color:#DCDCAA;'
+			];
+			this.events.forEach(([event, time], i) => {
+				const timeTook = i > 0
+					? `(${fNum(time-this.events[i-1][1])} ms)`
+					: '';
+				console.log(
+					`%c${fNum(time-this.t0)}:%c ${event} %c${timeTook}`,
+					...colors
+				);
+			});
+			console.log(
+				`%c${fNum(performance.now()-this.t0)}: %ctotal %c\n`,
+				...colors
 			);
 		}
-		const debouncedPersist = debounce(persistDoc, 1000, false);
+	}
 
-		if(line) {
-			const pos = { line, ch };
-			this.setCursor(pos);
-			const t = this.charCoords({line, ch}, "local").top;
-			this.scrollTo(0, t - SCROLL_MARGIN);
-		}
-		if(scrollTop){
-			this.scrollTo(0, scrollTop);
-		}
+	let listenersAttached;
+	const addListeners = (ref) => {
+		if(listenersAttached) return;
+		CodeMirror.on(ref, "change", persistDoc(ref));
+		CodeMirror.on(ref, "cursorActivity", persistDoc(ref));
+		CodeMirror.on(ref, "scroll", persistDoc(ref));
+		CodeMirror.on(ref, "fold", persistDoc(ref));
+		CodeMirror.on(ref, "unfold", persistDoc(ref));
+		listenersAttached = true;
+		return true;
+	};
 
-		if(!storedDoc)  debouncedPersist();
-		CodeMirror.on(currentDoc.editor, "change", debouncedPersist);
-		CodeMirror.on(currentDoc.editor, "cursorActivity", debouncedPersist);
-		CodeMirror.on(this, "scroll", () => {
-			if(name !== currentDoc.name) return;
-			if(currentDoc.swapping){
-				currentDoc.swapping = false;
+	CodeMirror.defineExtension('loadDoc', function ({
+		callback, name, path, text, mode, scrollTop, scrollLeft, line, ch
+	}){
+		/*
+		TODO: loading async and using a callback seems not to help
+		should try somthing different
+		https://javascript.info/fetch-progress
+		https://stackoverflow.com/questions/35711724/upload-progress-indicators-for-fetch
+		https://josephkhan.me/how-to-cancel-a-fetch-request/
+		*/
+
+		const loadAsync = async () => {
+			if(!name) return;
+			if(currentDoc && path === currentDoc.path){
+				if(line) selectLine(this, currentDoc.editor, line, ch);
 				return;
 			}
-			debouncedPersist();
-		});
+			currentDoc = { path };
+
+			const perf = new PerfMonitor(path);
+
+			let storedDoc;
+			await docsLoad;
+			if(docsInStore.find(x => x === path)){
+				storedDoc = await this.options.docStore.getItem(path);
+				perf.track('editor store get');
+			}
+			if(!storedDoc){
+				//TODO: try getting this directly from doc store instead
+				text = await fetch(path).then(x => x.text());
+				perf.track('file store get');
+			}
+
+			if(currentDoc.path !== path) return callback('cancel loading');
+
+			this.setValue(storedDoc ? storedDoc.text : text);
+			this.doc.clearHistory();
+
+			const historyOkay = storedDoc &&
+				storedDoc.history &&
+				storedDoc.history.done &&
+				storedDoc.history.undone &&
+				storedDoc.history.done.length &&
+				storedDoc.history.undone.length;
+			if(historyOkay){
+				this.doc.setHistory(storedDoc.history);
+				perf.track('set history');
+			}
+			const cursorOkay = storedDoc &&
+				storedDoc.cursor &&
+				storedDoc.cursor.line;
+			if(cursorOkay){
+				this.doc.setCursor(storedDoc.cursor);
+				perf.track('set cursor');
+			}
+			const selOkay = storedDoc &&
+				storedDoc.sel &&
+				storedDoc.sel.ranges
+					.filter(x => 
+						x.anchor.line !== x.head.line ||
+						x.anchor.ch !== x.head.ch
+					)
+					.length > 0;
+			if(selOkay){
+				this.doc.setSelections(storedDoc.sel.ranges);
+				perf.track('selections');
+			}
+			if(line){
+				selectLine(this, this.doc, line, ch);
+				perf.track('select line');
+			}
+			const scrollOkay = storedDoc &&
+				!(scrollTop) &&
+				(storedDoc.scrollLeft || storedDoc.scrollTop);
+			if(scrollOkay){
+				this.scrollTo(storedDoc.scrollLeft, storedDoc.scrollTop);
+				perf.track('set scroll (from stored)');
+			}
+			if(scrollTop){
+				this.scrollTo(0, scrollTop);
+				perf.track('set scroll');
+			}
+			const foldsOkay = storedDoc &&
+				storedDoc.folded &&
+				storedDoc.folded.length &&
+				this.foldCode;
+			if(foldsOkay){
+				const foldDocLine = (line) => foldLine(this, line);
+				storedDoc.folded.forEach(foldDocLine);
+				perf.track('set folds');
+			}
+
+			const modeString = (mode) => JSON.stringify(mode);
+			const newMode = mode || storedDoc.mode;
+			if(modeString(currentMode) !== modeString(newMode)){
+				this.setOption('mode', newMode);
+				currentMode = newMode;
+				perf.track(`set mode ${modeString(currentMode)}`);
+			}
+
+			if(!storedDoc) {
+				persistDoc();
+				perf.track(`initial doc persist`)
+			}
+
+			if(addListeners(this)) perf.track(`add listeners`);
+
+			setTimeout(() => this.refresh(), 1);
+			// perf.track('refresh');
+
+			perf.log();
+
+			callback();
+		};
+		setTimeout(loadAsync, 1);
 	});
 });

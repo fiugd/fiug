@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en"  class="dark-enabled">
+	<head>
+		<title></title>
+		<meta charset="utf-8">
+		<meta name="description" content="">
+		<meta name="author" content="">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<meta name="mobile-web-app-capable" content="yes">
+
+		<script src="/shared/vendor/xterm.min.js"></script>
+		<script src="/shared/vendor/xterm-addon-fit.js"></script>
+		<link rel="stylesheet" href="/index.css" />
+	</head>
+	<body>
+		<div id="terminal">
+			<div id="terminal-menu"></div>
+			<div class="term-contain"></div>
+		</div>
+	</body>
+	<script>
+		const isRunningAsModule = document.location.href.includes("_/modules");
+
+		//<base target="_blank" href="../../">
+		if(!isRunningAsModule){
+			const base = document.createElement('base');
+			base.href = '../../';
+			document.getElementsByTagName('head')[0].appendChild(base);
+		}
+
+		const head=document.getElementsByTagName("head")[0];
+
+		//<link rel="stylesheet" href="./terminal.css" />
+		const cssnode = document.createElement('link');
+		cssnode.type = 'text/css';
+		cssnode.rel = 'stylesheet';
+		cssnode.href = './terminal.css';
+		head.appendChild(cssnode);
+
+		//<script src="./terminal.js" type="module">...
+		const scriptnode=document.createElement('script');
+		scriptnode.type="module";
+		scriptnode.src='./terminal.js';
+		head.appendChild(scriptnode);
+
+	</script>
+</html>

@@ -26,16 +26,24 @@ const require = (url) => {
 	const storage = new StorageManager({ utils, ui });
 	ui.init(storage.stores.handlers, storage.stores.changes);
 
-	const app = new Router({ storage, TemplateEngine, swHandlers });
+	const templates = new TemplateEngine({ storage });
+
+	const app = new Router({ storage, templates, swHandlers });
 	const providers = await new ProviderManager({
 		app, storage, utils, GithubProvider
 	});
-	const services = new ServicesManager({ app, storage, providers, ui, utils });
+	const services = new ServicesManager({
+		app, storage, providers, ui, utils, templates
+	});
 
 	app.get("/service/search/", storage.handlers.serviceSearch); // move handler to services
 	app.get("/service/read/:id?", storage.handlers.serviceRead); // move handler to services
 	app.post("/service/create/:id?", services.handlers.serviceCreate);
+	app.get("/service/change", services.handlers.serviceGetChanges);
 	app.post("/service/change", services.handlers.serviceChange);
+
+	app.post("/service/commit", providers.handlers.createCommit);
+
 	app.post("/service/update/:id?", services.handlers.serviceUpdate);
 	app.post("/service/provider/delete/:id?", services.handlers.serviceDelete);
 
@@ -58,13 +66,13 @@ const require = (url) => {
 				.replace(location.origin, "")
 				.split("/");
 			if (splitPath.includes("::preview::") && splitPath.includes(ui.name)) {
-				return new Response(NO_PREVIEW, {
+				return new Response(templates.NO_PREVIEW, {
 					headers: { "Content-Type": "text/html" },
 				});
 			}
 		} catch (e) {}
 
-		const serviceAPIMatch = await app.find(event.request.url);
+		const serviceAPIMatch = await app.find(event.request);
 
 		const res = serviceAPIMatch
 			? await serviceAPIMatch.exec(event)
@@ -77,7 +85,7 @@ const require = (url) => {
 		// }
 
 		if (event.request.url.includes("/::preview::/")) {
-			response = new Response(res, {
+			response = new Response(utils.addBase(res), {
 				headers: { "Content-Type": "text/html" },
 			});
 			return response;

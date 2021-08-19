@@ -380,22 +380,31 @@ span.CodeMirror-selectedtext { background: none; }
   transition: transform 0.2s;
 }
 .CodeMirror-foldgutter-open {
-  color: #555;
-}
-.CodeMirror-foldgutter-open:hover {
   color: inherit;
 }
-.CodeMirror-foldgutter-open:after {
-  content: "\25BE";
+.CodeMirror-foldgutter-open:after,
+.CodeMirror-foldgutter-folded:after {
   margin-left: 2px;
-  content: '>';
-  transform-origin: 5px 8.5px;
-  transform: rotateZ(90deg);
-  display: block;;
+  font-family: codicon;
+  transform-origin: center;
+  display: block;
+}
+.CodeMirror-foldgutter-open:after {
+  content: "\eab4";
+  transform: translateX(0px) translateY(1.5px);
 }
 .CodeMirror-foldgutter-folded:after {
-  content: "\25B8";
-  margin-left: 2px;
-  content: '>';
+  content: "\eab4";
+  transform: translateX(2.25px) translateY(3px) rotateZ(-90deg);
+}
+.CodeMirror-foldgutter-open {
+  opacity: 0;
+  visibility: hidden;
+  transition: visibility 0.6s linear, opacity 0.3s linear;
+}
+.gutter-hovered .CodeMirror-foldgutter-open {
+  opacity: 1;
+  visibility: visible;
+  transition: visibility 0.3s linear, opacity 0.15s linear;
 }
 /* END code folding */

@@ -2,3 +2,4 @@ __services/
 *.service
 #*.sqlite
 node_modules
+.DS_Store

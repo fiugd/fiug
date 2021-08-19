@@ -11,7 +11,7 @@ const tryFn = (fn, _default) => {
 };
 
 
-let tree;
+let tree, clipboard, currentServiceName;
 
 const sortFn = (a, b) => {
 	const afilename =
@@ -98,54 +98,63 @@ function getFileType(fileName = "") {
 	return type;
 }
 
-const fileSelectHandler = (e) => {
-	const { name, next, path } = e.detail;
+const getParent = (data) => {
+	let parent;
+	if (data.type === "folder") {
+		try {
+			const state = getState({ folderPaths: true, serviceRelative: true });
+			parent = state.paths.find((x) => x.name === data.name).path;
+		} catch (e) {
+			parent = "";
+		}
+	} else {
+		try {
+			const state = getState({ serviceRelative: true });
+			parent = state.paths
+				.find((x) => x.name === data.name)
+				.path.split("/")
+				.slice(0, -1)
+				.join("/");
+		} catch (e) {}
+	}
+	return parent;
+};
 
-	Array.from(
-		document.querySelectorAll("#tree-view .selected") || []
-	).forEach((x) => x.classList.remove("selected"));
-	tree && (tree.selected = undefined);
+const noFrontSlash = (path) => {
+	if(!path) return path;
+	if(!path.includes('/')) return path;
+	if(path[0] === '/') return path.slice(1);
+	return path;
+};
 
-	if (e.type === "fileClose" && !next) {
-		tree && (tree.selected = "noneSelected");
+
+const fileSelectHandler = (treeSelect, type='') => (e) => {
+	if(e?.detail?.source === 'Explorer') return;
+
+	const { name, path, next, nextPath } = e.detail;
+	if(type === 'close' && !next){
 		return;
 	}
+	const nameWithPathIfPresent = (_path, _name) => _path
+		? noFrontSlash(`${_path}/${_name}`)
+		: noFrontSlash(_name);
+	const fileNameWithPath = next
+		? nameWithPathIfPresent(nextPath, next)
+		: nameWithPathIfPresent(path, name);
+	treeSelect(fileNameWithPath, null, 'noSelect');
 
-	const leaves = Array.from(
-		document.querySelectorAll("#tree-view .tree-leaf-content") || []
-	);
-
-	const found = leaves.find((x) => {
-		if(!path){
-			return x.innerText.trim() === (next || name);
-		}
-		const item = tryFn(() => JSON.parse(x.dataset.item), {});
-		const itemPath = tryFn(() => x.dataset.path);
-		return item.name === (next || name) && path === itemPath;
-	});
-
-	if (found) {
-		tree.selected = name || next;
-		found.classList.add("selected");
-
-		//also open all parent folders
-		let parentNode = found.parentNode;
-		while (parentNode.id ? parentNode.id !== "tree-view" : true) {
-			if (parentNode.classList.contains("tree-child-leaves")) {
-				parentNode.classList.remove("hidden");
-			}
-			parentNode = parentNode.parentNode;
-		}
-		if (found.scrollIntoViewIfNeeded) {
-			const opt_center = true;
-			found.scrollIntoViewIfNeeded(opt_center);
-		} else {
-			found.scrollIntoView({
-				behavior: "smooth",
-				block: "center",
-			});
-		}
+	/* TODO: add this to TreeView module
+	if (found.scrollIntoViewIfNeeded) {
+		const opt_center = true;
+		found.scrollIntoViewIfNeeded(opt_center);
+	} else {
+		found.scrollIntoView({
+			behavior: "smooth",
+			block: "center",
+		});
 	}
+	*/
+
 };
 
 const folderSelectHandler = (e) => {
@@ -194,16 +203,24 @@ const folderSelectHandler = (e) => {
 	});
 };
 
-const fileChangeHandler = (updateTree) => (event) => {
-	const { name, id, file } = event.detail;
-	updateTree("dirty", { name, id, file });
+const fileChangeHandler = (treeChange) => (event) => {
+	const { filePath } = event.detail;
+	treeChange(filePath);
 };
 
-const contextMenuHandler = ({ treeView, showMenu }) => (e) => {
+const contextMenuHandler = ({ treeView, treeContext, showMenu }) => (e) => {
+	/*
+		TreeView module should have a right click listener
+		it should call handler with info about the thing that was clicked
+		
+		this should be wired up in UI, each menu item should contain trigger
+	*/
 	if (!treeView.contains(e.target)) {
 		return true;
 	}
 	e.preventDefault();
+
+	const context = treeContext(e.target);
 
 	const listItems = [
 		{
@@ -212,188 +229,110 @@ const contextMenuHandler = ({ treeView, showMenu }) => (e) => {
 		{
 			name: "New Folder",
 		},
-		"seperator",
+
+		context.type === 'file' ? "seperator" : '',
 		{
 			name: "Open in Preview",
+			hidden: context.type === 'folder'
 		},
 		{
 			name: "Open in New Window",
+			hidden: context.type === 'folder'
 		},
 		{
 			name: "Open in Terminal",
-			disabled: true,
+			hidden: true //TODO: revisit this with terminal revamp
+		},
+
+		"seperator",
+		{
+			name: "Cut",
+		},
+		{
+			name: "Copy",
+		},
+		{
+			name: "Paste",
+			hidden: !clipboard || context.type === 'file'
 		},
 		"seperator",
 		{
-			name: "Copy",
-			disabled: true,
+			name: "Copy Path",
 		},
 		{
-			name: "Copy Path",
+			name: "Copy Relative Path",
 		},
 		"seperator",
 		{
 			name: "Rename",
-			disabled: true,
 		},
 		{
 			name: "Delete",
 		},
-	];
-	// ^^^ this list should be built based on what was clicked
-	let data;
-	try {
-		const treeLeafContent = e.target.classList.contains(".tree-leaf-content")
-			? e.target
-			: e.target.closest(".tree-leaf-content");
-		data = {
-			name: treeLeafContent.querySelector(".tree-leaf-text").innerText,
-			type: treeLeafContent.classList.contains("folder") ? "folder" : "file",
-		};
-	} catch (e) {
-		data = {
-			name: "",
-			type: "folder",
-		};
-	}
+	].filter(x => !!x && !x.hidden);
 
-	if (!data) {
-		console.error("some issue finding data for this context click!");
-		return;
-	}
-
-	// debugger;
 	showMenu()({
 		x: e.clientX,
 		y: e.clientY,
 		list: listItems,
 		parent: "TreeView",
-		data,
+		data: context,
 	});
 	return false;
 };
 
-const getParent = (data) => {
-	let parent;
-	if (data.type === "folder") {
-		try {
-			const state = getState({ folderPaths: true, serviceRelative: true });
-			parent = state.paths.find((x) => x.name === data.name).path;
-		} catch (e) {
-			parent = "";
-		}
-	} else {
-		try {
-			const state = getState({ serviceRelative: true });
-			parent = state.paths
-				.find((x) => x.name === data.name)
-				.path.split("/")
-				.slice(0, -1)
-				.join("/");
-		} catch (e) {}
-	}
-	return parent;
-};
-
-const contextMenuSelectHandler = ({ newFile, newFolder }) => (e) => {
+const contextMenuSelectHandler = ({
+	treeAdd, treeRename, treeDelete, treeMove
+}) => (e) => {
 	const { which, parent, data } = e.detail || {};
 	if (parent !== "TreeView") {
 		//console.log('TreeView ignored a context-select event');
 		return;
 	}
-	if (which === "New File") {
-		const parent = getParent(data);
-		return newFile({
-			parent,
-			onDone: (filename, parent) => {
-				if (!filename) {
-					return;
-				}
+	
+	// this should in a listener for 'addFile'
+	if (["New File", "New Folder"].includes(which)) {
+		const parent = data.type === 'file'
+			? data.parent.path
+			: data.path;
+		const typeToAdd = which === 'New File'
+			? 'file'
+			: 'folder';
+		return treeAdd(typeToAdd, null, parent);
+	}
+	if (which === "Delete") return treeDelete(data.path);
+	if (which === "Rename") return treeRename(data.path);
 
-				const storeTree = JSON.parse(sessionStorage.getItem("tree"));
-				storeTree.expanded = storeTree.expanded || [];
-				const parentName = parent.split("/").pop();
-				if (!storeTree.expanded.includes(parentName)) {
-					storeTree.expanded.push(parentName);
-					sessionStorage.setItem("tree", JSON.stringify(storeTree));
-				}
-				const event = new CustomEvent("operations", {
-					bubbles: true,
-					detail: {
-						operation: "addFile",
-						filename,
-						parent,
-						body: {}, //TODO: sucks that body is needed!!!
-					},
-				});
-				document.body.dispatchEvent(event);
-			},
-		});
+	if(which === 'Cut'){
+		clipboard = { operation: 'cut', data };
+	}
+	if(which === 'Copy'){
+		clipboard = { operation: 'copy', data };
+	}
+	if(which === 'Paste'){
+		const isMove = clipboard.operation === 'cut';
+		const target = data;
+		const source = clipboard.data;
+		clipboard = undefined;
+
+		isMove
+			? console.log(`paste should be a move`)
+			: console.log(`paste should be an add`)
+		console.log({ clipboard, data });
+
+		// TODO: should update tree, but...
+		// really should trigger file and folder copy/move
+		if(isMove){
+			treeMove(clipboard.data.type, source, target);
+		} else {
+			treeAdd(clipboard.data.type, source, target);
+		}
 	}
 
-	if (which === "New Folder") {
-		const parent = getParent(data);
-		return newFolder({
-			parent,
-			onDone: (folderName, parent) => {
-				if (!folderName) {
-					return;
-				}
-				const event = new CustomEvent("operations", {
-					bubbles: true,
-					detail: {
-						operation: "addFolder",
-						folderName,
-						parent,
-						body: {}, //TODO: sucks that body is needed!!!
-					},
-				});
-				document.body.dispatchEvent(event);
-			},
-		});
-	}
-
-	if (which === "Delete") {
-		const parent = getParent(data);
-		const { name, type } = data;
-
-		if (!["folder", "file"].includes(type)) {
-			console.error("cannot delete object of unknown type");
-			return;
-		}
-		const detail = { body: {} }; //TODO: sucks that body is needed!!!
-
-		if (type === "folder") {
-			detail.operation = "deleteFolder";
-			detail.folderName = name;
-			detail.parent = parent.replace(new RegExp(`/${data.name}$`, "g"), "");
-		}
-		if (type === "file") {
-			detail.operation = "deleteFile";
-			detail.filename = name;
-			detail.parent = parent;
-		}
-
-		const event = new CustomEvent("operations", { bubbles: true, detail });
-		document.body.dispatchEvent(event);
-		return;
-	}
-
-	if (which === "Copy Path") {
-		const state = getState();
-		const { name } = data;
-		let url;
-		try {
-			url = state.paths
-				.find((x) => x.name === name)
-				.path.replace("/welcome/", "/.welcome/")
-				.replace(/^\//, "./");
-		} catch (e) {}
-		if (!url) {
-			console.log("TODO: make Copy Path work with folders!");
-			return;
-		}
-		const path = new URL(url, document.baseURI).href;
+	if (["Copy Path", "Copy Relative Path"].includes(which)) {
+		const path = which.includes('Relative')
+			? data.path
+			: new URL(`${currentServiceName}/${data.path}`, document.baseURI).href;
 		navigator.clipboard
 			.writeText(path)
 			.then((x) => console.log(`Wrote path to clipboard: ${path}`))
@@ -404,41 +343,30 @@ const contextMenuSelectHandler = ({ newFile, newFolder }) => (e) => {
 	}
 
 	if (which === "Open in New Window") {
-		const state = getState();
-		const { name } = data;
-		let url;
-		try {
-			url = state.paths
-				.find((x) => x.name === name)
-				.path.replace("/welcome/", "/.welcome/")
-				.replace(/^\//, "./");
-		} catch (e) {}
-		if (!url) return;
-		const path = new URL(url, document.baseURI).href;
-
-		const shouldExclude = [
+		const path = new URL(`${currentServiceName}/${data.path}`, document.baseURI).href;
+		const shouldNotPreview = [
 			".svg",
 			".less",
 			".scss",
 			".css",
-			".js",
 			".json",
-			".templates",
+			".txt",
+			".mjs",
 		].find((x) => path.includes(x));
-		// this overrides excludes
-		const shouldInclude = [".jsx"].find((x) => path.includes(x));
-
-		const query =
-			shouldExclude && !shouldInclude ? "/::preview::/" : "/::preview::/";
-
+		// overrides shouldNotPreview
+		const shouldPreview = [
+			".jsx"
+		].find((x) => path.includes(x));
+		const query = shouldNotPreview && !shouldPreview
+			? ""
+			: "/::preview::/";
 		window.open(path + query);
 	}
 
 	if (which === "Open in Preview") {
-		const { name } = data;
 		const event = new CustomEvent("previewSelect", {
 			bubbles: true,
-			detail: { name },
+			detail: data,
 		});
 		document.body.dispatchEvent(event);
 	}
@@ -446,8 +374,8 @@ const contextMenuSelectHandler = ({ newFile, newFolder }) => (e) => {
 
 const searchProject = ({ showSearch, hideSearch }) => {
 	//TODO: keep track of search state
-
-	showSearch({ show: !hideSearch });
+	const include = `./${currentServiceName}/`;
+	showSearch({ show: !hideSearch, include });
 };
 
 //TODO: code that creates a tree should live in ../TreeView and be passed here!!
@@ -790,7 +718,7 @@ function attachListener(
 	attach({
 		name: "Explorer",
 		eventName: "fileSelect",
-		listener: saveTree(fileSelectHandler),
+		listener: saveTree((treeSelect) => fileSelectHandler),
 	});
 	attach({
 		name: "Explorer",
@@ -834,6 +762,140 @@ function attachListener(
 	});
 }
 
+const OperationDoneListener = (UpdateTree) => (e) => {
+	const { newTree } = UpdateTree;
+
+	const { id, result, op } = e.detail;
+
+	let selected,
+		expanded = [];
+
+	if (!id) {
+		//console.log(`No ID for: ${e.type} - ${op}`);
+		return;
+	}
+
+	//console.log(e.detail);
+	if (e.type === "operationDone" && op === "update") {
+		//TODO: maybe pay attention to what branches are expanded/selected?
+		selected = tree ? tree.selected : undefined;
+		expanded = (tree ? tree.expanded : undefined) || expanded;
+		//debugger;
+		tree && tree.off();
+		tree = undefined;
+	}
+
+	if (result.length > 1) {
+		return; // TODO: this is right???
+	}
+
+	/*
+		when operationDone, probably means service has been loaded
+
+		get newTree method from UpdateTree to create tree
+			- requires tree state and service
+			- those are safe to get here
+	*/
+	currentServiceName = result[0].name;
+	newTree({ service: result[0], treeState: result[0].treeState });
+};
+
+function newAttachListener(
+	UpdateTree,
+	{
+		treeAdd, treeDelete, treeSelect, treeMove, treeRename, treeContext,
+		treeChange, treeClearChanged,
+		showSearch, updateTreeMenu, showServiceChooser
+	}
+){
+	const { updateTree, treeView } = UpdateTree;
+	attach({
+		name: "Explorer",
+		eventName: "noServiceSelected",
+		listener: (event) => showServiceChooser(),
+	});
+	// triggered by Hot Key
+	attach({
+		name: "Explorer",
+		eventName: "ui",
+		listener: (event) => {
+			const { detail = {} } = event;
+			const { operation } = detail;
+			if (operation !== "searchProject") {
+				return;
+			}
+			searchProject({ showSearch });
+		},
+	});
+	// triggered by Action Bar
+	attach({
+		name: "Explorer",
+		eventName: "showSearch",
+		listener: (event) => searchProject({ showSearch, hideSearch: false }),
+	});
+
+	attach({
+		name: "Explorer",
+		eventName: "showServiceCode",
+		listener: (event) => searchProject({ showSearch, hideSearch: true }),
+	});
+
+	// tirggered by rest of system
+	attach({
+		name: "Explorer",
+		eventName: "operationDone",
+		listener: OperationDoneListener(UpdateTree, treeClearChanged),
+	});
+	attach({
+		name: "Explorer",
+		eventName: "fileSelect",
+		listener: fileSelectHandler(treeSelect),
+	});
+	attach({
+		name: "Explorer",
+		eventName: "folderSelect",
+		listener: fileSelectHandler(treeSelect),
+	});
+	attach({
+		name: "Explorer",
+		eventName: "fileClose",
+		listener: fileSelectHandler(treeSelect, 'close'),
+	});
+	attach({
+		name: "Explorer",
+		eventName: "fileChange",
+		listener: fileChangeHandler(treeChange),
+	});
+	attach({
+		name: "Explorer",
+		eventName: "contextmenu",
+		listener: contextMenuHandler({
+			treeView, treeContext,
+			showMenu: () => window.showMenu,
+		}),
+	});
+	attach({
+		name: "Explorer",
+		eventName: "contextmenu-select",
+		listener: contextMenuSelectHandler({
+			treeAdd,
+			treeDelete,
+			treeMove,
+			treeRename,
+		}),
+	});
+	attach({
+		name: "Explorer",
+		eventName: "new-file",
+		listener: () => treeAdd('file')
+	});
+	attach({
+		name: "Explorer",
+		eventName: "new-folder",
+		listener: () => treeAdd('folder'),
+	});
+}
+
 const connectTrigger = (args) => attachTrigger({ ...args, name: "Explorer" });
 
-export { attachListener, connectTrigger };
+export { newAttachListener as attachListener, connectTrigger };

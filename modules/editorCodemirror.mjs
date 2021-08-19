@@ -4,8 +4,6 @@ this module is not used yet, but....
 
 should compile all css and js to bundle (via service manifest) and use them here
 
-
-
 */
 
 //import CodeMirror from "https://cdn.jsdelivr.net/npm/codemirror@5.49.0/lib/codemirror.js";
@@ -20,7 +18,6 @@ should compile all css and js to bundle (via service manifest) and use them here
 /*
 use something like this to hide scrollbars after scrolling has stopped
 (or show them once scrolling has started
-
 
 // Run a callback function after scrolling has stopped
 // (c) 2017 Chris Ferdinandi, MIT License, https://gomakethings.com
@@ -51,9 +48,6 @@ var scrollStop = function (callback) {
 	}, false);
 
 };
-
-
-
 */
 
 const codeMirrorCssUrl = "/shared/css/codemirror.css";

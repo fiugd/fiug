@@ -7,9 +7,19 @@ import {
 	CursorActivityHandler,
 } from "./editorEvents.mjs";
 import ext from "/shared/icons/seti/ext.json.mjs";
-import { getCodeFromService, getState, getAllServices, getSettings } from "./state.mjs";
+import {
+	getState, getAllServices, getSettings,
+	setCurrentFile, getCurrentFileFull
+} from "./state.mjs";
 import { codemirrorModeFromFileType } from "/shared/modules/utilities.mjs";
 import "/shared/vendor/localforage.min.js";
+
+let editorGutter;
+let cmDom;
+let prevDoc;
+
+// call editor tabs once early so event handlers are attached
+EditorTabs();
 
 const { indentWithTabs, tabSize } = getSettings();
 
@@ -106,25 +116,27 @@ const Search = () => {
 			#file-search {
 				visibility: hidden;
 				position: absolute;
-				background: var(--theme-subdued-color);
-				z-index: 5;
-				right: 0;
-				width: 95%;
-				height: 33px;
-				max-width: 38em;
-				box-shadow: 0 5px 3px 0px #000000;
-				border-left: 3px solid var(--main-theme-background-color);
+				background: var(--main-theme-color);
+				height: 34px;
+				box-shadow: inset 0px -2px 0px 0px var(--theme-subdued-color);
+				/* border: 3px solid var(--main-theme-color); */
 				display: flex;
 				justify-content: space-between;
 				align-items: center;
 				cursor: default;
-				margin-right: 0.65em;
+				border-bottom: 6px solid var(--main-theme-color);
+				box-sizing: content-box;
+				right: 8px;
+				left: 0;
+				width: auto;
+				padding: 0.45em;
+				z-index: 10;
 			}
 			.collapse-handle {
-				width: 1.3em;
+				width: 1.5em;
 				text-align: center;
 				font-stretch: expanded;
-				font-family: monospace;
+				font-family: system-ui, monospace;
 				font-size: 1.2em;
 			}
 			.search-field {
@@ -151,18 +163,19 @@ const Search = () => {
 			}
 			.search-count,
 			.search-no-results {
-				margin-left: 0.5em;
+				margin-left: 1.2em;
 				margin-right: auto;
 				min-width: 5em;
 			}
 			.search-controls {
-				margin-right: 1em;
-				font-family: monospace;
+				margin-right: 0.5em;
+				margin-left: 1em;
+				font-family: system-ui, monospace;
 				font-size: 1.1em;
 				user-select: none;
 			}
 			.search-controls span {
-				min-width: .8em;
+				min-width: 1.4em;
 				display: inline-block;
 				cursor: pointer;
 				text-align: center;
@@ -462,9 +475,12 @@ const SystemDocs = (section, errors) => {
 const BLANK_CODE_PAGE = "";
 const inlineEditor = (ChangeHandler) => ({
 	code = BLANK_CODE_PAGE,
+	line: loadLine,
+	column: loadColumn,
 	name,
 	id,
 	filename,
+	path,
 	callback,
 } = {}) => {
 	const prevEditor = document.querySelector("#editor-container");
@@ -581,9 +597,67 @@ const inlineEditor = (ChangeHandler) => ({
 		}
 		return false;
 	}
+	function toggleComment(cm){
+		//TODO: would love block comments first, then line
+		cm.toggleComment({ indent: true });
+	}
+	function SwapLineUp(cm) {
+		var Pos = CodeMirror.Pos;
+		if (cm.isReadOnly()) return CodeMirror.Pass
+		var ranges = cm.listSelections(), linesToMove = [], at = cm.firstLine() - 1, newSels = [];
+		for (var i = 0; i < ranges.length; i++) {
+			var range = ranges[i], from = range.from().line - 1, to = range.to().line;
+			newSels.push({anchor: Pos(range.anchor.line - 1, range.anchor.ch),
+										head: Pos(range.head.line - 1, range.head.ch)});
+			if (range.to().ch == 0 && !range.empty()) --to;
+			if (from > at) linesToMove.push(from, to);
+			else if (linesToMove.length) linesToMove[linesToMove.length - 1] = to;
+			at = to;
+		}
+		cm.operation(function() {
+			for (var i = 0; i < linesToMove.length; i += 2) {
+				var from = linesToMove[i], to = linesToMove[i + 1];
+				var line = cm.getLine(from);
+				cm.replaceRange("", Pos(from, 0), Pos(from + 1, 0), "+swapLine");
+				if (to > cm.lastLine())
+					cm.replaceRange("\n" + line, Pos(cm.lastLine()), null, "+swapLine");
+				else
+					cm.replaceRange(line + "\n", Pos(to, 0), null, "+swapLine");
+			}
+			cm.setSelections(newSels);
+			cm.scrollIntoView();
+		});
+	};
+	function SwapLineDown(cm) {
+		var Pos = CodeMirror.Pos;
+		if (cm.isReadOnly()) return CodeMirror.Pass
+		var ranges = cm.listSelections(), linesToMove = [], at = cm.lastLine() + 1;
+		for (var i = ranges.length - 1; i >= 0; i--) {
+			var range = ranges[i], from = range.to().line + 1, to = range.from().line;
+			if (range.to().ch == 0 && !range.empty()) from--;
+			if (from < at) linesToMove.push(from, to);
+			else if (linesToMove.length) linesToMove[linesToMove.length - 1] = to;
+			at = to;
+		}
+		cm.operation(function() {
+			for (var i = linesToMove.length - 2; i >= 0; i -= 2) {
+				var from = linesToMove[i], to = linesToMove[i + 1];
+				var line = cm.getLine(from);
+				if (from == cm.lastLine())
+					cm.replaceRange("", Pos(from - 1), Pos(from), "+swapLine");
+				else
+					cm.replaceRange("", Pos(from, 0), Pos(from + 1, 0), "+swapLine");
+				cm.replaceRange(line + "\n", Pos(to, 0), null, "+swapLine");
+			}
+			cm.scrollIntoView();
+		});
+	};
 	const extraKeys = {
 		"Cmd-D": selectNextOccurrence,
 		"Ctrl-D": selectNextOccurrence,
+		"Ctrl-/": toggleComment,
+		"Alt-Up": SwapLineUp,
+		"Alt-Down": SwapLineDown,
 	};
 
 	const editorCallback = (error, editor) => {
@@ -593,11 +667,9 @@ const inlineEditor = (ChangeHandler) => ({
 			return;
 		}
 		callback && callback();
-		editor.setOption("theme", darkEnabled ? "vscode-dark" : "default");
 		window.Editor = editor;
-		editor.on("change", handlerBoundToDoc);
-		editor.on("cursorActivity", onCursorActivity);
-		editor.on("scrollCursorIntoView", onScrollCursor);
+
+		editor.setOption("theme", darkEnabled ? "vscode-dark" : "default");
 		editor.setOption("styleActiveLine", { nonEmpty: true });
 		editor.setOption("extraKeys", extraKeys);
 
@@ -607,22 +679,54 @@ const inlineEditor = (ChangeHandler) => ({
 		};
 		const stateStorageKey = `state::${name}::${filename}`;
 		try {
+			/*
 			const storedState = JSON.parse(sessionStorage.getItem(stateStorageKey));
 			if (storedState && storedState.unfolded) {
 				editorState = storedState;
 			}
+			*/
 		} catch (e) {}
 
-		editor.on("fold", (cm, from, to) => {
+		const foldHandler = (cm, from, to) => {
 			cm.addLineClass(from.line, "wrap", "folded");
-		});
-		editor.on("unfold", (cm, from, to) => {
+			/*
+			editorState.unfolded = editorState.unfolded.filter(
+				(x) => x !== from.line
+			);
+			sessionStorage.setItem(stateStorageKey, JSON.stringify(editorState));
+			*/
+		};
+		const unfoldHandler = (cm, from, to) => {
 			cm.removeLineClass(from.line, "wrap", "folded");
-		});
+			/*
+			if (editorState.unfolded.includes(from.line)) {
+				return;
+			}
+			editorState.unfolded.push(from.line);
+			sessionStorage.setItem(stateStorageKey, JSON.stringify(editorState));
+			*/
+		};
+
+		editor.on("fold", foldHandler);
+		editor.on("unfold", unfoldHandler);
+		editor.on("change", handlerBoundToDoc);
+		editor.on("cursorActivity", onCursorActivity);
+		editor.on("scrollCursorIntoView", onScrollCursor);
+
+		editor._cleanup = () => {
+			editor.off("change", handlerBoundToDoc);
+			editor.off("cursorActivity", onCursorActivity);
+			editor.off("scrollCursorIntoView", onScrollCursor);
+			editor.off("fold", foldHandler);
+			editor.off("unfold", unfoldHandler);
+
+			const sidebarCanvas = document.querySelector('.cm-sidebar canvas');
+			sidebarCanvas && (sidebarCanvas.width = sidebarCanvas.width);
+		};
 
 		const MIN_DOC_FOLD_LENGTH = 150;
 		let cursor = 0;
-		editor.lastLine() > MIN_DOC_FOLD_LENGTH &&
+		false && editor.lastLine() > MIN_DOC_FOLD_LENGTH &&
 			editor.eachLine(editor.firstLine(), editor.lastLine(), function (line) {
 				// todo: store these exceptions in user config?
 				const shouldNotFold = [
@@ -656,23 +760,10 @@ const inlineEditor = (ChangeHandler) => ({
 				cursor++;
 			});
 
-		editorState.unfolded.forEach((line) =>
-			editor.foldCode({ line, ch: 0 }, null, "unfold")
-		);
-
-		editor.on("fold", (cm, from, to) => {
-			editorState.unfolded = editorState.unfolded.filter(
-				(x) => x !== from.line
-			);
-			sessionStorage.setItem(stateStorageKey, JSON.stringify(editorState));
-		});
-
-		editor.on("unfold", (cm, from, to) => {
-			if (editorState.unfolded.includes(from.line)) {
-				return;
-			}
-			editorState.unfolded.push(from.line);
-			sessionStorage.setItem(stateStorageKey, JSON.stringify(editorState));
+		editorState.unfolded.forEach((line) => {
+			try {
+				//editor.foldCode({ line, ch: 0 }, null, "unfold");
+			} catch(e){}
 		});
 	};
 
@@ -686,11 +777,12 @@ const inlineEditor = (ChangeHandler) => ({
 		// scrollbarStyle: 'native',
 		tabSize,
 		indentWithTabs,
+		smartIndent: false,
 		showInvisibles: true,
 		styleActiveLine: true,
 		styleActiveSelected: true,
 		matchBrackets: true,
-		lineWrapping: true,
+		lineWrapping: false,
 		scrollPastEnd: true,
 		foldGutter: true,
 		gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
@@ -700,53 +792,98 @@ const inlineEditor = (ChangeHandler) => ({
 			},
 			minFoldSize: 3,
 		},
+		//miniMap: localStorage.getItem('minimap'),
+		miniMap: true,
+		miniMapSide: "right",
+		miniMapWidth: 64,
+		cursorBlinkRate: 0
 	};
+	/*
+		This (loadDoc) is good in the sense that it reduces some dependency on shared/editor, but it is confusing and error-prone
+			- [ ] too many listeners get attached and not removed
+			- [ ] state is spread out and difficult to manage
+			- [ ] too many lines of code to comprehend; not straightforward
+			- [ ] too much is done in "ui"
+			- [ ] addon is too complicated
 
-	if (false && window.Editor) {
+		CLEAN THIS UP
+		0. [X] name should include full path of file
+		1. [ ] all document attributes should save/restore to/from service request handler (unless default?)
+			- X - document text
+			- X - mode
+			- X - selections
+			- X - cursor position
+			- X - history
+			- X - scroll position
+			- X - folded vs unfolded
+			- indentation preference: tabs, spaces, size
+			- line wrap preference
+		2. [ ] addon should expose/attach/detach ONE event for all of these when they change (instead of three)
+			- this should be an event unique to addon so it's not confused with CodeMirror events
+		3. [ ] when file is restored from outside browser UI, service request handler should delete/overwrite some/all these?
+		4. [ ] editorCallback sucks; can it be removed?
+	*/
+
+	const loadDocument = () => {
+		console.log(
+			`%c${filename}: %ceditor %cloadDoc start`,
+			'color:#CE9178;',
+			'color:#9CDCFE;',
+			'color:#DCDCAA;'
+		);
+		const docHasChanged = prevDoc !== filename;
+
+		cmDom = cmDom || document.querySelector('.CodeMirror');
+		editorGutter = editorGutter || document.body.querySelector('.CodeMirror-gutters');
+
+		if(docHasChanged) cmDom.style.opacity = 0;
 		const { text } = editorOptions;
-		/*
-			This (loadDoc) is good in the sense that it reduces some dependency on shared/editor, but it is confusing and error-prone
-				- too many listeners get attached and not removed
-				- state is spread out and difficult to manage
-				- too many lines of code to comprehend; not straightforward
-				- too much is done in "ui"
-				- addon is too complicated
+		window.Editor._cleanup && window.Editor._cleanup();
 
-			CLEAN THIS UP
-			0. name should include full path of file
-			1. all document attributes should save/restore to/from service request handler (unless they are default?)
-				- document text
-				- mode
-				- selections
-				- cursor position
-				- history
-				- scroll position
-				- folded vs unfolded
-				- indentation preference: tabs, spaces, size
-				- line wrap preference
-			2. addon should expose/attach/detach ONE event for all of these when they change (instead of three)
-				- this should be an event unique to addon so it's not confused with CodeMirror events
-			3. when file is restored from outside browser UI, service request handler should delete/overwrite some/all these?
-			4. editorCallback sucks; can it be removed?
-
-		*/
+		const callback = (err) => {
+			if(err) return;
+			editorCallback(null, window.Editor);
+			//if(docHasChanged) window.Editor.refresh();
+			//if(docHasChanged) setTimeout(() => {
+				cmDom.style.opacity = 1;
+			//}, 1);
+			prevDoc = filename;
+		};
+		if(!path || !filename){
+			return callback();
+		}
 		window.Editor.loadDoc({
 			name: filename,
+			path,
+			line: loadLine ? Number(loadLine) : 0,
+			ch: loadColumn ? Number(loadColumn) : 0,
 			text,
 			mode,
+			callback
 		});
-		window.Editor.on("change", handlerBoundToDoc);
-		window.Editor.on("cursorActivity", onCursorActivity);
-		window.Editor.on("scrollCursorIntoView", onScrollCursor);
-		editorCallback(null, window.Editor);
-		return;
-	}
 
-	Editor(editorOptions, editorCallback);
+	};
+
+	if(window.Editor) return loadDocument();
+
+	Editor({ ...editorOptions, text: '\n\n\n' }, (error, editor) => {
+		if (error) {
+			console.error(error);
+			callback && callback(error);
+			return;
+		}
+		window.Editor = editor;
+		loadDocument();
+	});
+
 };
 
 let nothingOpen;
 const showNothingOpen = () => {
+	try{
+		document.getElementById('file-search').style.visibility = "";
+	}catch(e){}
+
 	if (!nothingOpen) {
 		const editorContainer = document.getElementById("editor-container");
 		nothingOpen = document.createElement("div");
@@ -848,6 +985,10 @@ const showFileInEditor = (filename, contents) => {
 
 let binaryPreview;
 const showBinaryPreview = ({ filename, path = "." } = {}) => {
+	try{
+		document.getElementById('file-search').style.visibility = "";
+	}catch(e){}
+
 	if (!binaryPreview) {
 		const editorContainer = document.getElementById("editor-container");
 		binaryPreview = document.createElement("div");
@@ -967,6 +1108,10 @@ const showBinaryPreview = ({ filename, path = "." } = {}) => {
 
 let systemDocsDOM;
 const showSystemDocsView = ({ filename='', errors=[], op='' }) => {
+	try{
+		document.getElementById('file-search').style.visibility = "";
+	}catch(e){}
+
 	if (!systemDocsDOM) {
 		const editorContainer = document.getElementById("editor-container");
 		systemDocsDOM = SystemDocs();
@@ -1074,7 +1219,9 @@ function _Editor(callback) {
 			e.target.classList.contains("provider-add-service"),
 	});
 
-	const switchEditor = (filename, mode, fileBody) => {
+	const switchEditor = async (filename, mode, {line, column}={}) => {
+		//TODO: should go into loading mode first
+
 		if (mode === "systemDoc") {
 			const editorCallback = () => {
 				editorDom = document.querySelector(".CodeMirror");
@@ -1084,7 +1231,7 @@ function _Editor(callback) {
 				code: "",
 				name: "",
 				id: "",
-				filename: "",
+				filename,
 				callback: editorCallback,
 			});
 
@@ -1122,14 +1269,18 @@ function _Editor(callback) {
 			return;
 		}
 
+		setCurrentFile({ filePath: filename });
+
+		const currentFile = await getCurrentFileFull({ noFetch: true });
 		const {
 			code = "error",
+			path,
 			name,
 			id,
 			filename: defaultFile,
-		} = getCodeFromService(null, filename);
+		} = currentFile || {};
 
-		if (!showFileInEditor(filename, code)) {
+		if (!currentFile || !showFileInEditor(filename, code)) {
 			const editorCallback = () => {
 				editorDom = document.querySelector(".CodeMirror");
 				editorDom && editorDom.classList.add("hidden");
@@ -1151,7 +1302,10 @@ function _Editor(callback) {
 			return;
 		}
 
-		editor({ code, name, id, filename: filename || defaultFile });
+		editor({
+			code, line, column, name, id, path,
+			filename: filename || defaultFile
+		});
 		editorDom = document.querySelector(".CodeMirror");
 		editorDom && editorDom.classList.remove("hidden");
 
@@ -1160,9 +1314,28 @@ function _Editor(callback) {
 		systemDocsView && systemDocsView.classList.add("hidden");
 	};
 
+	const paste = async () => {
+		window.Editor.focus();
+		const toPaste = await navigator.clipboard.readText();
+		window.Editor.replaceSelection(toPaste);
+	};
+	const cutSelected = () => {
+		window.Editor.focus();
+		const copied = window.Editor.getSelection();
+		navigator.clipboard.writeText(copied);
+		window.Editor.replaceSelection('');
+	};
+	const copySelected = () => {
+		const copied = window.Editor.getSelection();
+		navigator.clipboard.writeText(copied);
+	};
+
 	attachListener({
 		switchEditor,
 		messageEditor,
+		paste,
+		cutSelected,
+		copySelected
 	});
 
 	//deprecate
@@ -1170,5 +1343,47 @@ function _Editor(callback) {
 		inlineEditor: editor,
 	};
 }
+
+
+function attachGutterHelper (){
+	const getSizers = () => Array.from(document.querySelectorAll(".CodeMirror-sizer"));
+	const getGutter = () => editorGutter || document.body.querySelector('.CodeMirror-gutters');
+
+	let gutter = getGutter();
+	let inGutter;
+	let gutterNoted;
+
+	const removeGutterHovered = () => {
+		const cmSizers = getSizers();
+		if(!cmSizers.length) return;
+		cmSizers.forEach(x => x.classList.remove('gutter-hovered'));
+		gutterNoted = false;
+	};
+	const addGutterHovered = () => {
+		const cmSizers = getSizers();
+		if(!cmSizers.length) return;
+		cmSizers.forEach(x => x.classList.add('gutter-hovered'));
+		gutterNoted = true;
+	};
+
+	const gutterHandler = (e) => {
+		gutter = getGutter();
+		if(!gutter) return removeGutterHovered();
+
+		const { className="", classList } = e.target;
+		inGutter = gutter.contains(e.target) ||
+			classList.contains('CodeMirror-gutters') ||
+			classList.contains('gutter-elt') ||
+			classList.contains('guttermarker') ||
+			(className.includes && className.includes('CodeMirror-guttermarker'));
+
+		if(inGutter && !gutterNoted) return addGutterHovered();
+		if(!inGutter && gutterNoted) return removeGutterHovered();
+	};
+
+	const listenOpts = { passive: true, capture: false };
+	document.body.addEventListener("mouseover", gutterHandler, listenOpts);
+}
+attachGutterHelper();
 
 export default _Editor;

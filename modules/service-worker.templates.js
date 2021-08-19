@@ -1,9 +1,11 @@
 (() => {
-
 	const NO_PREVIEW = () => {
 		return `
-		<!-- NO_PREVIEW -->
-		<html>
+		<!DOCTYPE html>
+		<html class="dark-enabled">
+			<head>
+				<meta charset="UTF-8">
+			</head>
 			<style>
 				.no-preview {
 					position: absolute;
@@ -15,21 +17,22 @@
 					justify-content: center;
 					align-items: center;
 					font-size: 1.5em;
-					color: #666;
+					color: var(--main-theme-text-color);
 				}
 				body {
 					margin: 0px;
 					margin-top: 40px;
 					height: calc(100vh - 40px);
 					overflow: hidden;
-					color: #ccc;
-					background: #1d1d1d;
+					color: var(--main-theme-text-color);
+					background: var(--main-theme-color);
 					font-family: sans-serif;
 				}
 			</style>
+			<link rel="stylesheet" href="/colors.css" />
 			<body>
 				<pre>
-					<div class="no-preview">No preview available.</div>
+					<div class="no-preview" title="No preview!">⠝⠕ ⠏⠗⠑⠧⠊⠑⠺</div>
 				</pre>
 			</body>
 		</html>
@@ -39,12 +42,15 @@
 	class TemplateEngine {
 		templates = [];
 
-		constructor(){
+		constructor({ storage }){
+			this.storage = storage;
+			this.refresh = this.refresh.bind(this);
 			this.NO_PREVIEW = NO_PREVIEW();
 		}
 
 		add(name, template) {
 			const newTemp = {
+				name,
 				extensions: [],
 				body: template,
 				tokens: ["{{template_value}}", "{{markdown}}", "{{template_input}}"],
@@ -105,8 +111,6 @@
 		convert(filename, contents) {
 			const ext = filename.split(".").pop();
 			const isJS = ['js', 'ts', 'mjs', 'jsx', 'tsx'].includes(ext);
-			const previewJS = isJS && contents.toLowerCase().includes('//show-preview');
-			if(isJS && !previewJS) return;
 
 			if (filename.includes(".htm")) {
 				return contents;
@@ -115,6 +119,23 @@
 			const foundTemplate = this.getTemplate(filename, contents);
 			if (!foundTemplate) return;
 			return foundTemplate.convert(contents);
+		}
+	
+		async refresh(){
+			const filesStore = this.storage.stores.files;
+			const currentTemplateNames = (await filesStore.keys())
+				.filter(x => x.includes(`/.templates/`));
+			for(var i=0, len=currentTemplateNames.length; i < len; i++){
+				const key = currentTemplateNames[i];
+				const value = await filesStore.getItem(key);
+				const name = key.split("/").pop();
+				const existing = this.templates.find((x) => x.name === name);
+				if(existing) {
+					this.update(name, value);
+					continue;
+				}
+				this.add(name, value);
+			}
 		}
 	}
 

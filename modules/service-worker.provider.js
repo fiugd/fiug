@@ -163,6 +163,12 @@
 		);
 		return stringify({ error: "not implemented" });
 	};
+
+	const handleCreateCommit = ({ github }) => async (params, event) => {
+		const githubResponse = github && await github.handler('createCommit', { params, event });
+		if(githubResponse) return githubResponse;
+		return stringify({ error: "commits are only implemented for github repos" });
+	};
 	
 	// servicesCreate
 	async function _providerCreateServiceHandler(event) {
@@ -369,6 +375,8 @@
 						readHandler: handleProviderRead(this),
 						updateHandler: handleProviderUpdate(this),
 						deleteHandler: handleProviderDelete(this),
+
+						createCommit: handleCreateCommit(this),
 					};
 
 					// servicesCreate

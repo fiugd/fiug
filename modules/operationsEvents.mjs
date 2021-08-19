@@ -1,4 +1,5 @@
 /*
+2021-02-26 15:21
 
 there are two different ways of handling a Management Operation
 
@@ -11,10 +12,25 @@ there are two different ways of handling a Management Operation
 THIS IS CONFUSING - going to kill #2
 
 */
-import { getOpenedFiles } from "./state.mjs";
+import { getOpenedFiles, getCurrentService } from "./state.mjs";
 
 import { attach, attachTrigger } from "./Listeners.mjs";
 import { debounce } from "/shared/modules/utilities.mjs";
+
+const noFrontSlash = (path) => {
+	if(!path) return path;
+	if(!path.includes('/')) return path;
+	if(path[0] === '/') return path.slice(1);
+	return path;
+};
+
+const pathNoServiceName = (service, path) => {
+	if(!path.includes('/')) return path;
+	if(!path.includes(service.name)) return stripLeadSlash(path);
+	return stripLeadSlash(
+		stripLeadSlash(path).replace(service.name, '')
+	);
+};
 
 const tryFn = (fn, _default) => {
 	try {
@@ -23,7 +39,9 @@ const tryFn = (fn, _default) => {
 		return _default;
 	}
 };
-
+const stripLeadSlash = (path="") => path[0] === '/'
+	? path.slice(1)
+	: path;
 const flattenTree = (tree) => {
 	const results = [];
 	const recurse = (branch, parent = "/") => {
@@ -41,6 +59,14 @@ const flattenTree = (tree) => {
 };
 
 const guessCurrentFolder = (currentFile, currentService) => {
+	if((currentFile||'').includes('/')){
+		const parent = currentFile.split('/').slice(0,-1).join('/');
+		return parent.includes(currentService.name)
+			? parent.replace(`${currentService.name}/`, '')
+			: parent;
+	}
+	if(!currentService) return '/';
+	//return currentService.name;
 	let parent;
 	try {
 		const flat = flattenTree(
@@ -95,7 +121,7 @@ async function performOp(
 	await performOperation(foundOpClone, { body }, externalStateRequest);
 }
 
-// -----------------------------------------------------------------------------
+// -----------------------------------------------------
 
 const showCurrentFolderHandler = ({
 	managementOp,
@@ -109,14 +135,24 @@ const showCurrentFolderHandler = ({
 	const { detail } = event;
 	const { callback } = detail;
 	const currentFile = getCurrentFile();
-	const currentService = getCurrentService();
+	const currentService = getCurrentService({ pure: true });
 	const currentFolder = getCurrentFolder();
+	if(!currentService){
+		callback && callback('unable to read current service');
+		return;
+	}
 	const parent = currentFolder
 		? currentFolder
 		: guessCurrentFolder(currentFile, currentService);
+	const currentFolderResponse = parent === '/'
+		? currentService.name + '/'
+		: `${currentService.name}/${stripLeadSlash(parent)}`;
 
-	callback &&
-		callback(!parent ? "trouble finding current path" : false, parent);
+	callback && callback(
+		!parent ? "trouble finding current path" : false,
+		currentFolderResponse,
+		currentService?.name
+	);
 };
 
 const changeCurrentFolderHandler = ({
@@ -132,33 +168,35 @@ const changeCurrentFolderHandler = ({
 	const { detail } = event;
 	const { callback, folderPath } = detail;
 
+	const currentService = getCurrentService({ pure: true });
 	const currentFile = getCurrentFile();
-	const currentService = getCurrentService();
-	//const currentFolder = getCurrentFolder();
-	const parent = guessCurrentFolder(folderPath, currentService);
+	const currentFolder = getCurrentFolder() ||
+		guessCurrentFolder(currentFile, currentService);
 
 	const firsChar = folderPath[0];
-	const currentPath = (firsChar === "/"
+	let currentPath = (firsChar === "/"
 		? folderPath
-		: (parent || "") + "/" + folderPath
+		: (currentFolder || "") + "/" + folderPath
 	).replace(/\/\//g, "/");
 
-	if (parent !== "/") {
-		console.error(
-			`Should be looking for folder in current parent! : ${parent}`
-		);
+	if(folderPath.includes('..')){
+		currentPath = (currentFolder||'').split('/')
+			.slice(0,-1)
+			.join('/') || '/';
+		const restOfPath = folderPath.replace('..', '')
+		if(restOfPath){
+			currentPath += restOfPath;
+		}
 	}
-	//TODO: look for folder in current folder
-	//debugger;
+
 	setCurrentFolder(currentPath);
 
-	const fileSelectEvent = new CustomEvent("folderSelect", {
+	const folderSelectEvent = new CustomEvent("folderSelect", {
 		bubbles: true,
 		detail: { name: currentPath },
 	});
-	document.body.dispatchEvent(fileSelectEvent);
+	document.body.dispatchEvent(folderSelectEvent);
 
-	//console.log({ detail });
 	callback && callback(null, " ");
 };
 
@@ -173,7 +211,7 @@ const addFolderHandler = ({
 }) => async (event) => {
 	const { detail } = event;
 	const { callback } = detail;
-	const currentService = getCurrentService();
+	const currentService = getCurrentService({ pure: true });
 	const currentFile = getCurrentFile();
 	operations =
 		operations ||
@@ -205,7 +243,7 @@ const renameFolderHandler = ({
 	// console.log('OPERATIONS: renameFolder');
 	const { detail } = event;
 	const { callback } = detail;
-	const currentService = getCurrentService();
+	const currentService = getCurrentService({ pure: true });
 	const currentFile = getCurrentFile();
 	event.detail.operation = event.detail.operation || event.type;
 	const manageOp = managementOp(event, currentService, currentFile);
@@ -229,7 +267,7 @@ const deleteFolderHandler = ({
 }) => async (event) => {
 	const { detail } = event;
 	const { callback } = detail;
-	const currentService = getCurrentService();
+	const currentService = getCurrentService({ pure: true });
 	const currentFile = getCurrentFile();
 	event.detail.operation = event.detail.operation || event.type;
 	const manageOp = managementOp(event, currentService, currentFile);
@@ -254,7 +292,7 @@ const moveFolderHandler = ({
 	//console.log('OPERATIONS: move');
 	const { detail } = event;
 	const { callback } = detail;
-	const currentService = getCurrentService();
+	const currentService = getCurrentService({ pure: true });
 	const currentFile = getCurrentFile();
 	event.detail.operation = event.detail.operation || event.type;
 	const manageOp = managementOp(event, currentService, currentFile);
@@ -279,7 +317,7 @@ const moveFileHandler = ({
 	//console.log('OPERATIONS: move');
 	const { detail } = event;
 	const { callback } = detail;
-	const currentService = getCurrentService();
+	const currentService = getCurrentService({ pure: true });
 	const currentFile = getCurrentFile();
 	event.detail.operation = event.detail.operation || event.type;
 	const manageOp = managementOp(event, currentService, currentFile);
@@ -305,7 +343,7 @@ const readFolderHandler = ({
 	const { detail } = event;
 	const { callback } = detail;
 	const currentFile = getCurrentFile();
-	const currentService = getCurrentService();
+	const currentService = getCurrentService({ pure: true });
 	const currentFolder = getCurrentFolder();
 	const parent = currentFolder
 		? currentFolder
@@ -332,17 +370,12 @@ const fileChangeHandler = (...args) =>
 			getCurrentService,
 		} = args[0];
 		const state = getState();
-		const service = getCurrentService().name;
+		const service = getCurrentService({ pure: true }).name;
 		const operations = getOperations();
 		const changeOp = (operations || []).find((x) => x.name === "change");
 
-		const { file, code } = event.detail;
-		const path =
-			"." +
-			(state.paths.find((x) => x.name === file) || { path: "" }).path.replace(
-				"/welcome/",
-				"/.welcome/"
-			);
+		const { filePath, code } = event.detail;
+		const path = `./${service}/${filePath}`;
 
 		(async () => {
 			const results = await performOperation(changeOp, {
@@ -395,21 +428,22 @@ const updateServiceHandler = async ({
 };
 
 const serviceOperation = async ({
-	service,
-	operation,
+	service: { name: service },
+	operation: command,
 	filename,
 	folderName,
-	parent,
+	parent='',
 }) => {
+	const base = parent.includes(service)
+		? parent
+		: `${service}/${parent}`;
+	const path = `/${base}/${filename || folderName}`;
+
 	const options = {
 		method: "POST",
-		body: JSON.stringify({
-			path: `/${service.name}${parent || "/"}/${filename || folderName}`,
-			command: operation,
-			service: service.name,
-		}),
+		body: JSON.stringify({ path, command, service }),
 	};
-	const result = await (await fetch("service/change", options)).json();
+	const result = await fetch("service/change", options).then(x => x.json());
 	return result;
 };
 
@@ -418,6 +452,7 @@ const operationsHandler = ({
 	externalStateRequest,
 	getCurrentFile,
 	getCurrentService,
+	setCurrentService,
 	getCurrentFolder,
 	setCurrentFolder,
 	getState,
@@ -438,6 +473,95 @@ const operationsHandler = ({
 		const allOperations = getOperations(updateAfter, readAfter);
 		const { detail } = event;
 		const { callback } = detail;
+
+		// NOTE: simple operations handling - tell service worker to do everything
+		const stripLeadingSlash = (s='') => s.startsWith('/') ? s.slice(1) : s;
+		const swOps = {
+			"addFile": (detail, op, service) => {
+				const { parent, filename } = detail;
+				op.target = stripLeadingSlash(
+					`${parent}/${filename}`.replace(service+'/', '')
+				);
+				op.source = "\n";
+			},
+			"addFolder": (detail, op, service) => {
+				const {folderName, parent } = detail;
+				op.target = stripLeadingSlash(
+					`${parent}/${folderName}`.replace(service+'/', '')
+				);
+				delete op.source;
+			},
+			"moveFile": (detail, op, service) => {
+				debugger;
+			},
+			"moveFolder": (detail, op, service) => {
+				const { folderName } = detail;
+				if(op.target === op.source) return { error: "invalid move operation" };
+				op.target = op.target.replace(new RegExp(`${folderName}$`), '');
+			},
+			"copyFile": (detail, op, service) => {
+				debugger;
+			},
+			"copyFolder": (detail, op, service) => {
+				debugger;
+			},
+			"renameFile": (detail, op, service) => {
+				debugger;
+			},
+			"renameFolder": (detail, op, service) => {
+				debugger;
+			},
+			"deleteFile": (detail, op, service) => {
+				const { parent, filename } = detail;
+				op.source = stripLeadingSlash(
+					`${parent}/${filename}`.replace(service+'/', '')
+				);
+				delete op.target;
+			},
+			"deleteFolder": (detail, op, service) => {
+				const { parent, filename } = detail;
+				op.source = stripLeadingSlash(
+					`${parent}/${filename}`.replace(service+'/', '')
+				);
+				delete op.target;
+			},
+		};
+		if( Object.keys(swOps).includes(detail?.operation) ){
+			console.log('%c using service worker for: %c'+ detail.operation,
+				'color: blue;',
+				'color: yellow;'
+			);
+			const updateOp = allOperations.find((x) => x.name === "update");
+			const currentService = getCurrentService() || { };
+			currentService.name = currentService.name || 'service-not-found'
+	
+			const body = {
+				name: currentService.name,
+				id: currentService.id,
+				operation: {
+					name: event.detail.operation,
+				}
+			};
+			try {
+				body.operation.source = event.detail.src.replace(currentService.name+'/', '');
+			} catch(e){}
+			try {
+				body.operation.target = event.detail.tgt.replace(currentService.name+'/', '');
+			} catch(e){}
+	
+			const { error } = swOps[detail.operation](event.detail, body.operation, currentService.name) || {};
+			if(error){
+				console.error('time to reconsider your life..');
+				debugger;
+				return;
+			}
+			const result = await performOperation(updateOp, { body });
+			const updatedService = result?.detail?.result[0];
+			setCurrentService(updatedService);
+			triggerOperationDone(result);
+			callback && callback(undefined, result);
+			return;
+		}
 
 		if (detail && detail.operation === "showCurrentFolder") {
 			return showCurrentFolderHandler({
@@ -493,12 +617,13 @@ const operationsHandler = ({
 
 			//if this is a deleteFile or deleteFolder, provider needs to know (and shouldn't have to guess)
 			//this probably is the only thing that needs to be done (and not what is above!)
+			let deleteResult;
 			if (["deleteFile", "deleteFolder"].includes(event.detail.operation)) {
-				const result = await serviceOperation({
+				deleteResult = await serviceOperation({
 					service: currentService,
 					...event.detail,
 				});
-				console.log(JSON.stringify(result, null, 2));
+				console.log(JSON.stringify(deleteResult, null, 2));
 			}
 
 			triggerOperationDone(result);
@@ -506,6 +631,7 @@ const operationsHandler = ({
 			if (chainedTrigger) {
 				await chainedTrigger();
 			}
+			callback && callback(undefined, deleteResult || result);
 			return;
 		}
 
@@ -540,6 +666,7 @@ const providerHandler = ({
 	externalStateRequest,
 	getCurrentFile,
 	getCurrentService,
+	setCurrentService,
 	getCurrentFolder,
 	setCurrentFolder,
 	getState,
@@ -582,6 +709,7 @@ const providerHandler = ({
 		externalStateRequest,
 		getCurrentFile,
 		getCurrentService,
+		setCurrentService,
 		getCurrentFolder,
 		setCurrentFolder,
 		getState,
@@ -609,10 +737,10 @@ const operationDoneHandler = ({
 	const wasAllServicesRead = !event.detail.id && event.detail.id !== 0;
 
 	const readOneServiceDone =
-		result.length === 1 &&
+		result?.length === 1 &&
 		op === "read" &&
-		(inboundService.id || inboundService.id === 0) &&
-		inboundService.id !== "*" &&
+		(inboundService?.id || inboundService?.id === 0) &&
+		inboundService?.id !== "*" &&
 		!wasAllServicesRead;
 
 	const handledHere = [readOneServiceDone];
@@ -653,23 +781,32 @@ const handlers = {
 const getChainedTrigger = ({ triggers }) => (event) => {
 	const handler = {
 		addFile: async () => {
+			const service = getCurrentService({ pure: true });
+			const name = event.detail.parent
+				? `${event.detail.parent}/${event.detail.name}`
+				: event.detail.name;
 			triggers.triggerFileSelect({
-				detail: {
-					name: event.detail.filename,
-				},
+				detail: { name: pathNoServiceName(service, name) },
 			});
 		},
 		deleteFile: async () => {
-			const opened = getOpenedFiles();
+			const name = event.detail.parent
+				? `${event.detail.parent}/${event.detail.name}`
+				: event.detail.name;
+			const allOpen = getOpenedFiles() || [];
+			const opened = allOpen.filter(x => x.name !== name);
+			if(allOpen?.length === opened?.length) return;
+
 			let next;
 			if (opened.length) {
 				next = opened[opened.length - 1].name;
 			}
+			const alreadySelected = allOpen.find(x => x.selected);
+			if(alreadySelected){
+				next = alreadySelected.name;
+			}
 			triggers.triggerFileClose({
-				detail: {
-					name: event.detail.filename,
-					next,
-				},
+				detail: { name, next },
 			});
 		},
 	}[event.detail.operation];

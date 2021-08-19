@@ -327,7 +327,7 @@ function attachListeners() {
 		allPanes
 	);
 
-	window.onresize = onResize;
+	window.addEventListener('resize', onResize);
 }
 
 // TODO: resizeStart and resizeEnd events should be triggered so contents can adjust!!

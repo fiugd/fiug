@@ -7,6 +7,7 @@ import {
 	getCurrentFile,
 	getCurrentService,
 	getCurrentFolder,
+	setCurrentFile,
 	setCurrentFolder,
 	getState,
 	resetState,
@@ -51,15 +52,27 @@ async function Operations() {
 	// APPLICATION STATE BOOTSTRAP
 	const operations = getOperations(
 		() => {},
+		// occurs after call to init?
+		// TODO: would be nice to do away with this
 		(...args) => {
-			const { result = {} } = args[0] || {};
-			const services = result.result;
+			const service = args[0]?.result?.result[0];
+			if(!service) return console.error('no service!')
+			setCurrentService(service);
 
-			//TODO: should really be firing a service read done event (or similar)
-			const { filename: name } = setCurrentService(services[0]);
+			const selected = service.treeState?.select;
+			if(!selected) console.error('no tree state!');
+			setCurrentFile({ filePath: selected || "" });
+
+			const name = selected.includes('/')
+				? selected.split('/').pop()
+				: selected;
+			const parent = selected.includes('/')
+				? selected.replace(`/${name}`, '')
+				: '';
+			
 			const event = new CustomEvent("fileSelect", {
 				bubbles: true,
-				detail: { name },
+				detail: { name, parent },
 			});
 			document.body.dispatchEvent(event);
 		}

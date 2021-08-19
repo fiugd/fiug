@@ -5,6 +5,7 @@ export default {
     "adb": "ada",
     "ads": "ada",
     "adoc": "asciidoc",
+    "apl": "apl",
     "bowerrc": "bower",
     "bf": "brainfuck",
     "cs": "csharp",

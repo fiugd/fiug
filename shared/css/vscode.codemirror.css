@@ -66,6 +66,6 @@
 
  .cm-s-vscode-dark .CodeMirror-gutters {
   background: #1e1e1e;
-  border-right: 7px solid #1e1e1e;
+  border-right: 7px solid var(--main-theme-color);
   color: #606366;
 }

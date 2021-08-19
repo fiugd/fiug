@@ -124,19 +124,21 @@ function addFile(e, currentService, currentFile) {
 	}
 
 	try {
+		//TODO: guard against empty/improper filename
 		const split = filename.split('/').filter(x => !!x);
 		const file = split.length > 1 ? split[split.length-1] : undefined;
+		const codePath = filename.includes(currentService.name)
+			? `/${filename}`
+			: `/${currentService.name}/${filename}`;
 
-		//TODO: guard against empty/improper filename
 		currentServiceCode = JSON.parse(JSON.stringify(currentService.code));
 		currentServiceCode.push({
 			name: file || filename,
-			code: ""
+			code: codePath,
+			path: codePath,
 		});
 
-		if(e.detail.untracked){
-
-		}
+		if(e.detail.untracked){}
 
 		let alreadyPlaced;
 		if(file){
@@ -318,7 +320,6 @@ function addFolder(e, currentService, currentFile){
 }
 
 function renameFolder(e, currentService, currentFile){
-	//console.log('renameFolder');
 	const { oldName, newName } = e.detail;
 
 	//TODO: is either current selected folder or parent of currentFile
@@ -445,5 +446,3 @@ function managementOp(e, currentService, currentFile, currentFolder) {
 export {
 	managementOp
 };
-
-

@@ -1,8 +1,8 @@
 /*
 Codemirror Mode Bundle
-2/11/2021, 4:37:24 PM
+5/20/2021, 1:36:00 PM
 
-MODES: simple, multiplex, xml, javascript, css, clike, mllike, htmlmixed, htmlembedded, ada, asciidoc, clojure, commonlisp, crystal, d, dart, elixir, elm, erlang, forth, go, handlebars, haskell, jsx, julia, lua, markdown, nim, pascal, perl, perl6, php, pony, powershell, prolog, python, r, ruby, rust, scheme, shell, sql, stylus, swift, wast
+MODES: simple, multiplex, xml, javascript, css, clike, mllike, htmlmixed, htmlembedded, ada, apl, asciidoc, clojure, commonlisp, crystal, d, dart, elixir, elm, erlang, forth, go, handlebars, haskell, jsx, julia, lua, markdown, nim, pascal, perl, perl6, php, pony, powershell, prolog, python, r, ruby, rust, scheme, shell, sql, stylus, swift, wast
 */
 
 
@@ -83,6 +83,14 @@ CodeMirror.defineMode("htmlembedded",function(t,e){var r,n,i=e.scriptStartRegex|
 
 // -----  ada.js
 !function(e){"object"==typeof exports&&"object"==typeof module?e(require("../../lib/codemirror")):"function"==typeof define&&define.amd?define(["../../lib/codemirror"],e):e(CodeMirror)}(function(e){"use strict";function n(e){for(var t={},n=e.split(","),r=0;r<n.length;++r){var i=n[r].toUpperCase(),o=n[r].charAt(0).toUpperCase()+n[r].slice(1);t[n[r]]=!0,t[i]=!0,t[o]=!0}return t}function y(e){return e.eatWhile(/[\w\$_]/),"meta"}e.defineMode("ada",function(e,t){var i,r=e.indentUnit,a=t.atoms||n("null"),l=t.hooks||{"`":y,$:y},u=t.multiLineStrings,s=n("abort,abs,abstract,accept,access,aliased,all,and,array,at,begin,body,case,constant,declare,delay,delta,digits,do,else,elsif,end,end case,end if,end loop,end record,entry,exception,exit,for,function,generic,goto,if,in,interface,in out,is,limited,loop,mod,new,not,null,of,or,others,out,overriding,package,package body,pragma,private,procedure,protected,raise,range,record,rem,renames,requeue,return,reverse,select,separate,some,subtype,synchronized,tagged,task,terminate,then,type,until,use,when,while,with,xor"),c=n("begin,case,else,elsif,end,entry,for,function,if,loop,procedure,while"),d=/[\'&|~><!\)\(*#%@+\/=?\:;}{,\.\^\-\[\]]/;function f(e,t){var o,n=e.next();if(l[n]){var r=l[n](e,t);if(!1!==r)return r}if('"'==n)return t.tokenize=(o=n,function(e,t){for(var n,r=!1,i=!1;null!=(n=e.next());){if(n==o&&!r){i=!0;break}r=!r&&"--"==n}return!i&&(r||u)||(t.tokenize=f),"string-2"}),t.tokenize(e,t);if(/[\[\]{}\(\),;\:\.]/.test(n))return i=n,null;if(/[\d']/.test(n))return e.eatWhile(/[\w\.']/),"number";if("-"==n&&e.eat("-"))return e.skipToEnd(),"comment";if(d.test(n))return e.eatWhile(d),"operator";e.eatWhile(/[\w\$_]/);e=e.current();return s.propertyIsEnumerable(e.toLowerCase())?(c.propertyIsEnumerable(e)&&(i="newstatement"),"keyword"):a.propertyIsEnumerable(e)?"atom":"variable"}function o(e,t,n,r,i){this.indented=e,this.column=t,this.type=n,this.align=r,this.prev=i}function p(e,t,n){return e.context=new o(e.indented,t,n,null,e.context)}function m(e){var t=e.context.type;return")"!=t&&"]"!=t&&"}"!=t||(e.indented=e.context.indented),e.context=e.context.prev}return{startState:function(e){return{tokenize:null,context:new o((e||0)-r,0,"top",!1),indented:0,startOfLine:!0}},token:function(e,t){var n=t.context;if(e.sol()&&(null==n.align&&(n.align=!1),t.indented=e.indentation(),t.startOfLine=!0),e.eatSpace())return null;i=null;var r=(t.tokenize||f)(e,t);if("comment"==r||"meta"==r)return r;if(null==n.align&&(n.align=!0),";"!=i&&":"!=i||"statement"!=n.type)if("{"==i)p(t,e.column(),"}");else if("["==i)p(t,e.column(),"]");else if("("==i)p(t,e.column(),")");else if("}"==i){for(;"statement"==n.type;)n=m(t);for("}"==n.type&&(n=m(t));"statement"==n.type;)n=m(t)}else i==n.type?m(t):("}"==n.type||"top"==n.type||"statement"==n.type&&"newstatement"==i)&&p(t,e.column(),"statement");else m(t);return t.startOfLine=!1,r},indent:function(e,t){if(e.tokenize!=f&&null!=e.tokenize)return 0;var n=t&&t.charAt(0),t=e.context,e=n==t.type;return"statement"==t.type?t.indented+("{"==n?0:r):t.align?t.column+(e?0:1):t.indented+(e?0:r)},electricChars:"{}"}}),e.defineMIME("text/x-ada","ada")});
+
+
+
+
+
+
+// ----- apl.js
+!function(e){"object"==typeof exports&&"object"==typeof module?e(require("../../lib/codemirror")):"function"==typeof define&&define.amd?define(["../../lib/codemirror"],e):e(CodeMirror)}(function(e){"use strict";e.defineMode("apl",function(){var e={".":"innerProduct","\\":"scan","/":"reduce","⌿":"reduce1Axis","⍀":"scan1Axis","¨":"each","⍣":"power"},n={"+":["conjugate","add"],"−":["negate","subtract"],"×":["signOf","multiply"],"÷":["reciprocal","divide"],"⌈":["ceiling","greaterOf"],"⌊":["floor","lesserOf"],"∣":["absolute","residue"],"⍳":["indexGenerate","indexOf"],"?":["roll","deal"],"⋆":["exponentiate","toThePowerOf"],"⍟":["naturalLog","logToTheBase"],"○":["piTimes","circularFuncs"],"!":["factorial","binomial"],"⌹":["matrixInverse","matrixDivide"],"<":[null,"lessThan"],"≤":[null,"lessThanOrEqual"],"=":[null,"equals"],">":[null,"greaterThan"],"≥":[null,"greaterThanOrEqual"],"≠":[null,"notEqual"],"≡":["depth","match"],"≢":[null,"notMatch"],"∈":["enlist","membership"],"⍷":[null,"find"],"∪":["unique","union"],"∩":[null,"intersection"],"∼":["not","without"],"∨":[null,"or"],"∧":[null,"and"],"⍱":[null,"nor"],"⍲":[null,"nand"],"⍴":["shapeOf","reshape"],",":["ravel","catenate"],"⍪":[null,"firstAxisCatenate"],"⌽":["reverse","rotate"],"⊖":["axis1Reverse","axis1Rotate"],"⍉":["transpose",null],"↑":["first","take"],"↓":[null,"drop"],"⊂":["enclose","partitionWithAxis"],"⊃":["diclose","pick"],"⌷":[null,"index"],"⍋":["gradeUp",null],"⍒":["gradeDown",null],"⊤":["encode",null],"⊥":["decode",null],"⍕":["format","formatByExample"],"⍎":["execute",null],"⊣":["stop","left"],"⊢":["pass","right"]},t=/[\.\/⌿⍀¨⍣]/,l=/⍬/,r=/[\+−×÷⌈⌊∣⍳\?⋆⍟○!⌹<≤=>≥≠≡≢∈⍷∪∩∼∨∧⍱⍲⍴,⍪⌽⊖⍉↑↓⊂⊃⌷⍋⍒⊤⊥⍕⍎⊣⊢]/,a=/←/,i=/[⍝#].*$/;return{startState:function(){return{prev:!1,func:!1,op:!1,string:!1,escape:!1}},token:function(o,u){var s,c,p,d;return o.eatSpace()?null:'"'===(s=o.next())||"'"===s?(o.eatWhile((p=s,d=!1,function(e){return d=e,e!==p||"\\"===d})),o.next(),u.prev=!0,"string"):/[\[{\(]/.test(s)?(u.prev=!1,null):/[\]}\)]/.test(s)?(u.prev=!0,null):l.test(s)?(u.prev=!1,"niladic"):/[¯\d]/.test(s)?(u.func?(u.func=!1,u.prev=!1):u.prev=!0,o.eatWhile(/[\w\.]/),"number"):t.test(s)?"operator apl-"+e[s]:a.test(s)?"apl-arrow":r.test(s)?(c="apl-",null!=n[s]&&(u.prev?c+=n[s][1]:c+=n[s][0]),u.func=!0,u.prev=!1,"function "+c):i.test(s)?(o.skipToEnd(),"comment"):"∘"===s&&"."===o.peek()?(o.next(),"function jot-dot"):(o.eatWhile(/[\w\$_]/),u.prev=!0,"keyword")}}}),e.defineMIME("text/apl","apl")});
 
 
 
@@ -1426,3 +1434,86 @@ CodeMirror.defineMode("prolog",function(t,e){var i={},n={":-":"builtin",":":"bui
 
 // -----  wast.js
 !function(e){"object"==typeof exports&&"object"==typeof module?e(require("../../lib/codemirror"),require("../../addon/mode/simple")):"function"==typeof define&&define.amd?define(["../../lib/codemirror","../../addon/mode/simple"],e):e(CodeMirror)}(function(e){"use strict";e.defineSimpleMode("wast",{start:[{regex:/[+\-]?(?:nan(?::0x[0-9a-fA-F]+)?|infinity|inf|0x[0-9a-fA-F]+\.?[0-9a-fA-F]*p[+\/-]?\d+|\d+(?:\.\d*)?[eE][+\-]?\d*|\d+\.\d*|0x[0-9a-fA-F]+|\d+)/,token:"number"},{regex:/mut|nop|block|if|then|else|loop|br_if|br_table|br|call(_indirect)?|drop|end|return(_call(_indirect)?)?|local\.(get|set|tee)|global\.(get|set)|i(32|64)\.(store(8|16)|(load(8|16)_[su]))|i64\.(load32_[su]|store32)|[fi](32|64)\.(const|load|store)|f(32|64)\.(abs|add|ceil|copysign|div|eq|floor|[gl][et]|max|min|mul|nearest|neg?|sqrt|sub|trunc)|i(32|64)\.(a[dn]d|c[lt]z|(div|rem)_[su]|eqz?|[gl][te]_[su]|mul|ne|popcnt|rot[lr]|sh(l|r_[su])|sub|x?or)|i64\.extend_[su]_i32|i32\.wrap_i64|i(32|64)\.trunc_f(32|64)_[su]|f(32|64)\.convert_i(32|64)_[su]|f64\.promote_f32|f32\.demote_f64|f32\.reinterpret_i32|i32\.reinterpret_f32|f64\.reinterpret_i64|i64\.reinterpret_f64|select|unreachable|current_memory|memory(\.((atomic\.(notify|wait(32|64)))|grow|size))?|type|func|param|result|local|global|module|table|start|elem|data|align|offset|import|export|i64\.atomic\.(load32_u|store32|rmw32\.(a[dn]d|sub|x?or|(cmp)?xchg)_u)|i(32|64)\.atomic\.(load((8|16)_u)?|store(8|16)?|rmw(\.(a[dn]d|sub|x?or|(cmp)?xchg)|(8|16)\.(a[dn]d|sub|x?or|(cmp)?xchg)_u))|v128\.(load|store|const|not|andnot|and|or|xor|bitselect)|i(8x16|16x8|32x4|64x2)\.(shl|shr_[su])|i(8x16|16x8)\.(extract_lane_[su]|((add|sub)_saturate_[su])|avgr_u)|(i(8x16|16x8|32x4|64x2)|f(32x4|64x2))\.(splat|replace_lane|neg|add|sub)|i(8x16|16x8|32x4)\.(eq|ne|([lg][te]_[su])|abs|any_true|all_true|bitmask|((min|max)_[su]))|f(32x4|64x2)\.(eq|ne|[lg][te]|abs|sqrt|mul|div|min|max)|[fi](32x4|64x2)\.extract_lane|v8x16\.(shuffle|swizzle)|i16x8\.(load8x8_[su]|narrow_i32x4_[su]|widen_(low|high)_i8x16_[su]|mul)|i32x4\.(load16x4_[su]|widen_(low|high)_i16x8_[su]|mul|trunc_sat_f32x4_[su])|i64x2\.(load32x2_[su]|mul)|(v(8x16|16x8|32x4|64x2)\.load_splat)|i8x16\.narrow_i16x8_[su]|f32x4\.convert_i32x4_[su]/,token:"keyword"},{regex:/\b(anyfunc|[fi](32|64))\b/,token:"atom"},{regex:/\$([a-zA-Z0-9_`\+\-\*\/\\\^~=<>!\?@#$%&|:\.]+)/,token:"variable-2"},{regex:/"(?:[^"\\\x00-\x1f\x7f]|\\[nt\\'"]|\\[0-9a-fA-F][0-9a-fA-F])*"/,token:"string"},{regex:/\(;.*?/,token:"comment",next:"comment"},{regex:/;;.*$/,token:"comment"},{regex:/\(/,indent:!0},{regex:/\)/,dedent:!0}],comment:[{regex:/.*?;\)/,token:"comment",next:"start"},{regex:/.*/,token:"comment"}],meta:{dontIndentStates:["comment"]}}),e.defineMIME("text/webassembly","wast")});
+
+
+
+
+
+
+// -----  ink.js
+(function(mod) {
+	if (typeof exports == "object" && typeof module == "object") // CommonJS
+		mod(require("../../lib/codemirror"), require("../../addon/mode/simple"));
+	else if (typeof define == "function" && define.amd) // AMD
+		define(["../../lib/codemirror", "../../addon/mode/simple"], mod);
+	else // Plain browser env
+		mod(CodeMirror);
+})(function(CodeMirror) {
+"use strict";
+
+CodeMirror.defineSimpleMode("ink",{
+	start: [
+		// string and byte string
+		{regex: /b?["']/, token: "string", next: "string"},
+		// character
+		{regex: /'(?:[^'\\]|\\(?:[nrt0'"]|x[\da-fA-F]{2}|u\{[\da-fA-F]{6}\}))'/,
+			token: "string-2"},
+		// byte
+		{regex: /b'(?:[^']|\\(?:['\\nrt0]|x[\da-fA-F]{2}))'/,
+			token: "string-2"},
+		{ regex: /(\.\()([_A-Za-z0-9$]*)(\))/,
+		token: ["property", "property", "property"]},
+		{ regex: /\.[_A-Za-z0-9$]*/,
+		token: "property"},
+		{regex: /(?:(?:[0-9][0-9_]*)(?:(?:[Ee][+-]?[0-9_]+)|\.[0-9_]+(?:[Ee][+-]?[0-9_]+)?)(?:f32|f64)?)|(?:0(?:b[01_]+|(?:o[0-7_]+)|(?:x[0-9a-fA-F_]+))|(?:[0-9][0-9_]*))(?:u8|u16|u32|u64|i8|i16|i32|i64|isize|usize)?/,
+		 token: "number"},
+		{regex: /(let(?:\s+mut)?|fn|enum|mod|struct|type|union)(\s+)([a-zA-Z_][a-zA-Z0-9_]*)/,
+			token: ["keyword", null, "def"]
+		},
+		{regex: /([a-zA-Z]*)(\()/, token: ["keyword", null] },
+		{regex: /(?:load|keys|continue|const|crate|do|dyn|else|enum|extern|fn|for|final|if|impl|in|loop|macro|match|mod|move|offsetof|override|priv|proc|pub|pure|ref|return|self|sizeof|static|struct|super|trait|type|typeof|union|unsafe|unsized|use|virtual|where|while|yield)\b/,
+			token: "keyword"},
+		{regex: /\b(?:Self|isize|usize|char|bool|u8|u16|u32|u64|f16|f32|f64|i8|i16|i32|i64|str|Option)\b/,
+			token: "atom"},
+		{regex: /\b(?:true|false|Some|None|Ok|Err)\b/,
+			token: "builtin"},
+		{regex: /\b(fn)(\s+)([a-zA-Z_][a-zA-Z0-9_]*)/,
+			token: ["keyword", null ,"def"]},
+		{regex: /#!?\[.*\]/, token: "meta"},
+		{regex: /``.*/, token: "comment"},
+		{regex: /`.*`/, token: "comment"},
+		{regex: /`[\w]*/, token: "comment", next: "comment"},
+		{regex: /`$/, token: "comment"},
+		{regex: /[-+\/*=<>!:~%|]+/, token: "operator"},
+		{regex: /[a-zA-Z_]\w*!/,token: "variable-2"},
+		{regex: /[a-zA-Z_]\w*/, token: "variable"},
+		{regex: /[\{\[\(]/, indent: true},
+		{regex: /[\}\]\)]/, dedent: true}
+	],
+	string: [
+		{regex: /["']/, token: "string", next: "start"},
+		{regex: /(?:[^"']|\\(?:.|$))*/, token: "string"}
+	],
+	string_raw: [
+		{regex: /"/, token: "string", next: "start"},
+		{regex: /[^"]*/, token: "string"}
+	],
+	string_raw_hash: [
+		{regex: /"#+/, token: "string", next: "start"},
+		{regex: /(?:[^"]|"(?!#))*/, token: "string"}
+	],
+	comment: [
+		{regex: /`/, token: "comment", next: "start"},
+		{regex: /.*`/, token: "comment", next: "start"},
+		{regex: /.*/, token: "comment"},
+	],
+	meta: {
+		dontIndentStates: ["comment"],
+		electricInput: /^\s*\}$/,
+		lineComment: "`",
+		fold: "brace"
+	}
+});
+
+CodeMirror.defineMIME("text/ink", "ink");
+});

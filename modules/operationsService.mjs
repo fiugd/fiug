@@ -8,10 +8,13 @@ function getReadAfter(List, inlineEditor, getCodeFromService) {
 }
 
 function getUpdateAfter(setCurrentService) {
-	return ({ result }) => {
+	return ({ result={} }) => {
 		//TODO: why is this even needed?
 		//console.warn('Update After');
-		const services = result.result;
+		const services = result?.result;
+		if(!services || !services.length){
+			return console.error('updateAfter: error setting current service');
+		}
 		setCurrentService(services[0], null, 'set');
 	};
 }
@@ -309,5 +312,3 @@ const operationsListener = async (
 export {
 	getOperations, getReadAfter, getUpdateAfter, performOperation, operationsListener
 };
-
-

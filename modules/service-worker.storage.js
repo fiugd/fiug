@@ -72,35 +72,22 @@
 		tree: defaultTree(_name),
 	});
 
-	async function getCodeFromStorageUsingTree(tree, store, serviceName) {
+	async function getCodeFromStorageUsingTree(tree, fileStore, serviceName) {
 		const flattenTree = this.utils.flattenTree;
-		// flatten the tree (include path)
-		// pass back array of  { name: filename, code: path, path }
+		// returns array of  { name: filename, code: path, path }
 		const files = flattenTree(tree);
 
 		const allFilesFromService = {};
-		await store.iterate((value, key) => {
-			if (key.startsWith(`./${serviceName}/`)) {
-				allFilesFromService[key] = {
-					key,
-					code: value,
-					untracked: true,
-				};
-			}
-		});
+		const fileStoreKeys = await fileStore.keys();
+		for(const key of fileStoreKeys){
+			if (!key.startsWith(`./${serviceName}/`)) continue;
+			allFilesFromService[key] = { key, untracked: true};
+		}
 
-		// UI should call network(sw) for file
-		// BUT for now, will bundle entire filesystem with its contents
 		for (let index = 0; index < files.length; index++) {
 			const file = files[index];
 			let storedFile = allFilesFromService["." + file.path];
-			file.code = storedFile ? storedFile.code : "";
 			storedFile && (storedFile.untracked = false);
-
-			// OMG, live it up in text-only world... for now (templates code expects text format)
-			file.code = file.size
-				? null
-				: file.code;
 		}
 
 		const untracked = Object.entries(allFilesFromService)
@@ -194,7 +181,9 @@
 			};
 			const cache = {};
 			await fileStore.iterate((value, key) => {
-				if (!key.startsWith(include)) return;
+				const isIncluded = key.startsWith(include) ||
+					`./${key}`.startsWith(include);
+				if (!isIncluded) return;
 				cache[key] = value;
 			});
 			const fileStoreCache = {
@@ -372,13 +361,69 @@
 		});
 	}
 
+	/* TODO:
+		file get runs slower here versus previous version
+		is this the problem? potential issues
+		local forage has to JSON.parse change store items to get the value
+		changes store has to be queried before file store can be checked
+		file store is huge because of policy of pulling all repo items
+	*/
+	function cacheFn(fn, ttl) {
+		const cache = {}
+
+		const apply = (target, thisArg, args) => {
+			const key = target.name;
+			cache[key] = cache[key] || {}
+			const argsKey = args.toString()
+			const cachedItem = cache[key][argsKey];
+			if (cachedItem) return cachedItem;
+
+			cache[key][argsKey] = target.apply(thisArg, args);
+			setTimeout(() => {
+				delete cache[key][argsKey];
+			}, ttl);
+			return cache[key][argsKey];
+		};
+
+		return new Proxy(fn, { apply });
+	}
+
+	let changeCache, fileCache;
+	let cacheTTL = 250;
+	async function getFile(path){
+		const changesStore = this.stores.changes;
+		const filesStore = this.stores.files;
+
+		changeCache = changeCache || cacheFn(changesStore.getItem.bind(changesStore), cacheTTL);
+		fileCache = fileCache || cacheFn(filesStore.getItem.bind(filesStore), cacheTTL);
+
+		let t0 = performance.now();
+		const perfNow = () => {
+			const d = performance.now() - t0;
+			t0 = performance.now();
+			return d.toFixed(3);
+		};
+
+		const changes = await changeCache(path);
+		console.log(`changes store: ${perfNow()}ms (${path})`);
+		if(changes && changes.type === 'update'){
+			return changes.value;
+		}
+
+		const file = await fileCache(path);
+		console.log(`file store: ${perfNow()}ms (${path})`);
+		return file;
+	}
+
 	const handleServiceSearch = (fileStore) => async (params, event) => {
 		const serviceSearch = new ServiceSearch();
 		await serviceSearch.init({ ...params, fileStore });
 		return serviceSearch.stream;
 	};
 
-	const handleServiceRead = (servicesStore, filesStore, fetchFileContents, ui) =>
+	const handleServiceRead = (
+		servicesStore, filesStore, fetchFileContents, ui, changesStore
+	) =>
 		async function (params, event) {
 			//also, what if not "file service"?
 			//also, what if "offline"?
@@ -400,7 +445,6 @@
 					savedServices.push(value);
 				});
 
-				//TODO: may not want to return all code!!!
 				for (var i = 0, len = savedServices.length; i < len; i++) {
 					const service = savedServices[i];
 					const code = await this.getCodeFromStorageUsingTree(
@@ -416,37 +460,45 @@
 					.sort((a, b) => Number(a.id) - Number(b.id))
 					.map((x) => ({ id: x.id, name: x.name }));
 
-				return JSON.stringify(
-					{
-						result: this.utils.unique(allServices, (x) => Number(x.id)),
-					},
-					null,
-					2
-				);
+				return JSON.stringify({
+					result: this.utils.unique(allServices, (x) => Number(x.id)),
+				}, null, 2);
 			}
 
+			const addTreeState = async (service) => {
+				const changed = (await changesStore.keys())
+					.filter(x => x.startsWith(`${service.name}`))
+					.map(x => x.split(service.name+'/')[1]);
+				const opened = (await changesStore.getItem(`state-${service.name}-opened`)) || [];
+				const selected = (opened.find(x => x.order === 0)||{}).name || '';
+				service.state = { opened, selected, changed };
+			
+				service.treeState = {
+					expand: (await changesStore.getItem(`tree-${service.name}-expanded`)) || [],
+					select: selected,
+					changed,
+					new: [], //TODO: from changes store
+				};
+			};
+			
 			// if id, return that service
 			// (currently doesn't do anything since app uses localStorage version of this)
 			await filesStore.setItem("lastService", params.id);
 
 			const foundService = await servicesStore.getItem(params.id);
-
 			if (foundService) {
 				foundService.code = await this.getCodeFromStorageUsingTree(
 					foundService.tree,
 					filesStore,
 					foundService.name
 				);
-				return JSON.stringify(
-					{
-						result: [foundService],
-					},
-					null,
-					2
-				);
+				await addTreeState(foundService);
+				return JSON.stringify({
+					result: [foundService],
+				}, null, 2);
 			}
 
-			//TODO (AND WANRING): get this from store instead!!!
+			//TODO (AND WARNING): get this from store instead!!!
 			// currently will only return fake/default services
 			const lsServices = defaultServices() || [];
 			const result = {
@@ -462,6 +514,8 @@
 				cache: cacheHeader,
 				fetchFileContents,
 			});
+
+			result.forEach(addTreeState);
 			return JSON.stringify(result, null, 2);
 		};
 
@@ -470,6 +524,7 @@
 		defaultServices = defaultServices;
 		getCodeFromStorageUsingTree = getCodeFromStorageUsingTree.bind(this);
 		fileSystemTricks = fileSystemTricks.bind(this);
+		getFile = getFile.bind(this);
 
 		constructor({ utils, ui }) {
 			this.utils = utils;
@@ -479,7 +534,8 @@
 					this.stores.services,
 					this.stores.files,
 					utils.fetchFileContents,
-					ui
+					ui,
+					this.stores.changes
 				).bind(this),
 			};
 		}

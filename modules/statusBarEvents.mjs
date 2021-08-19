@@ -33,6 +33,15 @@ function getFileType(fileName = "") {
 	return type;
 }
 
+function friendlyModeName(type, mode){
+	if(type.includes && type.includes('sharp')) return type.replace('sharp', '#');
+	if('cpp' === type) return 'C++';
+	if('ocaml' === type) return { name: 'OCaml' };
+	if(['bat', 'cpp', 'lisp', 'raku', 'zig'].includes(type)) return type;
+	if(mode.includes && mode.includes('text/x-')) return type;
+	return mode;
+}
+
 // EVENTS -------------------------------------------------------------
 
 let firstRun = true;
@@ -66,7 +75,7 @@ const operationDone = ({
 	const defaultFile = getDefaultFile(result[0]);
 	const fileType = getFileType(defaultFile);
 	const mode = codemirrorModeFromFileType(fileType);
-	setDocType(mode);
+	setDocType(friendlyModeName(fileType,mode));
 	sessionStorage.setItem(
 		"statusbar",
 		JSON.stringify({
@@ -92,7 +101,7 @@ const fileSelect = ({
 	}
 	const fileType = getFileType(name);
 	const mode = codemirrorModeFromFileType(fileType);
-	setDocType(mode);
+	setDocType(friendlyModeName(fileType,mode));
 	if (!firstRun) {
 		sessionStorage.setItem(
 			"statusbar",

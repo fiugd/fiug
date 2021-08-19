@@ -1,10 +1,9 @@
 /*
 Codemirror Addon Bundle
-11/15/2020, 6:36:39 PM
+5/17/2021, 01:06:00 AM
 
-ADDONS: doc-state, codemirror-scrollpastend, codemirror-search, codemirror-show-invisibles, foldcode, foldgutter, brace-fold, xml-fold, indent-fold, markdown-fold, comment-fold, panel
+ADDONS: doc-state, codemirror-scrollpastend, codemirror-search, codemirror-show-invisibles, foldcode, foldgutter, brace-fold, xml-fold, indent-fold, markdown-fold, comment-fold, panel, comment
 */
-
 
 
 
@@ -56,8 +55,12 @@ further reference, see defineExtension here https://codemirror.net/doc/manual.ht
 	"use strict";
 
 	let currentDoc;
-	const SCROLL_MARGIN = 50;
-	const allDocs = {};
+	let currentMode;
+
+	const SCROLL_MARGIN = 100;
+	let docsInStore = [];
+	let docsLoad;
+	const docsCache = {};
 
 	CodeMirror.defineOption('docStore', () => {}, (cm, localforage) => {
 		if(!localforage || !localforage.createInstance) return;
@@ -67,7 +70,7 @@ further reference, see defineExtension here https://codemirror.net/doc/manual.ht
 			localforage.WEBSQL,
 			localforage.LOCALSTORAGE,
 		];
-		cm.options.docStore = localforage
+		const docStore = localforage
 			.createInstance({
 					driver: driverOrder,
 					name: 'editorState',
@@ -75,6 +78,23 @@ further reference, see defineExtension here https://codemirror.net/doc/manual.ht
 					storeName: 'editor',
 					description: 'scroll and cursor position, history, selection'
 			});
+		cm.options.docStore = {
+			setItem: (key, value) => {
+				docsCache[key] = value;
+				docStore.setItem(key, value);
+			},
+			getItem: async (key) => {
+				if(docsCache[key]) return docsCache[key];
+				const value = await docStore.getItem(key);
+				docsCache[key] = value;
+				docsInStore.push(key);
+				return value;
+			}
+		};
+		docsLoad = docStore.keys();
+		(async () => {
+			docsInStore = await docsLoad;
+		})();
 	});
 
 	function prepareStorageDoc(cmDoc){
@@ -85,30 +105,30 @@ further reference, see defineExtension here https://codemirror.net/doc/manual.ht
 		other.scrollTop = cmDoc.scrollTop;
 		other.scrollLeft = cmDoc.scrollLeft;
 		other.mode = cmDoc.mode.name;
+		other.history = cmDoc.getHistory();
+		try {
+			other.folded = cmDoc.getAllMarks()
+				.filter(m => m.__isFold)
+				.map(m => m.lines[0].lineNo());
+		} catch(e){}
 		return other;
 	}
 
-	function rehydrateDoc(newDoc, stored){
-		if(stored.text){
-			newDoc.setValue(stored.text)
+	const persistDoc = (ref) => () => {
+		if(!currentDoc.path) return;
+		ref.options.docStore.setItem(
+			currentDoc.path,
+			prepareStorageDoc(ref.doc)
+		);
+		if(!docsInStore.find(x => x === currentDoc.path)){
+			docsInStore.push(currentDoc.path);
 		}
-		if(stored.scrollTop){
-			newDoc.scrollTop = stored.scrollTop;
-		}
-		if(stored.scrollLeft){
-			newDoc.scrollLeft = stored.scrollLeft;
-		}
-		if(stored.history){
-			newDoc.clearHistory()
-			newDoc.setHistory(stored.history);
-		}
-		if(stored.cursor){
-			newDoc.setCursor(stored.cursor);
-		}
-		if(stored.sel){
-			newDoc.setSelections(stored.sel.ranges);
-		}
-		return newDoc;
+	}
+
+	function foldLine(doc, line){
+		try {
+			doc.foldCode({ line, ch: 0 }, null, "fold");
+		} catch(e){}
 	}
 
 	const debounce = (func, wait, immediate) => {
@@ -126,61 +146,187 @@ further reference, see defineExtension here https://codemirror.net/doc/manual.ht
 			};
 		};
 
-	CodeMirror.defineExtension('loadDoc', async function ({
-		name, text, mode, scrollTop, scrollLeft, line, ch
-	}){
-		if(currentDoc && name === currentDoc.name) return;
+	const selectLine = (cm, doc, line, ch) => {
+		const newLine = ch ? { line, ch } : line;
 
-		const initialized = !!allDocs[name];
-		const storedDoc = await this.options.docStore.getItem(name);
+		//const t = doc.cm.charCoords(newLine, "local").top;
+		//cm.scrollTo(0,·t·-·SCROLL_MARGIN);
+		cm.scrollIntoView(newLine, SCROLL_MARGIN);
 
-		let newDoc = (allDocs[name] || {}).editor || CodeMirror.Doc('', mode || storedDoc.mode);
-		newDoc.name = name;
-		if(storedDoc){
-			newDoc = rehydrateDoc(newDoc, { ...storedDoc, ...{ text, mode, scrollTop, scrollLeft }});
-		} else {
-			newDoc = rehydrateDoc(newDoc, { text, mode, scrollTop, scrollLeft });
+		doc.setSelections([])
+		const active = Array.from(document.querySelectorAll('.activeline'));
+		active.forEach(l => l.classList.remove('activeline'));
+
+		setTimeout(() => {
+			cm.focus();
+			doc.setCursor(newLine);
+			doc.addLineClass(newLine, null, 'activeline')
+		}, 1);
+	};
+
+	class PerfMonitor {
+		constructor(key){
+			this.key = key;
+			this.t0 = performance.now();
+			this.events = [
+				[key,this.t0]
+			];
+			this.track = this.track.bind(this);
+			this.log = this.log.bind(this);
 		}
-		currentDoc = {
-			name,
-			editor: newDoc,
-			swapping: true
-		};
-		allDocs[name] = currentDoc;
-
-		this.swapDoc(newDoc);
-		if(initialized) return;
-
-		const thisOptions = this.options;
-		async function persistDoc(){
-			await thisOptions.docStore.setItem(
-				name,
-				prepareStorageDoc(currentDoc.editor)
+		track(event){
+			this.events.push([event, performance.now()]);
+		}
+		log(){
+			const fNum = (number) => number.toFixed().padStart(3);
+			const colors = [
+				'color:#CE9178;',
+				'color:#9CDCFE;',
+				'color:#DCDCAA;'
+			];
+			this.events.forEach(([event, time], i) => {
+				const timeTook = i > 0
+					? `(${fNum(time-this.events[i-1][1])} ms)`
+					: '';
+				console.log(
+					`%c${fNum(time-this.t0)}:%c ${event} %c${timeTook}`,
+					...colors
+				);
+			});
+			console.log(
+				`%c${fNum(performance.now()-this.t0)}: %ctotal %c\n`,
+				...colors
 			);
 		}
-		const debouncedPersist = debounce(persistDoc, 1000, false);
+	}
 
-		if(line) {
-			const pos = { line, ch };
-			this.setCursor(pos);
-			const t = this.charCoords({line, ch}, "local").top;
-			this.scrollTo(0, t - SCROLL_MARGIN);
-		}
-		if(scrollTop){
-			this.scrollTo(0, scrollTop);
-		}
+	let listenersAttached;
+	const addListeners = (ref) => {
+		if(listenersAttached) return;
+		CodeMirror.on(ref, "change", persistDoc(ref));
+		CodeMirror.on(ref, "cursorActivity", persistDoc(ref));
+		CodeMirror.on(ref, "scroll", persistDoc(ref));
+		CodeMirror.on(ref, "fold", persistDoc(ref));
+		CodeMirror.on(ref, "unfold", persistDoc(ref));
+		listenersAttached = true;
+		return true;
+	};
 
-		if(!storedDoc)  debouncedPersist();
-		CodeMirror.on(currentDoc.editor, "change", debouncedPersist);
-		CodeMirror.on(currentDoc.editor, "cursorActivity", debouncedPersist);
-		CodeMirror.on(this, "scroll", () => {
-			if(name !== currentDoc.name) return;
-			if(currentDoc.swapping){
-				currentDoc.swapping = false;
+	CodeMirror.defineExtension('loadDoc', function ({
+		callback, name, path, text, mode, scrollTop, scrollLeft, line, ch
+	}){
+		/*
+		TODO: loading async and using a callback seems not to help
+		should try somthing different
+		https://javascript.info/fetch-progress
+		https://stackoverflow.com/questions/35711724/upload-progress-indicators-for-fetch
+		https://josephkhan.me/how-to-cancel-a-fetch-request/
+		*/
+
+		const loadAsync = async () => {
+			if(!name) return;
+			if(currentDoc && path === currentDoc.path){
+				if(line) selectLine(this, currentDoc.editor, line, ch);
 				return;
 			}
-			debouncedPersist();
-		});
+			currentDoc = { path };
+
+			const perf = new PerfMonitor(path);
+
+			let storedDoc;
+			await docsLoad;
+			if(docsInStore.find(x => x === path)){
+				storedDoc = await this.options.docStore.getItem(path);
+				perf.track('editor store get');
+			}
+			if(!storedDoc){
+				//TODO: try getting this directly from doc store instead
+				text = await fetch(path).then(x => x.text());
+				perf.track('file store get');
+			}
+
+			if(currentDoc.path !== path) return callback('cancel loading');
+
+			this.setValue(storedDoc ? storedDoc.text : text);
+			this.doc.clearHistory();
+
+			const historyOkay = storedDoc &&
+				storedDoc.history &&
+				storedDoc.history.done &&
+				storedDoc.history.undone &&
+				storedDoc.history.done.length &&
+				storedDoc.history.undone.length;
+			if(historyOkay){
+				this.doc.setHistory(storedDoc.history);
+				perf.track('set history');
+			}
+			const cursorOkay = storedDoc &&
+				storedDoc.cursor &&
+				storedDoc.cursor.line;
+			if(cursorOkay){
+				this.doc.setCursor(storedDoc.cursor);
+				perf.track('set cursor');
+			}
+			const selOkay = storedDoc &&
+				storedDoc.sel &&
+				storedDoc.sel.ranges
+					.filter(x => 
+						x.anchor.line !== x.head.line ||
+						x.anchor.ch !== x.head.ch
+					)
+					.length > 0;
+			if(selOkay){
+				this.doc.setSelections(storedDoc.sel.ranges);
+				perf.track('selections');
+			}
+			if(line){
+				selectLine(this, this.doc, line, ch);
+				perf.track('select line');
+			}
+			const scrollOkay = storedDoc &&
+				!(scrollTop) &&
+				(storedDoc.scrollLeft || storedDoc.scrollTop);
+			if(scrollOkay){
+				this.scrollTo(storedDoc.scrollLeft, storedDoc.scrollTop);
+				perf.track('set scroll (from stored)');
+			}
+			if(scrollTop){
+				this.scrollTo(0, scrollTop);
+				perf.track('set scroll');
+			}
+			const foldsOkay = storedDoc &&
+				storedDoc.folded &&
+				storedDoc.folded.length &&
+				this.foldCode;
+			if(foldsOkay){
+				const foldDocLine = (line) => foldLine(this, line);
+				storedDoc.folded.forEach(foldDocLine);
+				perf.track('set folds');
+			}
+
+			const modeString = (mode) => JSON.stringify(mode);
+			const newMode = mode || storedDoc.mode;
+			if(modeString(currentMode) !== modeString(newMode)){
+				this.setOption('mode', newMode);
+				currentMode = newMode;
+				perf.track(`set mode ${modeString(currentMode)}`);
+			}
+
+			if(!storedDoc) {
+				persistDoc();
+				perf.track(`initial doc persist`)
+			}
+
+			if(addListeners(this)) perf.track(`add listeners`);
+
+			setTimeout(() => this.refresh(), 1);
+			// perf.track('refresh');
+
+			perf.log();
+
+			callback();
+		};
+		setTimeout(loadAsync, 1);
 	});
 });
 
@@ -233,14 +379,14 @@ this file is a bundle of many search addons
     var dialog;
     dialog = wrap.appendChild(document.createElement("div"));
     if (bottom)
-dialog.className = "CodeMirror-dialog CodeMirror-dialog-bottom";
+      dialog.className = "CodeMirror-dialog CodeMirror-dialog-bottom";
     else
-dialog.className = "CodeMirror-dialog CodeMirror-dialog-top";
+      dialog.className = "CodeMirror-dialog CodeMirror-dialog-top";
 
     if (typeof template == "string") {
-dialog.innerHTML = template;
+      dialog.innerHTML = template;
     } else { // Assuming it's a detached DOM element.
-dialog.appendChild(template);
+      dialog.appendChild(template);
     }
     CodeMirror.addClass(wrap, 'dialog-opened');
     return dialog;
@@ -248,32 +394,32 @@ dialog.appendChild(template);
 
   function closeNotification(cm, newVal) {
     if (cm.state.currentNotificationClose)
-cm.state.currentNotificationClose();
+      cm.state.currentNotificationClose();
     cm.state.currentNotificationClose = newVal;
   }
 
   function searchDetails(cm) {
     try {
-const current = {
-  from: cm.state.search.posFrom,
-  to: cm.state.search.posTo
-};
-const matches = cm.state.search.annotate.matches
-  .sort((a, b) => a.from.line - b.from.line)
-  .map(x => `${x.from.line}-${x.from.ch}-${x.to.line}-${x.to.ch}`);
-let currentResult;
-const currentMatch = `${current.from.line}-${current.from.ch}-${current.to.line}-${current.to.ch}`;
-for (let i = 1, len = matches.length; i <= len; i++) {
-  if (matches[i-1] === currentMatch) {
-    currentResult = i;
-  }
-}
-return {
-  current: currentResult,
-  total: matches.length,
-  currentResult, matches };
+      const current = {
+        from: cm.state.search.posFrom,
+        to: cm.state.search.posTo
+      };
+      const matches = cm.state.search.annotate.matches
+        .sort((a, b) => a.from.line - b.from.line)
+        .map(x => `${x.from.line}-${x.from.ch}-${x.to.line}-${x.to.ch}`);
+      let currentResult;
+      const currentMatch = `${current.from.line}-${current.from.ch}-${current.to.line}-${current.to.ch}`;
+      for (let i = 1, len = matches.length; i <= len; i++) {
+        if (matches[i-1] === currentMatch) {
+          currentResult = i;
+        }
+      }
+      return {
+        current: currentResult,
+        total: matches.length,
+        currentResult, matches };
     } catch(e) {
-return {};
+      return {};
     }
   }
 
@@ -282,7 +428,7 @@ return {};
     options.closeOnEnter = false;
 
     const close = (newVal) => {
-document.getElementById('file-search').style.visibility = "";
+      document.getElementById('file-search').style.visibility = "";
     };
 
     document.getElementById('file-search').style.visibility = "visible";
@@ -296,19 +442,19 @@ document.getElementById('file-search').style.visibility = "";
     const searchUp = document.querySelector('.search-up');
     const searchDown = document.querySelector('.search-down');
     searchClose.onclick = (e) => {
-searchInput.blur();
-close();
-cm.focus();
+      searchInput.blur();
+      close();
+      cm.focus();
     };
     searchUp.onclick = () => {
-CodeMirror.commands.findPersistentPrev(cm);
-const { current } = searchDetails(cm);
-searchCurrent.innerText = current;
+      CodeMirror.commands.findPersistentPrev(cm);
+      const { current } = searchDetails(cm);
+      searchCurrent.innerText = current;
     }
     searchDown.onclick = () => {
-CodeMirror.commands.findPersistentNext(cm);
-const { current } = searchDetails(cm);
-searchCurrent.innerText = current;
+      CodeMirror.commands.findPersistentNext(cm);
+      const { current } = searchDetails(cm);
+      searchCurrent.innerText = current;
     }
 
     searchInput.focus();
@@ -316,55 +462,55 @@ searchCurrent.innerText = current;
 
     let currentSearchTerm = '';
     if(searchInput.value){
-currentSearchTerm = searchInput.value;
-callback(searchInput.value);
-const { current, total } = searchDetails(cm);
-if(total && total > 0){
-  searchCount.classList.remove('hidden');
-  searchNoResults.classList.add('hidden');
-} else {
-  searchCount.classList.add('hidden');
-  searchNoResults.classList.remove('hidden');
-}
-searchTotal.innerText = total;
-searchCurrent.innerText = current;
+      currentSearchTerm = searchInput.value;
+      callback(searchInput.value);
+      const { current, total } = searchDetails(cm);
+      if(total && total > 0){
+        searchCount.classList.remove('hidden');
+        searchNoResults.classList.add('hidden');
+      } else {
+        searchCount.classList.add('hidden');
+        searchNoResults.classList.remove('hidden');
+      }
+      searchTotal.innerText = total;
+      searchCurrent.innerText = current;
     }
 
     CodeMirror.on(searchInput, "keydown", function(e) {
-if (options && options.onKeyDown && options.onKeyDown(e, searchInput.value, close)) {
-  return;
-}
-if (e.keyCode == 27 || (options.closeOnEnter !== false && e.keyCode == 13)) {
-  callback('', e);
-  searchInput.blur();
-  CodeMirror.e_stop(e);
-  searchCount.classList.add('hidden');
-  searchNoResults.classList.remove('hidden');
-  CodeMirror.commands.clearSearch(cm);
-  close();
-  cm.focus();
-}
-if (e.keyCode == 13) {
-  if(currentSearchTerm === searchInput.value){
-    CodeMirror.commands.findPersistentNext(cm);
-    var { current } = searchDetails(cm);
-    searchCurrent.innerText = current;
-  } else {
-    CodeMirror.commands.clearSearch(cm);
-    currentSearchTerm = searchInput.value;
-    callback(searchInput.value, e);
-    var { current, total } = searchDetails(cm);
-    if(total && total > 0){
-searchCount.classList.remove('hidden');
-searchNoResults.classList.add('hidden');
-    } else {
-searchCount.classList.add('hidden');
-searchNoResults.classList.remove('hidden');
-    }
-    searchTotal.innerText = total;
-    searchCurrent.innerText = current;
-  }
-}
+      if (options && options.onKeyDown && options.onKeyDown(e, searchInput.value, close)) {
+        return;
+      }
+      if (e.keyCode == 27 || (options.closeOnEnter !== false && e.keyCode == 13)) {
+        callback('', e);
+        searchInput.blur();
+        CodeMirror.e_stop(e);
+        searchCount.classList.add('hidden');
+        searchNoResults.classList.remove('hidden');
+        CodeMirror.commands.clearSearch(cm);
+        close();
+        cm.focus();
+      }
+      if (e.keyCode == 13) {
+        if(currentSearchTerm === searchInput.value){
+          CodeMirror.commands.findPersistentNext(cm);
+          var { current } = searchDetails(cm);
+          searchCurrent.innerText = current;
+        } else {
+          CodeMirror.commands.clearSearch(cm);
+          currentSearchTerm = searchInput.value;
+          callback(searchInput.value, e);
+          var { current, total } = searchDetails(cm);
+          if(total && total > 0){
+            searchCount.classList.remove('hidden');
+            searchNoResults.classList.add('hidden');
+          } else {
+            searchCount.classList.add('hidden');
+            searchNoResults.classList.remove('hidden');
+          }
+          searchTotal.innerText = total;
+          searchCurrent.innerText = current;
+        }
+      }
     });
 
     return close;
@@ -391,42 +537,42 @@ searchNoResults.classList.remove('hidden');
 
     var inp = dialog.getElementsByTagName("input")[0], button;
     if (inp) {
-inp.focus();
+      inp.focus();
 
-if (options.value) {
-  inp.value = options.value;
-  if (options.selectValueOnOpen !== false) {
-    inp.select();
-  }
-}
+      if (options.value) {
+        inp.value = options.value;
+        if (options.selectValueOnOpen !== false) {
+          inp.select();
+        }
+      }
 
-if (options.onInput)
-  CodeMirror.on(inp, "input", function(e) { options.onInput(e, inp.value, close);});
-if (options.onKeyUp)
-  CodeMirror.on(inp, "keyup", function(e) {options.onKeyUp(e, inp.value, close);});
+      if (options.onInput)
+        CodeMirror.on(inp, "input", function(e) { options.onInput(e, inp.value, close);});
+      if (options.onKeyUp)
+        CodeMirror.on(inp, "keyup", function(e) {options.onKeyUp(e, inp.value, close);});
 
-CodeMirror.on(inp, "keydown", function(e) {
-  if (options && options.onKeyDown && options.onKeyDown(e, inp.value, close)) { return; }
-  if (e.keyCode == 27 || (options.closeOnEnter !== false && e.keyCode == 13)) {
-    inp.blur();
-    CodeMirror.e_stop(e);
-    close();
-  }
-  if (e.keyCode == 13) callback(inp.value, e);
-});
+      CodeMirror.on(inp, "keydown", function(e) {
+        if (options && options.onKeyDown && options.onKeyDown(e, inp.value, close)) { return; }
+        if (e.keyCode == 27 || (options.closeOnEnter !== false && e.keyCode == 13)) {
+          inp.blur();
+          CodeMirror.e_stop(e);
+          close();
+        }
+        if (e.keyCode == 13) callback(inp.value, e);
+      });
 
-if (options.closeOnBlur !== false) CodeMirror.on(dialog, "focusout", function (evt) {
-  if (evt.relatedTarget !== null) close();
-});
+      if (options.closeOnBlur !== false) CodeMirror.on(dialog, "focusout", function (evt) {
+        if (evt.relatedTarget !== null) close();
+      });
     } else if (button = dialog.getElementsByTagName("button")[0]) {
-CodeMirror.on(button, "click", function() {
-  close();
-  me.focus();
-});
+      CodeMirror.on(button, "click", function() {
+        close();
+        me.focus();
+      });
 
-if (options.closeOnBlur !== false) CodeMirror.on(button, "blur", close);
+      if (options.closeOnBlur !== false) CodeMirror.on(button, "blur", close);
 
-button.focus();
+      button.focus();
     }
     return close;
   });
@@ -437,27 +583,27 @@ button.focus();
     var buttons = dialog.getElementsByTagName("button");
     var closed = false, me = this, blurring = 1;
     function close() {
-if (closed) return;
-closed = true;
-CodeMirror.rmClass(dialog.parentNode, 'dialog-opened');
-dialog.parentNode.removeChild(dialog);
-me.focus();
+      if (closed) return;
+      closed = true;
+      CodeMirror.rmClass(dialog.parentNode, 'dialog-opened');
+      dialog.parentNode.removeChild(dialog);
+      me.focus();
     }
     buttons[0].focus();
     for (var i = 0; i < buttons.length; ++i) {
-var b = buttons[i];
-(function(callback) {
-  CodeMirror.on(b, "click", function(e) {
-    CodeMirror.e_preventDefault(e);
-    close();
-    if (callback) callback(me);
-  });
-})(callbacks[i]);
-CodeMirror.on(b, "blur", function() {
-  --blurring;
-  setTimeout(function() { if (blurring <= 0) close(); }, 200);
-});
-CodeMirror.on(b, "focus", function() { ++blurring; });
+      var b = buttons[i];
+      (function(callback) {
+        CodeMirror.on(b, "click", function(e) {
+          CodeMirror.e_preventDefault(e);
+          close();
+          if (callback) callback(me);
+        });
+      })(callbacks[i]);
+      CodeMirror.on(b, "blur", function() {
+        --blurring;
+        setTimeout(function() { if (blurring <= 0) close(); }, 200);
+      });
+      CodeMirror.on(b, "focus", function() { ++blurring; });
     }
   });
 
@@ -476,20 +622,20 @@ CodeMirror.on(b, "focus", function() { ++blurring; });
     var duration = options && typeof options.duration !== "undefined" ? options.duration : 5000;
 
     function close() {
-if (closed) return;
-closed = true;
-clearTimeout(doneTimer);
-CodeMirror.rmClass(dialog.parentNode, 'dialog-opened');
-dialog.parentNode.removeChild(dialog);
+      if (closed) return;
+      closed = true;
+      clearTimeout(doneTimer);
+      CodeMirror.rmClass(dialog.parentNode, 'dialog-opened');
+      dialog.parentNode.removeChild(dialog);
     }
 
     CodeMirror.on(dialog, 'click', function(e) {
-CodeMirror.e_preventDefault(e);
-close();
+      CodeMirror.e_preventDefault(e);
+      close();
     });
 
     if (duration)
-doneTimer = setTimeout(close, duration);
+      doneTimer = setTimeout(close, duration);
 
     return close;
   });
@@ -516,14 +662,14 @@ doneTimer = setTimeout(close, duration);
   function regexpFlags(regexp) {
     var flags = regexp.flags
     return flags != null ? flags : (regexp.ignoreCase ? "i" : "")
-+ (regexp.global ? "g" : "")
-+ (regexp.multiline ? "m" : "")
+      + (regexp.global ? "g" : "")
+      + (regexp.multiline ? "m" : "")
   }
 
   function ensureFlags(regexp, flags) {
     var current = regexpFlags(regexp), target = current
     for (var i = 0; i < flags.length; i++) if (target.indexOf(flags.charAt(i)) == -1)
-target += flags.charAt(i)
+      target += flags.charAt(i)
     return current == target ? regexp : new RegExp(regexp.source, target)
   }
 
@@ -534,12 +680,12 @@ target += flags.charAt(i)
   function searchRegexpForward(doc, regexp, start) {
     regexp = ensureFlags(regexp, "g")
     for (var line = start.line, ch = start.ch, last = doc.lastLine(); line <= last; line++, ch = 0) {
-regexp.lastIndex = ch
-var string = doc.getLine(line), match = regexp.exec(string)
-if (match)
-  return {from: Pos(line, match.index),
-    to: Pos(line, match.index + match[0].length),
-    match: match}
+      regexp.lastIndex = ch
+      var string = doc.getLine(line), match = regexp.exec(string)
+      if (match)
+        return {from: Pos(line, match.index),
+                to: Pos(line, match.index + match[0].length),
+                match: match}
     }
   }
 
@@ -549,41 +695,41 @@ if (match)
     regexp = ensureFlags(regexp, "gm")
     var string, chunk = 1
     for (var line = start.line, last = doc.lastLine(); line <= last;) {
-// This grows the search buffer in exponentially-sized chunks
-// between matches, so that nearby matches are fast and don't
-// require concatenating the whole document (in case we're
-// searching for something that has tons of matches), but at the
-// same time, the amount of retries is limited.
-for (var i = 0; i < chunk; i++) {
-  if (line > last) break
-  var curLine = doc.getLine(line++)
-  string = string == null ? curLine : string + "\n" + curLine
-}
-chunk = chunk * 2
-regexp.lastIndex = start.ch
-var match = regexp.exec(string)
-if (match) {
-  var before = string.slice(0, match.index).split("\n"), inside = match[0].split("\n")
-  var startLine = start.line + before.length - 1, startCh = before[before.length - 1].length
-  return {from: Pos(startLine, startCh),
-    to: Pos(startLine + inside.length - 1,
-inside.length == 1 ? startCh + inside[0].length : inside[inside.length - 1].length),
-    match: match}
-}
+      // This grows the search buffer in exponentially-sized chunks
+      // between matches, so that nearby matches are fast and don't
+      // require concatenating the whole document (in case we're
+      // searching for something that has tons of matches), but at the
+      // same time, the amount of retries is limited.
+      for (var i = 0; i < chunk; i++) {
+        if (line > last) break
+        var curLine = doc.getLine(line++)
+        string = string == null ? curLine : string + "\n" + curLine
+      }
+      chunk = chunk * 2
+      regexp.lastIndex = start.ch
+      var match = regexp.exec(string)
+      if (match) {
+        var before = string.slice(0, match.index).split("\n"), inside = match[0].split("\n")
+        var startLine = start.line + before.length - 1, startCh = before[before.length - 1].length
+        return {from: Pos(startLine, startCh),
+                to: Pos(startLine + inside.length - 1,
+                        inside.length == 1 ? startCh + inside[0].length : inside[inside.length - 1].length),
+                match: match}
+      }
     }
   }
 
   function lastMatchIn(string, regexp, endMargin) {
     var match, from = 0
     while (from <= string.length) {
-regexp.lastIndex = from
-var newMatch = regexp.exec(string)
-if (!newMatch) break
-var end = newMatch.index + newMatch[0].length
-if (end > string.length - endMargin) break
-if (!match || end > match.index + match[0].length)
-  match = newMatch
-from = newMatch.index + 1
+      regexp.lastIndex = from
+      var newMatch = regexp.exec(string)
+      if (!newMatch) break
+      var end = newMatch.index + newMatch[0].length
+      if (end > string.length - endMargin) break
+      if (!match || end > match.index + match[0].length)
+        match = newMatch
+      from = newMatch.index + 1
     }
     return match
   }
@@ -591,12 +737,12 @@ from = newMatch.index + 1
   function searchRegexpBackward(doc, regexp, start) {
     regexp = ensureFlags(regexp, "g")
     for (var line = start.line, ch = start.ch, first = doc.firstLine(); line >= first; line--, ch = -1) {
-var string = doc.getLine(line)
-var match = lastMatchIn(string, regexp, ch < 0 ? 0 : string.length - ch)
-if (match)
-  return {from: Pos(line, match.index),
-    to: Pos(line, match.index + match[0].length),
-    match: match}
+      var string = doc.getLine(line)
+      var match = lastMatchIn(string, regexp, ch < 0 ? 0 : string.length - ch)
+      if (match)
+        return {from: Pos(line, match.index),
+                to: Pos(line, match.index + match[0].length),
+                match: match}
     }
   }
 
@@ -605,21 +751,21 @@ if (match)
     regexp = ensureFlags(regexp, "gm")
     var string, chunkSize = 1, endMargin = doc.getLine(start.line).length - start.ch
     for (var line = start.line, first = doc.firstLine(); line >= first;) {
-for (var i = 0; i < chunkSize && line >= first; i++) {
-  var curLine = doc.getLine(line--)
-  string = string == null ? curLine : curLine + "\n" + string
-}
-chunkSize *= 2
+      for (var i = 0; i < chunkSize && line >= first; i++) {
+        var curLine = doc.getLine(line--)
+        string = string == null ? curLine : curLine + "\n" + string
+      }
+      chunkSize *= 2
 
-var match = lastMatchIn(string, regexp, endMargin)
-if (match) {
-  var before = string.slice(0, match.index).split("\n"), inside = match[0].split("\n")
-  var startLine = line + before.length, startCh = before[before.length - 1].length
-  return {from: Pos(startLine, startCh),
-    to: Pos(startLine + inside.length - 1,
-inside.length == 1 ? startCh + inside[0].length : inside[inside.length - 1].length),
-    match: match}
-}
+      var match = lastMatchIn(string, regexp, endMargin)
+      if (match) {
+        var before = string.slice(0, match.index).split("\n"), inside = match[0].split("\n")
+        var startLine = line + before.length, startCh = before[before.length - 1].length
+        return {from: Pos(startLine, startCh),
+                to: Pos(startLine + inside.length - 1,
+                        inside.length == 1 ? startCh + inside[0].length : inside[inside.length - 1].length),
+                match: match}
+      }
     }
   }
 
@@ -637,12 +783,12 @@ inside.length == 1 ? startCh + inside[0].length : inside[inside.length - 1].leng
   function adjustPos(orig, folded, pos, foldFunc) {
     if (orig.length == folded.length) return pos
     for (var min = 0, max = pos + Math.max(0, orig.length - folded.length);;) {
-if (min == max) return min
-var mid = (min + max) >> 1
-var len = foldFunc(orig.slice(0, mid)).length
-if (len == pos) return mid
-else if (len > pos) max = mid
-else min = mid + 1
+      if (min == max) return min
+      var mid = (min + max) >> 1
+      var len = foldFunc(orig.slice(0, mid)).length
+      if (len == pos) return mid
+      else if (len > pos) max = mid
+      else min = mid + 1
     }
   }
 
@@ -654,23 +800,23 @@ else min = mid + 1
     var lines = fold(query).split(/\r|\n\r?/)
 
     search: for (var line = start.line, ch = start.ch, last = doc.lastLine() + 1 - lines.length; line <= last; line++, ch = 0) {
-var orig = doc.getLine(line).slice(ch), string = fold(orig)
-if (lines.length == 1) {
-  var found = string.indexOf(lines[0])
-  if (found == -1) continue search
-  var start = adjustPos(orig, string, found, fold) + ch
-  return {from: Pos(line, adjustPos(orig, string, found, fold) + ch),
-    to: Pos(line, adjustPos(orig, string, found + lines[0].length, fold) + ch)}
-} else {
-  var cutFrom = string.length - lines[0].length
-  if (string.slice(cutFrom) != lines[0]) continue search
-  for (var i = 1; i < lines.length - 1; i++)
-    if (fold(doc.getLine(line + i)) != lines[i]) continue search
-  var end = doc.getLine(line + lines.length - 1), endString = fold(end), lastLine = lines[lines.length - 1]
-  if (endString.slice(0, lastLine.length) != lastLine) continue search
-  return {from: Pos(line, adjustPos(orig, string, cutFrom, fold) + ch),
-    to: Pos(line + lines.length - 1, adjustPos(end, endString, lastLine.length, fold))}
-}
+      var orig = doc.getLine(line).slice(ch), string = fold(orig)
+      if (lines.length == 1) {
+        var found = string.indexOf(lines[0])
+        if (found == -1) continue search
+        var start = adjustPos(orig, string, found, fold) + ch
+        return {from: Pos(line, adjustPos(orig, string, found, fold) + ch),
+                to: Pos(line, adjustPos(orig, string, found + lines[0].length, fold) + ch)}
+      } else {
+        var cutFrom = string.length - lines[0].length
+        if (string.slice(cutFrom) != lines[0]) continue search
+        for (var i = 1; i < lines.length - 1; i++)
+          if (fold(doc.getLine(line + i)) != lines[i]) continue search
+        var end = doc.getLine(line + lines.length - 1), endString = fold(end), lastLine = lines[lines.length - 1]
+        if (endString.slice(0, lastLine.length) != lastLine) continue search
+        return {from: Pos(line, adjustPos(orig, string, cutFrom, fold) + ch),
+                to: Pos(line + lines.length - 1, adjustPos(end, endString, lastLine.length, fold))}
+      }
     }
   }
 
@@ -680,24 +826,24 @@ if (lines.length == 1) {
     var lines = fold(query).split(/\r|\n\r?/)
 
     search: for (var line = start.line, ch = start.ch, first = doc.firstLine() - 1 + lines.length; line >= first; line--, ch = -1) {
-var orig = doc.getLine(line)
-if (ch > -1) orig = orig.slice(0, ch)
-var string = fold(orig)
-if (lines.length == 1) {
-  var found = string.lastIndexOf(lines[0])
-  if (found == -1) continue search
-  return {from: Pos(line, adjustPos(orig, string, found, fold)),
-    to: Pos(line, adjustPos(orig, string, found + lines[0].length, fold))}
-} else {
-  var lastLine = lines[lines.length - 1]
-  if (string.slice(0, lastLine.length) != lastLine) continue search
-  for (var i = 1, start = line - lines.length + 1; i < lines.length - 1; i++)
-    if (fold(doc.getLine(start + i)) != lines[i]) continue search
-  var top = doc.getLine(line + 1 - lines.length), topString = fold(top)
-  if (topString.slice(topString.length - lines[0].length) != lines[0]) continue search
-  return {from: Pos(line + 1 - lines.length, adjustPos(top, topString, top.length - lines[0].length, fold)),
-    to: Pos(line, adjustPos(orig, string, lastLine.length, fold))}
-}
+      var orig = doc.getLine(line)
+      if (ch > -1) orig = orig.slice(0, ch)
+      var string = fold(orig)
+      if (lines.length == 1) {
+        var found = string.lastIndexOf(lines[0])
+        if (found == -1) continue search
+        return {from: Pos(line, adjustPos(orig, string, found, fold)),
+                to: Pos(line, adjustPos(orig, string, found + lines[0].length, fold))}
+      } else {
+        var lastLine = lines[lines.length - 1]
+        if (string.slice(0, lastLine.length) != lastLine) continue search
+        for (var i = 1, start = line - lines.length + 1; i < lines.length - 1; i++)
+          if (fold(doc.getLine(start + i)) != lines[i]) continue search
+        var top = doc.getLine(line + 1 - lines.length), topString = fold(top)
+        if (topString.slice(topString.length - lines[0].length) != lines[0]) continue search
+        return {from: Pos(line + 1 - lines.length, adjustPos(top, topString, top.length - lines[0].length, fold)),
+                to: Pos(line, adjustPos(orig, string, lastLine.length, fold))}
+      }
     }
   }
 
@@ -709,27 +855,27 @@ if (lines.length == 1) {
 
     var caseFold
     if (typeof options == "object") {
-caseFold = options.caseFold
+      caseFold = options.caseFold
     } else { // Backwards compat for when caseFold was the 4th argument
-caseFold = options
-options = null
+      caseFold = options
+      options = null
     }
 
     if (typeof query == "string") {
-if (caseFold == null) caseFold = false
-this.matches = function(reverse, pos) {
-  return (reverse ? searchStringBackward : searchStringForward)(doc, query, pos, caseFold)
-}
+      if (caseFold == null) caseFold = false
+      this.matches = function(reverse, pos) {
+        return (reverse ? searchStringBackward : searchStringForward)(doc, query, pos, caseFold)
+      }
     } else {
-query = ensureFlags(query, "gm")
-if (!options || options.multiline !== false)
-  this.matches = function(reverse, pos) {
-    return (reverse ? searchRegexpBackwardMultiline : searchRegexpForwardMultiline)(doc, query, pos)
-  }
-else
-  this.matches = function(reverse, pos) {
-    return (reverse ? searchRegexpBackward : searchRegexpForward)(doc, query, pos)
-  }
+      query = ensureFlags(query, "gm")
+      if (!options || options.multiline !== false)
+        this.matches = function(reverse, pos) {
+          return (reverse ? searchRegexpBackwardMultiline : searchRegexpForwardMultiline)(doc, query, pos)
+        }
+      else
+        this.matches = function(reverse, pos) {
+          return (reverse ? searchRegexpBackward : searchRegexpForward)(doc, query, pos)
+        }
     }
   }
 
@@ -738,42 +884,42 @@ else
     findPrevious: function() {return this.find(true)},
 
     find: function(reverse) {
-var result = this.matches(reverse, this.doc.clipPos(reverse ? this.pos.from : this.pos.to))
+      var result = this.matches(reverse, this.doc.clipPos(reverse ? this.pos.from : this.pos.to))
 
-// Implements weird auto-growing behavior on null-matches for
-// backwards-compatiblity with the vim code (unfortunately)
-while (result && CodeMirror.cmpPos(result.from, result.to) == 0) {
-  if (reverse) {
-    if (result.from.ch) result.from = Pos(result.from.line, result.from.ch - 1)
-    else if (result.from.line == this.doc.firstLine()) result = null
-    else result = this.matches(reverse, this.doc.clipPos(Pos(result.from.line - 1)))
-  } else {
-    if (result.to.ch < this.doc.getLine(result.to.line).length) result.to = Pos(result.to.line, result.to.ch + 1)
-    else if (result.to.line == this.doc.lastLine()) result = null
-    else result = this.matches(reverse, Pos(result.to.line + 1, 0))
-  }
-}
+      // Implements weird auto-growing behavior on null-matches for
+      // backwards-compatiblity with the vim code (unfortunately)
+      while (result && CodeMirror.cmpPos(result.from, result.to) == 0) {
+        if (reverse) {
+          if (result.from.ch) result.from = Pos(result.from.line, result.from.ch - 1)
+          else if (result.from.line == this.doc.firstLine()) result = null
+          else result = this.matches(reverse, this.doc.clipPos(Pos(result.from.line - 1)))
+        } else {
+          if (result.to.ch < this.doc.getLine(result.to.line).length) result.to = Pos(result.to.line, result.to.ch + 1)
+          else if (result.to.line == this.doc.lastLine()) result = null
+          else result = this.matches(reverse, Pos(result.to.line + 1, 0))
+        }
+      }
 
-if (result) {
-  this.pos = result
-  this.atOccurrence = true
-  return this.pos.match || true
-} else {
-  var end = Pos(reverse ? this.doc.firstLine() : this.doc.lastLine() + 1, 0)
-  this.pos = {from: end, to: end}
-  return this.atOccurrence = false
-}
+      if (result) {
+        this.pos = result
+        this.atOccurrence = true
+        return this.pos.match || true
+      } else {
+        var end = Pos(reverse ? this.doc.firstLine() : this.doc.lastLine() + 1, 0)
+        this.pos = {from: end, to: end}
+        return this.atOccurrence = false
+      }
     },
 
     from: function() {if (this.atOccurrence) return this.pos.from},
     to: function() {if (this.atOccurrence) return this.pos.to},
 
     replace: function(newText, origin) {
-if (!this.atOccurrence) return
-var lines = CodeMirror.splitLines(newText)
-this.doc.replaceRange(lines, this.pos.from, this.pos.to, origin)
-this.pos.to = Pos(this.pos.from.line + lines.length - 1,
-lines[lines.length - 1].length + (lines.length == 1 ? this.pos.from.ch : 0))
+      if (!this.atOccurrence) return
+      var lines = CodeMirror.splitLines(newText)
+      this.doc.replaceRange(lines, this.pos.from, this.pos.to, origin)
+      this.pos.to = Pos(this.pos.from.line + lines.length - 1,
+                        lines[lines.length - 1].length + (lines.length == 1 ? this.pos.from.ch : 0))
     }
   }
 
@@ -788,11 +934,11 @@ lines[lines.length - 1].length + (lines.length == 1 ? this.pos.from.ch : 0))
     var ranges = []
     var cur = this.getSearchCursor(query, this.getCursor("from"), caseFold)
     while (cur.findNext()) {
-if (CodeMirror.cmpPos(cur.to(), this.getCursor("to")) > 0) break
-ranges.push({anchor: cur.from(), head: cur.to()})
+      if (CodeMirror.cmpPos(cur.to(), this.getCursor("to")) > 0) break
+      ranges.push({anchor: cur.from(), head: cur.to()})
     }
     if (ranges.length)
-this.setSelections(ranges, 0)
+      this.setSelections(ranges, 0)
   })
 });
 
@@ -823,21 +969,21 @@ this.setSelections(ranges, 0)
 
   function searchOverlay(query, caseInsensitive) {
     if (typeof query == "string")
-query = new RegExp(query.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&"), caseInsensitive ? "gi" : "g");
+      query = new RegExp(query.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&"), caseInsensitive ? "gi" : "g");
     else if (!query.global)
-query = new RegExp(query.source, query.ignoreCase ? "gi" : "g");
+      query = new RegExp(query.source, query.ignoreCase ? "gi" : "g");
 
     return {token: function(stream) {
-query.lastIndex = stream.pos;
-var match = query.exec(stream.string);
-if (match && match.index == stream.pos) {
-  stream.pos += match[0].length || 1;
-  return "searching";
-} else if (match) {
-  stream.pos = match.index;
-} else {
-  stream.skipToEnd();
-}
+      query.lastIndex = stream.pos;
+      var match = query.exec(stream.string);
+      if (match && match.index == stream.pos) {
+        stream.pos += match[0].length || 1;
+        return "searching";
+      } else if (match) {
+        stream.pos = match.index;
+      } else {
+        stream.skipToEnd();
+      }
     }};
   }
 
@@ -861,11 +1007,11 @@ if (match && match.index == stream.pos) {
 
   function persistentDialog(cm, text, deflt, onEnter, onKeyDown) {
     cm.openDialog(text, onEnter, {
-value: deflt,
-selectValueOnOpen: true,
-closeOnEnter: false,
-onClose: function() { clearSearch(cm); },
-onKeyDown: onKeyDown
+      value: deflt,
+      selectValueOnOpen: true,
+      closeOnEnter: false,
+      onClose: function() { clearSearch(cm); },
+      onKeyDown: onKeyDown
     });
   }
 
@@ -881,24 +1027,24 @@ onKeyDown: onKeyDown
 
   function parseString(string) {
     return string.replace(/\\([nrt\\])/g, function(match, ch) {
-if (ch == "n") return "\n"
-if (ch == "r") return "\r"
-if (ch == "t") return "\t"
-if (ch == "\\") return "\\"
-return match
+      if (ch == "n") return "\n"
+      if (ch == "r") return "\r"
+      if (ch == "t") return "\t"
+      if (ch == "\\") return "\\"
+      return match
     })
   }
 
   function parseQuery(query) {
     var isRE = query.match(/^\/(.*)\/([a-z]*)$/);
     if (isRE) {
-try { query = new RegExp(isRE[1], isRE[2].indexOf("i") == -1 ? "" : "i"); }
-catch(e) {} // Not a regular expression after all, do a string search
+      try { query = new RegExp(isRE[1], isRE[2].indexOf("i") == -1 ? "" : "i"); }
+      catch(e) {} // Not a regular expression after all, do a string search
     } else {
-query = parseString(query)
+      query = parseString(query)
     }
     if (typeof query == "string" ? query == "" : query.test(""))
-query = /x^/;
+      query = /x^/;
     return query;
   }
 
@@ -909,8 +1055,8 @@ query = /x^/;
     state.overlay = searchOverlay(state.query, queryCaseInsensitive(state.query));
     cm.addOverlay(state.overlay);
     if (cm.showMatchesOnScrollbar) {
-if (state.annotate) { state.annotate.clear(); state.annotate = null; }
-state.annotate = cm.showMatchesOnScrollbar(state.query, queryCaseInsensitive(state.query));
+      if (state.annotate) { state.annotate.clear(); state.annotate = null; }
+      state.annotate = cm.showMatchesOnScrollbar(state.query, queryCaseInsensitive(state.query));
     }
   }
 
@@ -920,48 +1066,48 @@ state.annotate = cm.showMatchesOnScrollbar(state.query, queryCaseInsensitive(sta
     var q = cm.getSelection() || state.lastQuery;
     if (q instanceof RegExp && q.source == "x^") q = null
     if (persistent && cm.openDialog) {
-var hiding = null
-var searchNext = function(query, event) {
-  CodeMirror.e_stop(event);
-  if (!query) return;
-  if (query != state.queryText) {
-    startSearch(cm, state, query);
-    state.posFrom = state.posTo = cm.getCursor();
-  }
-  if (hiding) hiding.style.opacity = 1
-  findNext(cm, event.shiftKey, function(_, to) {
-    var dialog
-    if (to.line < 3 && document.querySelector &&
-  (dialog = cm.display.wrapper.querySelector(".CodeMirror-dialog")) &&
-  dialog.getBoundingClientRect().bottom - 4 > cm.cursorCoords(to, "window").top)
-(hiding = dialog).style.opacity = .4
-  })
-};
-persistentDialog(cm, getQueryDialog(cm), q, searchNext, function(event, query) {
-  var keyName = CodeMirror.keyName(event)
-  var extra = cm.getOption('extraKeys'), cmd = (extra && extra[keyName]) || CodeMirror.keyMap[cm.getOption("keyMap")][keyName]
-  if (cmd == "findNext" || cmd == "findPrev" ||
-    cmd == "findPersistentNext" || cmd == "findPersistentPrev") {
-    CodeMirror.e_stop(event);
-    startSearch(cm, getSearchState(cm), query);
-    cm.execCommand(cmd);
-  } else if (cmd == "find" || cmd == "findPersistent") {
-    CodeMirror.e_stop(event);
-    searchNext(query, event);
-  }
-});
-if (immediate && q) {
-  startSearch(cm, state, q);
-  findNext(cm, rev);
-}
+      var hiding = null
+      var searchNext = function(query, event) {
+        CodeMirror.e_stop(event);
+        if (!query) return;
+        if (query != state.queryText) {
+          startSearch(cm, state, query);
+          state.posFrom = state.posTo = cm.getCursor();
+        }
+        if (hiding) hiding.style.opacity = 1
+        findNext(cm, event.shiftKey, function(_, to) {
+          var dialog
+          if (to.line < 3 && document.querySelector &&
+              (dialog = cm.display.wrapper.querySelector(".CodeMirror-dialog")) &&
+              dialog.getBoundingClientRect().bottom - 4 > cm.cursorCoords(to, "window").top)
+            (hiding = dialog).style.opacity = .4
+        })
+      };
+      persistentDialog(cm, getQueryDialog(cm), q, searchNext, function(event, query) {
+        var keyName = CodeMirror.keyName(event)
+        var extra = cm.getOption('extraKeys'), cmd = (extra && extra[keyName]) || CodeMirror.keyMap[cm.getOption("keyMap")][keyName]
+        if (cmd == "findNext" || cmd == "findPrev" ||
+          cmd == "findPersistentNext" || cmd == "findPersistentPrev") {
+          CodeMirror.e_stop(event);
+          startSearch(cm, getSearchState(cm), query);
+          cm.execCommand(cmd);
+        } else if (cmd == "find" || cmd == "findPersistent") {
+          CodeMirror.e_stop(event);
+          searchNext(query, event);
+        }
+      });
+      if (immediate && q) {
+        startSearch(cm, state, q);
+        findNext(cm, rev);
+      }
     } else {
-dialog(cm, getQueryDialog(cm), "Search for:", q, function(query) {
-  if (query && !state.query) cm.operation(function() {
-    startSearch(cm, state, query);
-    state.posFrom = state.posTo = cm.getCursor();
-    findNext(cm, rev);
-  });
-});
+      dialog(cm, getQueryDialog(cm), "Search for:", q, function(query) {
+        if (query && !state.query) cm.operation(function() {
+          startSearch(cm, state, query);
+          state.posFrom = state.posTo = cm.getCursor();
+          findNext(cm, rev);
+        });
+      });
     }
   }
 
@@ -969,8 +1115,8 @@ dialog(cm, getQueryDialog(cm), "Search for:", q, function(query) {
     var state = getSearchState(cm);
     var cursor = getSearchCursor(cm, state.query, rev ? state.posFrom : state.posTo);
     if (!cursor.find(rev)) {
-cursor = getSearchCursor(cm, state.query, rev ? CodeMirror.Pos(cm.lastLine()) : CodeMirror.Pos(cm.firstLine(), 0));
-if (!cursor.find(rev)) return;
+      cursor = getSearchCursor(cm, state.query, rev ? CodeMirror.Pos(cm.lastLine()) : CodeMirror.Pos(cm.firstLine(), 0));
+      if (!cursor.find(rev)) return;
     }
     cm.setSelection(cursor.from(), cursor.to());
     const { clientHeight } = cm.getScrollInfo()
@@ -1004,12 +1150,12 @@ if (!cursor.find(rev)) return;
 
   function replaceAll(cm, query, text) {
     cm.operation(function() {
-for (var cursor = getSearchCursor(cm, query); cursor.findNext();) {
-  if (typeof query != "string") {
-    var match = cm.getRange(cursor.from(), cursor.to()).match(query);
-    cursor.replace(text.replace(/\$(\d)/g, function(_, i) {return match[i];}));
-  } else cursor.replace(text);
-}
+      for (var cursor = getSearchCursor(cm, query); cursor.findNext();) {
+        if (typeof query != "string") {
+          var match = cm.getRange(cursor.from(), cursor.to()).match(query);
+          cursor.replace(text.replace(/\$(\d)/g, function(_, i) {return match[i];}));
+        } else cursor.replace(text);
+      }
     });
   }
 
@@ -1018,36 +1164,36 @@ for (var cursor = getSearchCursor(cm, query); cursor.findNext();) {
     var query = cm.getSelection() || getSearchState(cm).lastQuery;
     var dialogText = '<span class="CodeMirror-search-label">' + (all ? cm.phrase("Replace all:") : cm.phrase("Replace:")) + '</span>';
     dialog(cm, dialogText + getReplaceQueryDialog(cm), dialogText, query, function(query) {
-if (!query) return;
-query = parseQuery(query);
-dialog(cm, getReplacementQueryDialog(cm), cm.phrase("Replace with:"), "", function(text) {
-  text = parseString(text)
-  if (all) {
-    replaceAll(cm, query, text)
-  } else {
-    clearSearch(cm);
-    var cursor = getSearchCursor(cm, query, cm.getCursor("from"));
-    var advance = function() {
-var start = cursor.from(), match;
-if (!(match = cursor.findNext())) {
-  cursor = getSearchCursor(cm, query);
-  if (!(match = cursor.findNext()) ||
-(start && cursor.from().line == start.line && cursor.from().ch == start.ch)) return;
-}
-cm.setSelection(cursor.from(), cursor.to());
-cm.scrollIntoView({from: cursor.from(), to: cursor.to()});
-confirmDialog(cm, getDoReplaceConfirm(cm), cm.phrase("Replace?"),
-  [function() {doReplace(match);}, advance,
-   function() {replaceAll(cm, query, text)}]);
-    };
-    var doReplace = function(match) {
-cursor.replace(typeof query == "string" ? text :
-   text.replace(/\$(\d)/g, function(_, i) {return match[i];}));
-advance();
-    };
-    advance();
-  }
-});
+      if (!query) return;
+      query = parseQuery(query);
+      dialog(cm, getReplacementQueryDialog(cm), cm.phrase("Replace with:"), "", function(text) {
+        text = parseString(text)
+        if (all) {
+          replaceAll(cm, query, text)
+        } else {
+          clearSearch(cm);
+          var cursor = getSearchCursor(cm, query, cm.getCursor("from"));
+          var advance = function() {
+            var start = cursor.from(), match;
+            if (!(match = cursor.findNext())) {
+              cursor = getSearchCursor(cm, query);
+              if (!(match = cursor.findNext()) ||
+                  (start && cursor.from().line == start.line && cursor.from().ch == start.ch)) return;
+            }
+            cm.setSelection(cursor.from(), cursor.to());
+            cm.scrollIntoView({from: cursor.from(), to: cursor.to()});
+            confirmDialog(cm, getDoReplaceConfirm(cm), cm.phrase("Replace?"),
+                          [function() {doReplace(match);}, advance,
+                           function() {replaceAll(cm, query, text)}]);
+          };
+          var doReplace = function(match) {
+            cursor.replace(typeof query == "string" ? text :
+                           text.replace(/\$(\d)/g, function(_, i) {return match[i];}));
+            advance();
+          };
+          advance();
+        }
+      });
     });
   }
 
@@ -1097,32 +1243,32 @@ advance();
     this.computeScale();
 
     function scheduleRedraw(delay) {
-clearTimeout(self.doRedraw);
-self.doRedraw = setTimeout(function() { self.redraw(); }, delay);
+      clearTimeout(self.doRedraw);
+      self.doRedraw = setTimeout(function() { self.redraw(); }, delay);
     }
 
     var self = this;
     cm.on("refresh", this.resizeHandler = function() {
-clearTimeout(self.doUpdate);
-self.doUpdate = setTimeout(function() {
-  if (self.computeScale()) scheduleRedraw(20);
-}, 100);
+      clearTimeout(self.doUpdate);
+      self.doUpdate = setTimeout(function() {
+        if (self.computeScale()) scheduleRedraw(20);
+      }, 100);
     });
     cm.on("markerAdded", this.resizeHandler);
     cm.on("markerCleared", this.resizeHandler);
     if (options.listenForChanges !== false)
-cm.on("changes", this.changeHandler = function() {
-  scheduleRedraw(250);
-});
+      cm.on("changes", this.changeHandler = function() {
+        scheduleRedraw(250);
+      });
   }
 
   Annotation.prototype.computeScale = function() {
     var cm = this.cm;
     var hScale = (cm.getWrapperElement().clientHeight - cm.display.barHeight - this.buttonHeight * 2) /
-cm.getScrollerElement().scrollHeight
+      cm.getScrollerElement().scrollHeight
     if (hScale != this.hScale) {
-this.hScale = hScale;
-return true;
+      this.hScale = hScale;
+      return true;
     }
   };
 
@@ -1141,40 +1287,40 @@ return true;
     var singleLineH = wrapping && cm.defaultTextHeight() * 1.5;
     var curLine = null, curLineObj = null;
     function getY(pos, top) {
-if (curLine != pos.line) {
-  curLine = pos.line;
-  curLineObj = cm.getLineHandle(curLine);
-}
-if ((curLineObj.widgets && curLineObj.widgets.length) ||
-    (wrapping && curLineObj.height > singleLineH))
-  return cm.charCoords(pos, "local")[top ? "top" : "bottom"];
-var topY = cm.heightAtLine(curLineObj, "local");
-return topY + (top ? 0 : curLineObj.height);
+      if (curLine != pos.line) {
+        curLine = pos.line;
+        curLineObj = cm.getLineHandle(curLine);
+      }
+      if ((curLineObj.widgets && curLineObj.widgets.length) ||
+          (wrapping && curLineObj.height > singleLineH))
+        return cm.charCoords(pos, "local")[top ? "top" : "bottom"];
+      var topY = cm.heightAtLine(curLineObj, "local");
+      return topY + (top ? 0 : curLineObj.height);
     }
 
     var lastLine = cm.lastLine()
     if (cm.display.barWidth) for (var i = 0, nextTop; i < anns.length; i++) {
-var ann = anns[i];
-if (ann.to.line > lastLine) continue;
-var top = nextTop || getY(ann.from, true) * hScale;
-var bottom = getY(ann.to, false) * hScale;
-while (i < anns.length - 1) {
-  if (anns[i + 1].to.line > lastLine) break;
-  nextTop = getY(anns[i + 1].from, true) * hScale;
-  if (nextTop > bottom + .9) break;
-  ann = anns[++i];
-  bottom = getY(ann.to, false) * hScale;
-}
-if (bottom == top) continue;
-var height = Math.max(bottom - top, 3);
+      var ann = anns[i];
+      if (ann.to.line > lastLine) continue;
+      var top = nextTop || getY(ann.from, true) * hScale;
+      var bottom = getY(ann.to, false) * hScale;
+      while (i < anns.length - 1) {
+        if (anns[i + 1].to.line > lastLine) break;
+        nextTop = getY(anns[i + 1].from, true) * hScale;
+        if (nextTop > bottom + .9) break;
+        ann = anns[++i];
+        bottom = getY(ann.to, false) * hScale;
+      }
+      if (bottom == top) continue;
+      var height = Math.max(bottom - top, 3);
 
-var elt = frag.appendChild(document.createElement("div"));
-elt.style.cssText = "position: absolute; right: 0px; width: " + Math.max(cm.display.barWidth - 1, 2) + "px; top: "
-  + (top + this.buttonHeight) + "px; height: " + height + "px";
-elt.className = this.options.className;
-if (ann.id) {
-  elt.setAttribute("annotation-id", ann.id);
-}
+      var elt = frag.appendChild(document.createElement("div"));
+      elt.style.cssText = "position: absolute; right: 0px; width: " + Math.max(cm.display.barWidth - 1, 2) + "px; top: "
+        + (top + this.buttonHeight) + "px; height: " + height + "px";
+      elt.className = this.options.className;
+      if (ann.id) {
+        elt.setAttribute("annotation-id", ann.id);
+      }
     }
     this.div.textContent = "";
     this.div.appendChild(frag);
@@ -1237,17 +1383,17 @@ if (ann.id) {
   SearchAnnotation.prototype.findMatches = function() {
     if (!this.gap) return;
     for (var i = 0; i < this.matches.length; i++) {
-var match = this.matches[i];
-if (match.from.line >= this.gap.to) break;
-if (match.to.line >= this.gap.from) this.matches.splice(i--, 1);
+      var match = this.matches[i];
+      if (match.from.line >= this.gap.to) break;
+      if (match.to.line >= this.gap.from) this.matches.splice(i--, 1);
     }
     var cursor = this.cm.getSearchCursor(this.query, CodeMirror.Pos(this.gap.from, 0), {caseFold: this.caseFold, multiline: this.options.multiline});
     var maxMatches = this.options && this.options.maxMatches || MAX_MATCHES;
     while (cursor.findNext()) {
-var match = {from: cursor.from(), to: cursor.to()};
-if (match.from.line >= this.gap.to) break;
-this.matches.splice(i++, 0, match);
-if (this.matches.length > maxMatches) break;
+      var match = {from: cursor.from(), to: cursor.to()};
+      if (match.from.line >= this.gap.to) break;
+      this.matches.splice(i++, 0, match);
+      if (this.matches.length > maxMatches) break;
     }
     this.gap = null;
   };
@@ -1262,18 +1408,18 @@ if (this.matches.length > maxMatches) break;
     var endLine = CodeMirror.changeEnd(change).line;
     var sizeChange = endLine - change.to.line;
     if (this.gap) {
-this.gap.from = Math.min(offsetLine(this.gap.from, startLine, sizeChange), change.from.line);
-this.gap.to = Math.max(offsetLine(this.gap.to, startLine, sizeChange), change.from.line);
+      this.gap.from = Math.min(offsetLine(this.gap.from, startLine, sizeChange), change.from.line);
+      this.gap.to = Math.max(offsetLine(this.gap.to, startLine, sizeChange), change.from.line);
     } else {
-this.gap = {from: change.from.line, to: endLine + 1};
+      this.gap = {from: change.from.line, to: endLine + 1};
     }
 
     if (sizeChange) for (var i = 0; i < this.matches.length; i++) {
-var match = this.matches[i];
-var newFrom = offsetLine(match.from.line, startLine, sizeChange);
-if (newFrom != match.from.line) match.from = CodeMirror.Pos(newFrom, match.from.ch);
-var newTo = offsetLine(match.to.line, startLine, sizeChange);
-if (newTo != match.to.line) match.to = CodeMirror.Pos(newTo, match.to.ch);
+      var match = this.matches[i];
+      var newFrom = offsetLine(match.from.line, startLine, sizeChange);
+      if (newFrom != match.from.line) match.from = CodeMirror.Pos(newFrom, match.from.ch);
+      var newTo = offsetLine(match.to.line, startLine, sizeChange);
+      if (newTo != match.to.line) match.to = CodeMirror.Pos(newTo, match.to.ch);
     }
     clearTimeout(this.update);
     var self = this;
@@ -1328,18 +1474,18 @@ if (newTo != match.to.line) match.to = CodeMirror.Pos(newTo, match.to.ch);
   CodeMirror.commands.jumpToLine = function(cm) {
     var cur = cm.getCursor();
     dialog(cm, getJumpDialog(cm), cm.phrase("Jump to line:"), (cur.line + 1) + ":" + cur.ch, function(posStr) {
-if (!posStr) return;
+      if (!posStr) return;
 
-var match;
-if (match = /^\s*([\+\-]?\d+)\s*\:\s*(\d+)\s*$/.exec(posStr)) {
-  cm.setCursor(interpretLine(cm, match[1]), Number(match[2]))
-} else if (match = /^\s*([\+\-]?\d+(\.\d+)?)\%\s*/.exec(posStr)) {
-  var line = Math.round(cm.lineCount() * Number(match[1]) / 100);
-  if (/^[-+]/.test(match[1])) line = cur.line + line + 1;
-  cm.setCursor(line - 1, cur.ch);
-} else if (match = /^\s*\:?\s*([\+\-]?\d+)\s*/.exec(posStr)) {
-  cm.setCursor(interpretLine(cm, match[1]), cur.ch);
-}
+      var match;
+      if (match = /^\s*([\+\-]?\d+)\s*\:\s*(\d+)\s*$/.exec(posStr)) {
+        cm.setCursor(interpretLine(cm, match[1]), Number(match[2]))
+      } else if (match = /^\s*([\+\-]?\d+(\.\d+)?)\%\s*/.exec(posStr)) {
+        var line = Math.round(cm.lineCount() * Number(match[1]) / 100);
+        if (/^[-+]/.test(match[1])) line = cur.line + line + 1;
+        cm.setCursor(line - 1, cur.ch);
+      } else if (match = /^\s*\:?\s*([\+\-]?\d+)\s*/.exec(posStr)) {
+        cm.setCursor(interpretLine(cm, match[1]), cur.ch);
+      }
     });
   };
 
@@ -1362,128 +1508,128 @@ if (match = /^\s*([\+\-]?\d+)\s*\:\s*(\d+)\s*$/.exec(posStr)) {
 
 ((mod) => {
     if (typeof exports === 'object' && typeof module === 'object') // CommonJS
-  return mod(require('codemirror/lib/codemirror'));
+        return mod(require('codemirror/lib/codemirror'));
 
     if (typeof define === 'function' && define.amd) // AMD
-  return define(['codemirror/lib/codemirror'], mod);
+        return define(['codemirror/lib/codemirror'], mod);
 
     mod(CodeMirror);
 })((CodeMirror) => {
     CodeMirror.defineOption('showInvisibles', false, (cm, val, prev) => {
-  let Count = 0;
-  const Maximum = cm.getOption('maxInvisibles') || 16;
+        let Count = 0;
+        const Maximum = cm.getOption('maxInvisibles') || 16;
 
-  if (prev === CodeMirror.Init)
-prev = false;
+        if (prev === CodeMirror.Init)
+            prev = false;
 
-  if (prev && !val) {
-cm.removeOverlay('invisibles');
-return rm();
-  }
+        if (prev && !val) {
+            cm.removeOverlay('invisibles');
+            return rm();
+        }
 
-  if (!prev && val) {
-add(Maximum);
+        if (!prev && val) {
+            add(Maximum);
 
-cm.addOverlay({
-    name: 'invisibles',
-    token: function nextToken(stream) {
-  let spaces = 0;
-  let peek = stream.peek() === ' ';
+            cm.addOverlay({
+                name: 'invisibles',
+                token: function nextToken(stream) {
+                    let spaces = 0;
+                    let peek = stream.peek() === ' ';
 
-  if (peek) {
-while (peek && spaces < Maximum) {
-    ++spaces;
+                    if (peek) {
+                        while (peek && spaces < Maximum) {
+                            ++spaces;
 
-    stream.next();
-    peek = stream.peek() === ' ';
-}
+                            stream.next();
+                            peek = stream.peek() === ' ';
+                        }
 
-let ret = 'whitespace whitespace-' + spaces;
+                        let ret = 'whitespace whitespace-' + spaces;
 
-/*
- * styles should be different
- * could not be two same styles
- * beside because of this check in runmode
- * function in `codemirror.js`:
- *
- * 6624: if (!flattenSpans || curStyle != style) {}
- */
-if (spaces === Maximum)
-    ret += ' whitespace-rand-' + Count++;
+                        /*
+                         * styles should be different
+                         * could not be two same styles
+                         * beside because of this check in runmode
+                         * function in `codemirror.js`:
+                         *
+                         * 6624: if (!flattenSpans || curStyle != style) {}
+                         */
+                        if (spaces === Maximum)
+                            ret += ' whitespace-rand-' + Count++;
 
-return ret;
-  }
+                        return ret;
+                    }
 
-  while (!stream.eol() && !peek) {
-stream.next();
+                    while (!stream.eol() && !peek) {
+                        stream.next();
 
-peek = stream.peek() === ' ';
-  }
+                        peek = stream.peek() === ' ';
+                    }
 
-  return 'cm-eol';
-    },
-});
-  }
+                    return 'cm-eol';
+                },
+            });
+        }
     });
 
     function add(max) {
-  const classBase = '.CodeMirror .cm-whitespace-';
-  const spaceChar = '·';
-  const style = document.createElement('style');
+        const classBase = '.CodeMirror .cm-whitespace-';
+        const spaceChar = '·';
+        const style = document.createElement('style');
 
-  style.setAttribute('data-name', 'js-show-invisibles');
+        style.setAttribute('data-name', 'js-show-invisibles');
 
-  let rules = '';
-  let spaceChars = '';
+        let rules = '';
+        let spaceChars = '';
 
-  for (let i = 1; i <= max; ++i) {
-spaceChars += spaceChar;
-rules += classBase + i + `:not([class*="cm-trailing-space-"])::before { content: "${spaceChars}";}\n`;
-  }
+        for (let i = 1; i <= max; ++i) {
+            spaceChars += spaceChar;
+            rules += classBase + i + `:not([class*="cm-trailing-space-"])::before { content: "${spaceChars}";}\n`;
+        }
 
-  const gfmRules = '[class*=cm-trailing-space]::before{content: "·";}';
+        const gfmRules = '[class*=cm-trailing-space]::before{content: "·";}';
 
-  style.textContent = [
-getStyle(),
-getEOL(),
-rules,
-gfmRules,
-  ].join('\n');
+        style.textContent = [
+            getStyle(),
+            getEOL(),
+            rules,
+            gfmRules,
+        ].join('\n');
 
-  document.head.appendChild(style);
+        document.head.appendChild(style);
     }
 
     function rm() {
-  const style = document.querySelector('[data-name="js-show-invisibles"]');
-  document.head.removeChild(style);
+        const style = document.querySelector('[data-name="js-show-invisibles"]');
+        document.head.removeChild(style);
     }
 
     function getStyle() {
-  const style = [
-'.cm-whitespace::before {',
-    'position: absolute;',
-    'pointer-events: none;',
-    //'color: #404F7D;',
-    'color: rgba(var( --main-theme-highlight-color),0.4);',
-    'filter: brightness(5);',
-'}',
-  ].join('');
+        const style = [
+            '.cm-whitespace::before {',
+                'position: absolute;',
+                'pointer-events: none;',
+                //'color: #404F7D;',
+                'color: rgba(var( --main-theme-highlight-color),0.4);',
+                'filter: brightness(5);',
+            '}',
+        ].join('');
 
-  return style;
+        return style;
     }
 
     function getEOL() {
-  const style = [
-// NOTE: I don't really like seeing EOL characters...
-// TODO: should append style for tabs, though (right now it's in CSS)
-// '.CodeMirror-code > div > pre > span::after, .CodeMirror-line > span::after {',
-// 'pointer-events: none;',
-// 'color: #404F7D;',
-// 'content: "¬"',
-// '}',
-  ].join('');
+        const style = [
+            // NOTE: I don't really like seeing EOL characters...
+            // TODO: should append style for tabs, though (right now it's in CSS)
+            // '.CodeMirror-code > div > pre > span::after, .CodeMirror-line > span::after {',
+            // 'pointer-events: none;',
+            // 'color: #404F7D;',
+            // 'content: "¬"',
+            // '}',
+        ].join('');
 
-  return style;
+        return style;
     }
 });
 
@@ -1552,3 +1698,449 @@ gfmRules,
 
 // -----  panel.js
 !function(e){"object"==typeof exports&&"object"==typeof module?e(require("../../lib/codemirror")):"function"==typeof define&&define.amd?define(["../../lib/codemirror"],e):e(CodeMirror)}(function(e){function s(e,t,i,n){this.cm=e,this.node=t,this.options=i,this.height=n,this.cleared=!1}function p(e,t){for(var i=t.nextSibling;i;i=i.nextSibling)if(i==e.getWrapperElement())return 1}e.defineExtension("addPanel",function(e,t){t=t||{},this.state.panels||function(n){var e=n.getWrapperElement(),t=window.getComputedStyle?window.getComputedStyle(e):e.currentStyle,r=parseInt(t.height),o=n.state.panels={setHeight:e.style.height,panels:[],wrapper:document.createElement("div")};e.parentNode.insertBefore(o.wrapper,e);t=n.hasFocus();o.wrapper.appendChild(e),t&&n.focus();n._setSize=n.setSize,null!=r&&(n.setSize=function(e,t){t=t||o.wrapper.offsetHeight,"number"!=typeof(o.setHeight=t)&&(t=(i=/^(\d+\.?\d*)px$/.exec(t))?Number(i[1]):(o.wrapper.style.height=t,o.wrapper.offsetHeight));var i=t-o.panels.map(function(e){return e.node.getBoundingClientRect().height}).reduce(function(e,t){return e+t},0);n._setSize(e,i),r=t})}(this);var i=this.state.panels,n=i.wrapper,r=this.getWrapperElement(),o=t.replace instanceof s&&!t.replace.cleared;t.after instanceof s&&!t.after.cleared?n.insertBefore(e,t.before.node.nextSibling):t.before instanceof s&&!t.before.cleared?n.insertBefore(e,t.before.node):o?(n.insertBefore(e,t.replace.node),t.replace.clear(!0)):"bottom"==t.position?n.appendChild(e):"before-bottom"==t.position?n.insertBefore(e,r.nextSibling):"after-top"==t.position?n.insertBefore(e,r):n.insertBefore(e,n.firstChild);r=t&&t.height||e.offsetHeight,n=new s(this,e,t,r);return i.panels.push(n),this.setSize(),t.stable&&p(this,e)&&this.scrollTo(null,this.getScrollInfo().top+r),n}),s.prototype.clear=function(e){var t;this.cleared||(this.cleared=!0,(t=this.cm.state.panels).panels.splice(t.panels.indexOf(this),1),this.cm.setSize(),this.options.stable&&p(this.cm,this.node)&&this.cm.scrollTo(null,this.cm.getScrollInfo().top-this.height),t.wrapper.removeChild(this.node),0!=t.panels.length||e||function(e){var t=e.state.panels;e.state.panels=null;var i=e.getWrapperElement();t.wrapper.parentNode.replaceChild(i,t.wrapper),i.style.height=t.setHeight,e.setSize=e._setSize,e.setSize()}(this.cm))},s.prototype.changed=function(){this.height=this.node.getBoundingClientRect().height,this.cm.setSize()}});
+
+
+
+
+
+
+// -----  comment.js
+!function(e){"object"==typeof exports&&"object"==typeof module?e(require("../../lib/codemirror")):"function"==typeof define&&define.amd?define(["../../lib/codemirror"],e):e(CodeMirror)}(function(e){"use strict";var L={},x=/[^\s\u00a0]/,R=e.Pos,u=e.cmpPos;function f(e){e=e.search(x);return-1==e?0:e}function O(e,n){var t=e.getMode();return!1!==t.useInnerComments&&t.innerMode?e.getModeAt(n):t}e.commands.toggleComment=function(e){e.toggleComment()},e.defineExtension("toggleComment",function(e){e=e||L;for(var n=this,t=1/0,i=this.listSelections(),l=null,o=i.length-1;0<=o;o--){var r=i[o].from(),m=i[o].to();r.line>=t||(m.line>=t&&(m=R(t,0)),t=r.line,null==l?l=n.uncomment(r,m,e)?"un":(n.lineComment(r,m,e),"line"):"un"==l?n.uncomment(r,m,e):n.lineComment(r,m,e))}}),e.defineExtension("lineComment",function(o,e,r){r=r||L;var n,m,a,c,g,s=this,t=O(s,o),i=s.getLine(o.line);null!=i&&(n=o,i=i,!/\bstring\b/.test(s.getTokenTypeAt(R(n.line,0)))||/^[\'\"\`]/.test(i))&&((m=r.lineComment||t.lineComment)?(a=Math.min(0!=e.ch||e.line==o.line?e.line+1:e.line,s.lastLine()+1),c=null==r.padding?" ":r.padding,g=r.commentBlankLines||o.line==e.line,s.operation(function(){if(r.indent){for(var e=null,n=o.line;n<a;++n){var t=(i=s.getLine(n)).slice(0,f(i));(null==e||e.length>t.length)&&(e=t)}for(n=o.line;n<a;++n){var i=s.getLine(n),l=e.length;(g||x.test(i))&&(i.slice(0,l)!=e&&(l=f(i)),s.replaceRange(e+m+c,R(n,0),R(n,l)))}}else for(n=o.line;n<a;++n)(g||x.test(s.getLine(n)))&&s.replaceRange(m+c,R(n,0))})):(r.blockCommentStart||t.blockCommentStart)&&(r.fullLines=!0,s.blockComment(o,e,r)))}),e.defineExtension("blockComment",function(o,r,m){m=m||L;var a,c,g=this,s=O(g,o),f=m.blockCommentStart||s.blockCommentStart,d=m.blockCommentEnd||s.blockCommentEnd;f&&d?/\bcomment\b/.test(g.getTokenTypeAt(R(o.line,0)))||((a=Math.min(r.line,g.lastLine()))!=o.line&&0==r.ch&&x.test(g.getLine(a))&&--a,c=null==m.padding?" ":m.padding,o.line>a||g.operation(function(){if(0!=m.fullLines){var e=x.test(g.getLine(a));g.replaceRange(c+d,R(a)),g.replaceRange(f+c,R(o.line,0));var n=m.blockCommentLead||s.blockCommentLead;if(null!=n)for(var t=o.line+1;t<=a;++t)t==a&&!e||g.replaceRange(n+c,R(t,0))}else{var i=0==u(g.getCursor("to"),r),l=!g.somethingSelected();g.replaceRange(d,r),i&&g.setSelection(l?r:g.getCursor("from"),r),g.replaceRange(f,o)}})):(m.lineComment||s.lineComment)&&0!=m.fullLines&&g.lineComment(o,r,m)}),e.defineExtension("uncomment",function(e,n,t){t=t||L;var l,o=this,i=O(o,e),r=Math.min(0!=n.ch||n.line==e.line?n.line:n.line-1,o.lastLine()),m=Math.min(e.line,r),a=t.lineComment||i.lineComment,c=[],g=null==t.padding?" ":t.padding;e:if(a){for(var s=m;s<=r;++s){var f=o.getLine(s),d=f.indexOf(a);if(-1<d&&!/comment/.test(o.getTokenTypeAt(R(s,d+1)))&&(d=-1),-1==d&&x.test(f))break e;if(-1<d&&x.test(f.slice(0,d)))break e;c.push(f)}if(o.operation(function(){for(var e=m;e<=r;++e){var n=c[e-m],t=n.indexOf(a),i=t+a.length;t<0||(n.slice(i,i+g.length)==g&&(i+=g.length),l=!0,o.replaceRange("",R(e,t),R(e,i)))}}),l)return!0}var u=t.blockCommentStart||i.blockCommentStart,h=t.blockCommentEnd||i.blockCommentEnd;if(!u||!h)return!1;var C=t.blockCommentLead||i.blockCommentLead,p=o.getLine(m),b=p.indexOf(u);if(-1==b)return!1;var k=r==m?p:o.getLine(r),v=k.indexOf(h,r==m?b+u.length:0),t=R(m,b+1),i=R(r,v+1);if(-1==v||!/comment/.test(o.getTokenTypeAt(t))||!/comment/.test(o.getTokenTypeAt(i))||-1<o.getRange(t,i,"\n").indexOf(h))return!1;i=-1==(t=p.lastIndexOf(u,e.ch))?-1:p.slice(0,e.ch).indexOf(h,t+u.length);if(-1!=t&&-1!=i&&i+h.length!=e.ch)return!1;i=k.indexOf(h,n.ch);e=k.slice(n.ch).lastIndexOf(u,i-n.ch),t=-1==i||-1==e?-1:n.ch+e;return(-1==i||-1==t||t==n.ch)&&(o.operation(function(){o.replaceRange("",R(r,v-(g&&k.slice(v-g.length,v)==g?g.length:0)),R(r,v+h.length));var e=b+u.length;if(g&&p.slice(e,e+g.length)==g&&(e+=g.length),o.replaceRange("",R(m,b),R(m,e)),C)for(var n=m+1;n<=r;++n){var t,i=o.getLine(n),l=i.indexOf(C);-1==l||x.test(i.slice(0,l))||(t=l+C.length,g&&i.slice(t,t+g.length)==g&&(t+=g.length),o.replaceRange("",R(n,l),R(n,t)))}}),!0)})});
+
+
+
+
+
+
+// -----  minimap.js
+(function(mod) {
+	if (typeof exports == "object" && typeof module == "object") // CommonJS
+		mod(require("../../lib/codemirror"));
+	else if (typeof define == "function" && define.amd) // AMD
+		define(["../../lib/codemirror"], mod);
+	else // Plain browser env
+		mod(CodeMirror);
+})(function(CodeMirror) {
+	"use strict";
+
+	let SidebarInstance;
+	const ALMOST_ZERO_TRUTHY = 1e-20;
+	const syntaxColorsTokens = {
+		'#text': 'rgba(255,255,255,1)',
+		'#space': 'transparent',
+	};
+	let colors;
+	const fontSize = 1.85;
+	const fontWidth = fontSize * .55;
+	const leftMargin = 5;
+
+	const tokenlist = [
+		"#text", "#space", "comment", "string", "string-2", "number", "variable", "variable-2",
+		"def", "operator", "keyword", "atom", "meta", "tag", "tag bracket", "attribute", "qualifier",
+		"property", "builtin", "variable-3", "type", "string property", "tab"
+	];
+
+	const htmlToElement = function htmlToElement(html) {
+		const template = document.createElement('template');
+		template.innerHTML = (html||'').trim();
+		return template.content.firstChild;
+	};
+
+	document.body.append(htmlToElement(`
+	<style>
+		.cm-sidebar {
+			position: absolute;
+			right: 7px;
+			top: 0;
+			bottom: 0;
+			width: 100px;
+		}
+		.cm-sidebar .side {
+			width: 100%;
+			background: #1e1e1e;
+			position: relative;
+			height: 100%;
+			border-right: 1px solid #333;
+			z-index: 9;
+		}
+		.cm-sidebar .overflow {
+			box-shadow: -2px 0px 3px 0px #0000004d;
+		}
+		.cm-sidebar .side {
+			overflow-y: hidden;
+			position: relative;
+		}
+		.cm-sidebar .side canvas {
+			position: absolute;
+		}
+		.cm-sidebar .side .scroll-handle {
+			position: absolute;
+			top: 0;
+			width: 100%;
+			background: #fff;
+			opacity: 0;
+			transition: opacity .2s;
+		}
+		.cm-sidebar .side:hover .scroll-handle,
+		.cm-sidebar .scroll-handle.dragging {
+			opacity: 0.07;
+		}
+	</style>
+	`));
+
+	const getLineTokens = (line, i, editor) => {
+		const lineTokens = editor.getLineTokens(i, true);
+		if(!lineTokens.length){
+			return {
+				offset: 0,
+				token: '#text',
+				text: line
+			};
+		}
+		return lineTokens.map((x) => {
+			const { start, type, string } = x;
+			return {
+				offset: start,
+				token: type || '#text',
+				text: string
+			};
+		})
+	};
+
+	const SyntaxColors = (parent) => {
+		for (var i = 0, len = tokenlist.length; i < len; i++) {
+				var key = tokenlist[i];
+				if(['#text', '#space'].includes(key)) continue;
+				const span = document.createElement("span");
+				span.className = "cm-" + key.replace(" ", " cm-");
+				span.innerText = span;
+				parent.appendChild(span);
+				syntaxColorsTokens[key] = getComputedStyle(span)["color"];
+				span.remove();
+		}
+		{
+			const div = document.createElement('div');
+			div.className = 'CodeMirror-selected';
+			parent.appendChild(div);
+			syntaxColorsTokens.selection = getComputedStyle(div)["background-color"];
+			div.remove();
+		}
+		return syntaxColorsTokens;
+	};
+
+	const getSidebar = (editor) => {
+		if(SidebarInstance) return SidebarInstance;
+		const codeMirrorDom = document.querySelector('.CodeMirror');
+		const colors = SyntaxColors(codeMirrorDom);
+		const container = codeMirrorDom;
+		let dom = document.querySelector('.cm-sidebar');
+		if(!dom){
+			dom = htmlToElement(`
+				<div class="cm-sidebar">
+					<div class="side overflow">
+						<canvas></canvas>
+						<div class="scroll-handle"></div>
+					</div>
+				</div>
+			`);
+			container.append(dom);
+		}
+		const canvas = dom.querySelector('canvas');
+		const ctx = canvas.getContext('2d');
+		const side = dom.querySelector('.side')
+		const scrollHandle = dom.querySelector('.scroll-handle');
+
+		canvas.style.imageRendering ='pixelated';
+		canvas.style.width ='100%';
+		// canvas.style.height='100%';
+
+		const textCanvas = new OffscreenCanvas(100,100);
+		const selectCanvas = new OffscreenCanvas(100,100);
+
+		let viewportHeight = dom.clientHeight*.1025;
+		scrollHandle.style.height = viewportHeight + 'px';
+
+		const scrollPercent = (percent, updateEditor=true) => {
+			if(canvas.height > side.clientHeight){
+				const maxScroll = side.clientHeight - viewportHeight;
+				const mod = 0.01 * maxScroll;
+				scrollHandle.style.top = Math.floor(percent*mod) + 'px';
+			}
+			if(canvas.height <= side.clientHeight){
+				const maxScroll = canvas.height > viewportHeight
+					? canvas.height - viewportHeight
+					: 0;
+				const mod = 0.01 * maxScroll;
+				scrollHandle.style.top = Math.floor(percent*mod) + 'px';
+			}
+			if(canvas.height > side.clientHeight){
+				const maxScroll = canvas.height-side.clientHeight;
+				const mod = -.01 * maxScroll;
+				canvas.style.top = Math.floor(percent*mod) + 'px';
+			}
+			if(updateEditor){
+				const maxScroll = editor.doc.height;
+				const mod = 0.01 * maxScroll;
+				const top = percent*mod;
+				editor.scrollTo(0,top>maxScroll ? maxScroll : top)
+			}
+		};
+		let scrolled = ALMOST_ZERO_TRUTHY;
+		editor.getScrollerElement().addEventListener('scroll', function(e) {
+			const percent = 100*e.target.scrollTop/editor.doc.height;
+			scrolled = percent;
+			scrollPercent(percent, false);
+		});
+		scrollHandle.onmousedown = (() => {
+			let previous;
+			let startScroll;
+			scrollHandle.ondragstart = () => false;
+			const onMouseMove = (mouseMoveEvent) => {
+				if(!previous || !startScroll) return;
+
+				const { pageY } = mouseMoveEvent;
+				const percentageMod = 115; //should be 100, but fudging a little for better usability
+				const scrollChange = percentageMod*(pageY-previous)/Math.min(side.clientHeight, canvas.height);
+				const newScroll = startScroll + scrollChange;
+				if(newScroll >= 0 && newScroll <= 100) scrolled = newScroll;
+				if(newScroll < 0) scrolled = ALMOST_ZERO_TRUTHY;
+				if(newScroll > 100) scrolled = 100;
+
+				scrollPercent(scrolled);
+			};
+			const onMouseUp = () => {
+				scrollHandle.classList.remove('dragging');
+				previous = startScroll = undefined;
+				document.removeEventListener('mousemove', onMouseMove);
+				document.removeEventListener('mouseup', onMouseUp);
+			};
+			return (mouseDownEvent) => {
+				mouseDownEvent.preventDefault();
+				scrollHandle.classList.add('dragging');
+				startScroll = scrolled;
+				previous = mouseDownEvent.pageY;
+				document.addEventListener('mousemove', onMouseMove);
+				document.addEventListener('mouseup', onMouseUp);
+			};
+		})();
+		side.onwheel = (e) => {
+			const speedModifier = 1/-60
+			const delta = e.wheelDelta * speedModifier;
+			let change = scrolled+delta;
+			if(change <= 0) change = ALMOST_ZERO_TRUTHY;
+			if(change > 100) change = 100;
+			scrolled = change;
+			scrollPercent(scrolled);
+		};
+		scrollPercent(scrolled);
+		canvas.onclick = (e) => {
+			const rect = e.target.getBoundingClientRect();
+			const y = e.clientY - rect.top;
+			scrolled = 100*y/canvas.clientHeight;
+			scrollPercent(scrolled);
+			e.preventDefault();
+		};
+
+		const updateCanvas = () => {
+			ctx.clearRect(0,0,canvas.width, canvas.height);
+			ctx.drawImage(selectCanvas,0,0);
+			ctx.drawImage(textCanvas,0,0);
+		};
+
+		const setCanvasDims = (width, height) => {
+			if(canvas.height === height && canvas.width === width) return;
+			canvas.width  = width;
+			canvas.height = height;
+			textCanvas.width  = width;
+			textCanvas.height = height;
+			selectCanvas.width  = width;
+			selectCanvas.height = height;
+			viewportHeight = dom.clientHeight*.1025;
+			scrollHandle.style.height = viewportHeight + 'px';
+		};
+
+		let linesCache;
+		const getLines = ({ cached }={}) => {
+			if(cached && linesCache) return linesCache;
+
+			const lines = editor.getValue().split('\n');
+			const foldedLines = editor.getAllMarks()
+				.filter(x => x.__isFold)
+				.map(x => x.find());
+				//.map(m => m.lines[0].lineNo()); (used elsewhere)
+			let offset=0;
+			let currentFoldIndex=0;
+			let currentFold=foldedLines[currentFoldIndex];
+			const logFold = () => console.log(currentFold?`Current Fold: ${currentFold.from.line} to ${currentFold.to.line}`:'NO MORE FOLDS');
+
+			const lineTransform = ((text, lineNo) => {
+				const lineY = lineNo-offset;
+				if(!currentFold) return { text, lineNo, lineY, visible: true };
+
+				const isFirstLine = lineNo === currentFold.from.line;
+				const withinFold = !isFirstLine && lineNo > currentFold.from.line;
+				const lineYWithinFold = currentFold.from.line-offset
+
+				const isFoldEnd = !isFirstLine && lineNo > currentFold.to.line;
+				if(isFoldEnd){
+					const diff = currentFold.to.line - currentFold.from.line + 1;
+					offset+=diff;
+					currentFoldIndex++;
+					let newFold = foldedLines[currentFoldIndex]
+					while(newFold && newFold.from.line < currentFold.to.line){
+						currentFoldIndex++;
+						newFold=foldedLines[currentFoldIndex];
+					}
+					currentFold=newFold;
+				}
+
+				return {
+					text, lineNo,
+					lineY: withinFold ? lineYWithinFold : lineY,
+					visible: !withinFold
+				};
+			});
+			const transformedLines=[];
+			for(var i=0, len=lines.length; i<len; i++ ){
+				transformedLines.push(lineTransform(lines[i], i));
+			}
+			linesCache = transformedLines;
+			return transformedLines;
+		};
+
+		SidebarInstance = {
+			dom, canvas, colors, getLines, textCanvas, selectCanvas, updateCanvas, setCanvasDims
+		}
+		return SidebarInstance;
+	};
+
+	const updateSidebarDoc = ({text}, editor) => {
+	
+	};
+
+	const updateSidebarText = (editor) => {
+		const tabWidth = 5;
+		const { scrollPastEndPadding } = editor.state;
+		const scrollEndPad = Number(scrollPastEndPadding.replace('px', ''));
+		const overScroll = Math.floor(scrollEndPad/19.5);
+		const { colors, textCanvas, updateCanvas, setCanvasDims, getLines } = getSidebar(editor);
+		const lines = getLines();
+
+		// TODO: this should be used for horizontal overflow: https://www.geeksforgeeks.org/check-whether-html-element-has-scrollbars-using-javascript/
+
+		setCanvasDims(
+			100,
+			Math.ceil((lines.filter(x=>x.visible).length+overScroll) * fontSize)
+		);
+
+		const textCtx = textCanvas.getContext('2d');
+		textCtx.font = fontSize + 'px system-ui';
+		textCtx.clearRect(0,0,textCanvas.width, textCanvas.height);
+		const drawTokens = (line) => (toke) => {
+			textCtx.fillStyle = colors[toke.token];
+			const x = line.x+(toke.offset*fontWidth);
+			const y = line.y;
+			textCtx.fillText(toke.text,x,y);
+		};
+		const drawLine = (line) => {
+			const { text, lineNo, lineY, visible } = line;
+			if(!visible) return;
+			if(!text.trim()) return;
+			let tokenized = getLineTokens(text, lineNo, editor);
+			if(!Array.isArray(tokenized)) tokenized = [tokenized];
+			const tabsAtFront = (
+				text.match(/^\t+/g) || []
+			)[0]?.length || 0;
+			const leadTabWidth = tabsAtFront * fontWidth * tabWidth
+			const x = leadTabWidth+leftMargin;
+			const y = 2+(fontSize*lineY);
+			const drawTokensWithTabs = drawTokens({ x, y });
+			tokenized.forEach(drawTokensWithTabs);
+		};
+		lines.forEach(drawLine);
+		updateCanvas();
+	}
+
+	const Selections = (editor) => {
+		const { colors, getLines, selectCanvas, updateCanvas } = getSidebar(editor);
+		const lines = getLines({ cached: true });
+		const xfrm = (lineNumber) => lines[lineNumber].lineY;
+		const selectCtx = selectCanvas.getContext('2d');
+		const selections = editor.listSelections();
+		selectCtx.clearRect(0,0,selectCanvas.width, selectCanvas.height);
+		selectCtx.globalAlpha = 0.5;
+		selections
+			.forEach((range) => {
+				const { anchor: anchorLine, head: headLine } = range;
+				let head = xfrm(headLine.line);
+				const anchor = xfrm(anchorLine.line) || head;
+				if(!head) head = anchor;
+
+				//if(head === anchor) return;
+				selectCtx.fillStyle = colors.selection;
+				selectCtx.fillRect(
+					0, head*fontSize,
+					selectCanvas.width, (anchor-head+1)*fontSize
+				);
+			});
+		updateCanvas();
+	};
+
+	const debounce = (func, wait, immediate) => {
+		var timeout;
+		return async function() {
+			var context = this, args = arguments;
+			var later = function() {
+				timeout = null;
+				if (!immediate) func.apply(context, args);
+			};
+			var callNow = immediate && !timeout;
+			clearTimeout(timeout);
+			timeout = setTimeout(later, wait);
+			if (callNow) func.apply(context, args);
+		};
+	};
+
+	const debouncedUpdateText = debounce(updateSidebarText, 500, true);
+
+	const listenMap = {
+		change: (cm) => updateSidebarText(cm),
+		cursor: (cm) => Selections(cm),
+		scroll: () => {},
+		fold: (cm) => debouncedUpdateText(cm),
+	};
+
+	const listener = (which) => (...args) => {
+		setTimeout(() => {
+			// const thisListener = listenMap[which] || (() => console.log(`minimap: ${which}`));
+			const thisListener = listenMap[which] || (() => {});
+			thisListener(...args);
+		}, 1);
+	};
+
+	listener('load')();
+
+	const minimapExt = function(cm, val, old) {
+		if (old && old != CodeMirror.Init) return;
+		if (old == CodeMirror.Init) old = false;
+		if (!old == !val) return;
+		if(!val) return;
+
+		listener('init')();
+
+		cm.on("change", listener('change'));
+		//batched
+		//cm.on("changes", listener('change'));
+		cm.on("swapDoc", listener('change'));
+		cm.on("cursorActivity", listener('cursor'));
+
+		cm.on("scroll", listener('scroll'));
+		cm.on("fold", listener('fold'));
+		cm.on("unfold", listener('fold'));
+		window.onresize = listener('resize');
+	};
+
+	CodeMirror.defineOption("miniMapWidth", 64);
+	CodeMirror.defineOption("miniMapSide", "left");
+	CodeMirror.defineOption("miniMap", false, minimapExt);
+});

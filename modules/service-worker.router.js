@@ -49,6 +49,17 @@
 				}),
 			};
 		})(),
+		"/service/commit": (() => {
+			const regex = new RegExp(
+				/^((?:.*))\/service\/commit(?:\/((?:[^\/]+?)))?(?:\/(?=$))?$/i
+			);
+			return {
+				match: (url) => regex.test(url),
+				params: (url) => ({
+					id: regex.exec(url)[2],
+				}),
+			};
+		})(),
 		"/service/delete/:id?": (() => {
 			const regex = new RegExp(
 				/^((?:.*))\/service\/delete(?:\/((?:[^\/]+?)))?(?:\/(?=$))?$/i
@@ -164,9 +175,9 @@
 			const regex = new RegExp(/^((?:.*))\/service\/search\/.*$/i);
 			return {
 				match: (url) => regex.test(safeUrl(url)),
-				params: (url) =>
+				params: (url, urlFull) =>
 					Object.fromEntries(
-						url
+						urlFull
 							.split("?")
 							.pop()
 							.split("&")
@@ -212,69 +223,64 @@
 		});
 	};
 
-	const _expressHandler = ({ TemplateEngine, storage }) => async (base, msg) => {
-		const filesStore = storage.stores.files;
+	const _expressHandler = ({ templates, storage }) => {
+		const { getFile } = storage;
 
-		//TODO: maybe all this template logic should live elsewhere
-		const templates = new TemplateEngine();
+		//bind to base, ie. when a service is added
+		return async (base, msg) => {
+			await templates.refresh();
 
-		const templatesFromStorage = [];
-		await filesStore.iterate((value, key) => {
-			if (!key.includes(`/.templates/`)) return;
-			templatesFromStorage.push({ value, key });
-		});
+			//handle individual network request
+			return async (params, event) => {
+				const { path, query } = params;
+				const cleanPath = decodeURI(path.replace("/::preview::/", ""));
+				const previewMode = path.includes("/::preview::/");
+				const templateUrl = path.includes(".templates/");
 
-		templatesFromStorage.forEach((t) => {
-			const { value, key } = t;
-			const name = key.split("/").pop();
-			templates.add(name, value);
-		});
+				const filename = previewMode
+					? cleanPath.split("/").pop()
+					: path.split("/").pop();
+				let xformedFile;
 
-		return async (params, event) => {
-			const { path, query } = params;
-			const cleanPath = decodeURI(path.replace("/::preview::/", ""));
-			const previewMode = path.includes("/::preview::/");
-			const templateUrl = path.includes(".templates/");
+				// if headers.event-requestor is 'editor-state': let getFile know so it can track
+				// try {
+				// 	const xRequestor = event.request.headers.get('x-requestor');
+				// 	console.log(xRequestor === 'editor-state'
+				// 		? 'TODO: keep track of files when they are got by editor!'
+				// 		: ''
+				// 	 );
+				// } catch(e){
+				// 	console.error(e);
+				// }
+				const file = await getFile(`${base}/${cleanPath}`)
+					|| await getFile(`./${base}/${cleanPath}`);
 
-			const filename = previewMode
-				? cleanPath.split("/").pop()
-				: path.split("/").pop();
-			let xformedFile;
+				let fileJSONString;
+				try {
+					if (typeof file !== "string") {
+						fileJSONString = file ? JSON.stringify(file, null, 2) : "";
+					} else {
+						fileJSONString = file;
+					}
+				} catch (e) {}
 
-			// TODO: settle on just one filesStore key pattern to avoid this
-			const file = await filesStore.getItem(`${base}/${cleanPath}`)
-				|| await filesStore.getItem(`./${base}/${cleanPath}`);
-			let fileJSONString;
-			try {
-				if (typeof file !== "string") {
-					fileJSONString = file ? JSON.stringify(file, null, 2) : "";
-				} else {
-					fileJSONString = file;
+				if (previewMode) {
+					xformedFile = templates.convert(filename, fileJSONString);
 				}
-			} catch (e) {}
 
-			if (previewMode) {
-				xformedFile = templates.convert(filename, fileJSONString);
-			}
+				if (previewMode && !xformedFile) {
+					return templates.NO_PREVIEW;
+				}
 
-			// NOTE: would rather update template when saved, but templates not available then
-			// for now, this will do
-			if (templateUrl) {
-				templates.update(filename, file);
-			}
+				// most likely a blob
+				if (file && file.type && file.size) {
+					//xformedFile because there may be a template for blob type file
+					return xformedFile || file;
+				}
 
-			if (previewMode && !xformedFile) {
-				return templates.NO_PREVIEW;
-			}
-
-			// most likely a blob
-			if (file && file.type && file.size) {
-				//xformedFile because there may be a template for blob type file
-				return xformedFile || file;
-			}
-
-			//TODO: need to know file type so that it can be returned properly
-			return xformedFile || fileJSONString || file;
+				//TODO: need to know file type so that it can be returned properly
+				return xformedFile || fileJSONString || file;
+			};
 		};
 	};
 	
@@ -327,19 +333,37 @@
 		// could run in to problems with this ^^^ because those may be in the process of being added
 	};
 
-	const _find = ({ _handlers, restorePrevious }) => async (url) => {
-		let found = _handlers.find((x) => x.match(url));
+	const _find = ({ _handlers, restorePrevious }) => async (request) => {
+		const { url, method } = request;
+		const query = (() => {
+			try {
+				return Object.fromEntries([ ...(new URL(url)).searchParams ]);
+			} catch(e){
+				return {};
+			}
+		})();
+
+		let found = _handlers.find((x) => {
+			return method.toLowerCase() === x.method && x.match(url.split('?')[0]);
+		});
 		if (!found) {
 			await restorePrevious();
-			found = _handlers.find((x) => x.match(url));
+			found = _handlers.find((x) => {
+				return method.toLowerCase() === x.method && x.match(url.split('?')[0]);
+			});
 
 			if (!found) {
 				return;
 			}
 		}
+
 		return {
 			exec: async (event) => {
-				return await found.handler(found.params(url), event);
+				return await found.handler(
+					found.params(url.split('?')[0], url),
+					event,
+					query
+				);
 			},
 		};
 	};
@@ -347,12 +371,12 @@
 	class Router {
 		_handlers=[];
 
-		constructor({ storage, TemplateEngine, swHandlers }){
+		constructor({ storage, templates, swHandlers }){
 			this.swHandlers = swHandlers;
 
 			this.storage = storage;
-			this.TemplateEngine = TemplateEngine;
-			
+			this.templates = templates;
+
 			this.generic = _generic(this);
 			this.get = this.generic("get");
 			this.post = this.generic("post");

@@ -98,6 +98,8 @@ async function Template(){
 	prism('javascript', message + JSON.stringify(parsed, null, 2))
 }
 
+
+// THE FOLLOWING IS NOT COMPLETE
 async function Syntax(){
 	// import a grammar, output syntax highlighter (and use, of course)
 	// https://github.com/foo123/codemirror-grammar

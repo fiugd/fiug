@@ -1,4 +1,3 @@
-<!-- no-select -->
 
 Example of this working in other online editors
 - https://stackblitz.com/angular/vbrxvkjxykx

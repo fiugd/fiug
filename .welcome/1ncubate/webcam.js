@@ -1,7 +1,14 @@
 //show-preview
+import tensorflowModelsBodyPix from 'https://cdn.skypack.dev/@tensorflow-models/body-pix';
+
 import { appendUrls, addUrls, consoleHelper, htmlToElement, importCSS } from '../.tools/misc.mjs';
 import '../shared.styl';
-consoleHelper();/*
+consoleHelper();
+/*
+https://github.com/jtangelder/webcam/blob/master/greenscreen.html
+
+https://towardsdatascience.com/virtual-background-in-webcam-with-body-segmentation-technique-fc8106ca3038
+
 */
 
 
@@ -16,19 +23,18 @@ const styleHTML = `
 			object-fit: cover;
 			height: auto;
 			margin-bottom: 1em;
-			filter: url(#displacement)
+			/* filter: url(#displacement) */
 		}
 	</style>
 `;
 
 const svgFiltersHTML = `
 <svg xmlns="http://www.w3.org/2000/svg" id="image" version="1.1">
-	 <defs>
+	<defs>
 
 	<filter id="blurEffect">
 		<feGaussianBlur stdDeviation="4"/>
 	</filter>
-
 
 	<filter id="turbulence">
 		<feTurbulence baseFrequency=".01" type="fractalNoise" numOctaves="3" seed="23" stitchTiles="stitch"/>
@@ -67,7 +73,6 @@ const svgFiltersHTML = `
 		/>
 	</filter>
 
-
 	<filter id="convolve2">
 		<feConvolveMatrix
 			filterRes="100 100"
@@ -77,7 +82,6 @@ const svgFiltersHTML = `
 			preserveAlpha="true"
 		/>
 	</filter>
-
 
 	<filter id="offset" x="-10%" y="-20%" height="230%" width="140%" transform="translate(90,0)">
 		<feGaussianBlur stdDeviation="14"/>
@@ -131,7 +135,6 @@ const svgFiltersHTML = `
 			<feMergeNode in="B"/>
 		</feMerge>
 	</filter>
-
 
 	<filter id="noir">
 		<feGaussianBlur stdDeviation="1.5"/>

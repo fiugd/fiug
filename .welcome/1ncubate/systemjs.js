@@ -20,29 +20,41 @@ const eslintConfig = {
 }
 
 const eslintEvaluate = `
-const foo = 'hello
+/*eslint spaced-comment: "off"*/
+/*eslint prefer-const: "error"*/
+/*eslint no-unused-vars: "off"*/
+/*eslint semi: "off"*/
+/*eslint indent: "warn"*/
+/*eslint quotes: "off"*/
+/*eslint standard/object-curly-even-spacing: "off"*/
+/*eslint standard/array-bracket-even-spacing: "off"*/
+/*eslint standard/computed-property-even-spacing: "off"*/
+/*eslint promise/param-names: "off"*/
+
+const foo = "hello"
+const hello = foo + '--';
+const fooFn = x => {
+	x = 5; return x;
+};
 `.trim()+'\n';
 
-const code = `
-	const logJSON = x => console.log(JSON.stringify(x,null,2))
+const code = (() => {
+	const logJSON = x => console.log(JSON.stringify(x,null,2));
 
 	console.info('LODASH');
 	const { camelCase } = require('lodash@4.17.20');
 	console.log(camelCase('Hello World There'));
 
-	//const asynclib = require('async@3.2.0');
-	//console.log(Object.keys(asynclib));
-
 	console.info('ESLINT');
 	const { default: standard } = require("eslint-config-standard@6.0/eslintrc.json");
-	//logJSON(standard)
+	//logJSON(standard.rules);
 	window.eslint = require('eslint-browser@3.8.1');
-	//console.log(Object.keys(eslint))
-	console.info(eslintEvaluate)
-	logJSON(
-		eslint.verify(eslintEvaluate, standard)
-			.filter(x => !x.ruleId || !x.ruleId.includes('standard/') && !x.ruleId.includes('promise/'))
-	);
+	console.info(eslintEvaluate);
+	//logJSON(standard);
+	standard.rules.indent = ['error', 'tab'];
+	standard.rules['no-tabs'] = 0;
+	const lintResults = eslint.verify(eslintEvaluate, standard);
+	logJSON(lintResults);
 
 	console.info('PRETTIER');
 	window.prettier = require('prettier@2.2.1/standalone.js');
@@ -51,7 +63,7 @@ const code = `
 		parser: "typescript",
 		printWidth: 120,
 		tabWidth: 4,
-		semi: false,
+		semi: true,
 		bracketSpacing: true,
 		singleQuote: true,
 		trailingComma: "es5",
@@ -59,14 +71,15 @@ const code = `
 		useTabs: true,
 	};
 	try {
-		console.log('PASS: '+prettier.check(eslintEvaluate, { ...prettierOpts, plugins: [prettierTypescript] }))
-		console.log(prettier.format(eslintEvaluate, { ...prettierOpts, plugins: [prettierTypescript] }))
+		console.log('PASS: '+prettier.check(eslintEvaluate, {
+			...prettierOpts, plugins: [prettierTypescript]
+		}));
+		console.log(prettier.format(eslintEvaluate, {
+			...prettierOpts, plugins: [prettierTypescript]
+		}));
 	} catch(e){
 		console.log('prettier check and format failed');
 	}
-
-	//const webpack = require('webpack'); 
-	//console.log(Object.keys(webpack));
 
 	console.info('FOOTILS | TIMER');
 	require('browser-process-hrtime')
@@ -88,9 +101,11 @@ const code = `
 	g.forEachNode(function(node){
 		console.log(node.id, node.data);
 	});
-	//console.log(Object.keys(g));
+}).toString();
 
-`.replace(/	/g,'');
+const systemJsSrc = "(async " +
+	code.replace(/require\(/g, 'await System.import(') +
+")()";
 
 /*
 	SystemJs can be added to javascript template
@@ -108,16 +123,19 @@ const code = `
 		"inlineSources": true
 	};
 	*/
+	const custom = {};
+
 	//const exportShim = 'export=0;\n';
 	System.defaultJSExtensions = true;
-	R(r=> { window.require=r });
+	R(r => {
+		window.require= (...args) =>
+			custom[args[0]] || r(...args);
+	})
 	window.module = {};
-	window.global = window; window.process = {};
+	window.global = window;
+	window.process = {};
 
 	// const transpiled = ts.transpile(exportShim+code, tsConfig).replace(/require\(/g, 'await System.import(');
-	const systemJsSrc = "(async () => {\n" + code.replace(/require\(/g, 'await System.import(') + "\n})()";
 	eval(systemJsSrc)
 	//appendNewScript(systemJsSrc, 'systemjs')
-
-
 })();

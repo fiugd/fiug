@@ -1,32 +1,46 @@
-<!-- no-select -->
 
-...
+# graph file formats
 
-graph file formats suck!
+Don't ask me why, but humanity seems to find it hard to agree on a notation to represent graphs.  That is, there is no one standard way to represent graph data in textual form, and it can be frustrating trying to find this.
 
-https://gephi.org/users/supported-graph-formats/
-http://manual.cytoscape.org/en/stable/Supported_Network_File_Formats.html
+TLDR; choose GML or GOT/GV and use d3/chart.js/cytoscope.js to draw the graph
 
+## misc 
+- [gephi](https://gephi.org/users/supported-graph-formats/) - does a decent job of explaining graph formats
 
-SIF seems kinda important
-DOT/GV seems kinda important
-
-CYJS - cytoscapejs format
-CX - is this even a well-used extension?
+- [ArgDown](https://argdown.org/) - uses a js version of graphviz to map arguments, but doesn't expose a graph notation format of its own (?)
+- [markmap](https://markmap.js.org/repl/) - markdown as mindmap, seems to use markdown for its graph notation
 
 
-https://en.wikipedia.org/wiki/DOT_(graph_description_language)
-https://www.graphviz.org/pdf/dotguide.pdf
-https://dreampuf.github.io/GraphvizOnline
-
-lots of examples here (click on images for .gv which seems to be .dot)
-http://www.graphviz.org/gallery/
-
-- uses a js version of graphviz to map arguments - https://argdown.org/
-- markdown as mindmap - https://markmap.js.org/repl/
+## graph libraries (web/javascript)
+- https://stackoverflow.com/questions/7034/graph-visualization-library-in-javascript
+- d3 (plotly uses this)
+- chart.js - https://github.com/chartjs/Chart.js (primeNG uses this)
+- cytoscape.js
+- vis.js
 
 
-# d3 seems to use this format (or can easily be made to use):
+## SIF
+stands for Standard Interchange Format
+
+supported by Cytoscope
+
+used by GIS (geographic information system) framework (geospatial data)
+
+Documentation is hard to find.
+
+``` javascript
+
+node1 typeA node2
+node2 typeB node3 node4 node5
+node0
+
+```
+
+## d3
+
+basically JSON format
+
 ```javascript
 {
 	"nodes":[
@@ -43,8 +57,19 @@ http://www.graphviz.org/gallery/
 ```
 
 
-# GML example:
+## GML
+stands for Graph Modelling Language
+
+used by Cytoscape, Graphlet, Pajek, yEd, LEDA, NetworkX, and others(?)
+
+see [Graph Modelling Language](https://en.wikipedia.org/wiki/Graph_Modelling_Language)
+
+NOTE: Cytoscape also uses other formats, eg CYJS, CX(?)
+
+- [cytoscape supported](http://manual.cytoscape.org/en/stable/Supported_Network_File_Formats.html)
+
 ```javascript
+
 graph [
 	comment "This is a sample graph"
 	directed 1
@@ -81,10 +106,19 @@ graph [
 		label "Edge from node 3 to node 1"
 	]
 ]
+
 ```
 
-# GV example:
-[DOT graph format](https://en.wikipedia.org/wiki/DOT_(graph_description_language))
+## GV / DOT
+stands for Graph Viz? unsure what DOT stands for
+
+used by Graphviz and others, see [DOT graph format](https://en.wikipedia.org/wiki/DOT_(graph_description_language))
+
+[graphviz DOT guide](https://www.graphviz.org/pdf/dotguide.pdf)
+[graphviz online](https://dreampuf.github.io/GraphvizOnline)
+[examples](http://www.graphviz.org/gallery/)
+
+
 ```javascript
 graph graphname {
     // This attribute applies to the graph itself

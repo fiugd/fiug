@@ -1,5 +1,3 @@
-<!-- no-select -->
-
 ### ASCII to svg
 
 draw ascii, output svg

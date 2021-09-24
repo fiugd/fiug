@@ -1,24 +1,31 @@
+<!-- discord badge -->
+[![Discord Channel](https://img.shields.io/discord/887775860881514557?color=%237289DA&logo=Discord&logoColor=white)](https://discord.com/channels/887775860881514557)
+[![Discord Invite](https://img.shields.io/badge/discord-invite-yall?color=%237289DA&logo=Discord&logoColor=white)](https://discord.gg/pdYZvsUexX)
+
 ![image](https://user-images.githubusercontent.com/1816471/93670856-78e66b00-fa6c-11ea-9ee3-2d35db13c030.png)
 
 
 ### about the name
 
+This project is called `fiug` but it wasn't always.  First it was called `bartok`, because it was to be a service composer.
+
 bartok was a music composer   
-original idea for this editor was frontend for a service composer   
+the original idea for this editor was frontend for a service composer   
+
 a fugue is a form of musical composition   
 fiug.dev is how you spell it if you are me trying to find a catchy/short/available domain name   
 
 I'm working on thinking more of this as `fiug` and less as `bartok` but maybe the later still has a life, dunno   
 
-
+Long story short: `fiug` is a front-end for another (languishing) project called `bartok`.
 
 ### how to run
 
-I'm working on making this as easy as https://fiug.dev (try it out!)
+Go to [https://fiug.dev](https://fiug.dev) (try it out!)
 
-That may not be working all the time... or now.
 
-to run UI locally:
+### how to run locally (may not even be working)
+to run UI:
 - git clone this repo
 - `npm install`
 - `npm run watch` 

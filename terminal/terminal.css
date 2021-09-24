@@ -1,5 +1,3 @@
-body { height: 100vh; width: 100vw; }
-
 ::-webkit-scrollbar { width: 8px; height: 5px; }
 ::-webkit-scrollbar-corner,
 ::-webkit-scrollbar-track { background: transparent; }

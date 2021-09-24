@@ -46,7 +46,8 @@ function _Terminal() {
 
 	const termMenu = document.createElement("div");
 	termMenu.id = "terminal-menu";
-	const termMenuStyle = `
+	const termMenuStyle = '<!-- DEPRECATE -->';
+	/*`
 		<style>
 			#terminal-menu > div:nth-child(2) ul li {
 				padding-left: 15px;
@@ -80,8 +81,17 @@ function _Terminal() {
 				padding-right: 18px;
 			}
 		</style>
-`;
+	`*/
 	termMenu.innerHTML = `
+		<!-- DEPRECATE -->
+		<div class="composite-bar panel-switcher-container">
+			<div class="monaco-action-bar">
+				<ul class="view-switcher"></ul>
+			</div>
+		</div>
+		<div class="title-actions terminal-actions"></div>
+	`;
+	/*`
 	${termMenuStyle}
 	<div class="composite-bar panel-switcher-container">
 		 <div class="monaco-action-bar">
@@ -152,7 +162,7 @@ function _Terminal() {
 				</div>
 		 </div>
 	</div>
-	`;
+	`*/
 	const termMenuActions = termMenu.querySelector(".terminal-actions");
 
 	const previewContainer = document.createElement("div");

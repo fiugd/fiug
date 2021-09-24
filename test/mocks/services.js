@@ -42,6 +42,8 @@ export const ServiceMock = ({ utils }) => {
 			name: 'fake',
 			type: 'github',
 			repo: 'fake',
+			branch: 'fakeBranch',
+			owner: 'fakeOwner',
 			tree: {
 				fake: {
 					target: {
@@ -86,6 +88,20 @@ export const ServiceMock = ({ utils }) => {
 		allServices[key] = value;
 		calls.push({
 			serviceSet: { key, value }
+		});
+	};
+	deps.storage.stores.services.iterate = async (fn) => {
+		let found = {};
+		const all = Object.entries(allServices);
+		for(var i=0; i<all.length; i++){
+			const [key, value] = all[i];
+		if(fn(value, key)) {
+				found = { key, value };
+				break;
+			}
+		}
+		calls.push({
+			servicesIterate: found
 		});
 	};
 	deps.storage.stores.files.keys = async () => {

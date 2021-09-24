@@ -199,6 +199,7 @@ const ProjectOpener = () => {
 };
 
 const ScrollShadow = () => {
+	const showMenuBar = false;
 	let scrollShadow = htmlToElement(`
 		<div class="scroll-shadow">
 			<style>
@@ -206,7 +207,7 @@ const ScrollShadow = () => {
 					box-shadow: #000000 0 6px 6px -6px inset;
 					height: 6px;
 					position: absolute;
-					top: 35px;
+					${showMenuBar?'top: 35px;':''}
 					left: 0;
 					right: 0;
 					display: none;
@@ -990,6 +991,12 @@ function _TreeView(op) {
 	const treeViewStyle = htmlToElement(`
 		<style>
 			#tree-view {
+				padding-top: 0.1em;
+			}
+
+			/* tree view dimming*/
+			/*
+			#tree-view {
 				opacity: .7;
 				transition: opacity 25s;
 				padding-top: 0.1em;
@@ -998,6 +1005,8 @@ function _TreeView(op) {
 				opacity: 1;
 				transition: opacity 0.3s;
 			}
+			*/
+
 			#tree-view .tree-expando:not(.hidden) + .tree-leaf-text:before {
 				font-family: codicon;
 				content: "\\eab4";
@@ -1035,7 +1044,8 @@ function _TreeView(op) {
 			const override = {
 				md: "info",
 			};
-			return "icon-" + (override[extension] || ext[extension] || "default");
+			const _ext = extension.toLowerCase();
+			return "icon-" + (override[_ext] || ext[_ext] || "default");
 		};
 		tree = new TreeView(service, treeRootId, treeState, extensionMapper);
 		const memoryHandler = (action) => treeMemory(service, tree, action);

@@ -84,16 +84,14 @@ function ActionBar() {
 	<div class="action-bar-top">
 		<ul role="toolbar" class="">
 				<li class="explorer checked" role="button" title="Code">
-					<!-- a></a -->
 					<i class="material-icons">code</i>
 				</li>
 				<li class="search" role="button" title="Search">
 					<i class="material-icons">search</i>
-					<!-- a></a -->
 				</li>
-				<li class="services" role="button" title="Services">
+				<!-- <li class="services" role="button" title="Services">
 					<i class="material-icons">device_hub</i>
-				</li>
+				</li> -->
 				<!-- li class="services" role="button" title="">
 					<i class="material-icons">queue_music</i>
 				</li -->
@@ -108,9 +106,11 @@ function ActionBar() {
 				<li class="full-screen" role="button">
 					<a></a>
 				</li>
+				<!--
 				<li id="open-settings-view" class="settings" role="button">
 					<i class="material-icons">settings</i>
 				</li>
+				-->
 			</ul>
 	</div>
 	`;
@@ -135,10 +135,12 @@ function ActionBar() {
 			query: "li.search",
 			action: "showSearch",
 		},
+		/*
 		{
 			query: "li.services",
 			action: "showServicesMap",
 		},
+		*/
 	];
 
 	triggers.forEach((trigger) => {
@@ -162,6 +164,7 @@ function ActionBar() {
 		});
 	});
 
+	/*
 	connectTrigger({
 		name: "ActionBar",
 		eventName: "open-settings-view",
@@ -171,6 +174,7 @@ function ActionBar() {
 			(e.target.parentNode.id === "open-settings-view" ||
 				e.target.id === "open-settings-view"),
 	});
+	*/
 
 	attach({
 		name: "ActionBar",
@@ -185,6 +189,7 @@ function ActionBar() {
 			actionBar.querySelector("li.search").classList.add("checked");
 		},
 	});
+
 }
 
 export default ActionBar;

@@ -142,7 +142,7 @@ const TreeView = (function () {
 			var expando = document.createElement('div');
 			leaf.setAttribute('class', 'tree-leaf');
 			if(item.name === '.keep'){
-				leaf.classList.add('hidden-leaf')
+				leaf.classList && leaf.classList.add('hidden-leaf')
 			}
 			content.setAttribute('class', 'tree-leaf-content');
 			content.setAttribute('data-item', JSON.stringify(item));
@@ -165,11 +165,11 @@ const TreeView = (function () {
 					children.appendChild(childLeaf);
 				});
 				if (!item.expanded) {
-					children.classList.add('hidden');
+					children.classList && children.classList.add('hidden');
 				}
 				leaf.appendChild(children);
 			} else {
-				expando.classList.add('hidden');
+				expando.classList && expando.classList.add('hidden');
 			}
 			return leaf;
 		};
@@ -191,7 +191,7 @@ const TreeView = (function () {
 				});
 				return;
 			}
-			if (leaves.classList.contains('hidden')) {
+			if (leaves.classList && leaves.classList.contains('hidden')) {
 				self.expand(parent, leaves);
 			} else {
 				self.collapse(parent, leaves);
@@ -215,10 +215,10 @@ const TreeView = (function () {
 
 	TreeView.prototype.expand = function (node, leaves, skipEmit) {
 		var expando = node.querySelector('.tree-expando');
-		expando.classList.add('expanded', 'open');
-		expando.classList.remove('closed');
+		expando.classList && expando.classList.add('expanded', 'open');
+		expando.classList && expando.classList.remove('closed');
 		expando.textContent = '-';
-		leaves.classList.remove('hidden');
+		leaves.classList && leaves.classList.remove('hidden');
 
 		if (skipEmit) {
 			return;
@@ -246,10 +246,10 @@ const TreeView = (function () {
 
 	TreeView.prototype.collapse = function (node, leaves, skipEmit) {
 		var expando = node.querySelector('.tree-expando');
-		expando.classList.remove('expanded', 'open');
-		expando.classList.add('closed');
+		expando.classList && expando.classList.remove('expanded', 'open');
+		expando.classList && expando.classList.add('closed');
 		expando.textContent = '+';
-		leaves.classList.add('hidden');
+		leaves.classList && leaves.classList.add('hidden');
 
 		if (skipEmit) {
 			return;
@@ -359,6 +359,7 @@ class DragAndDrop {
 		if(this.draggedOver && target.node === this.draggedOver.node) return;
 
 		if(this.draggedOver){
+			this.draggedOver.node &&
 			this.draggedOver.node.classList.remove('dragover');
 		}
 		if(target.node === this.draggedParent.node){
@@ -997,6 +998,7 @@ class ServiceTree {
 		this.changed.push(path);
 		const domNode = this.select(path, 'skipDomUpdate');
 		const treeLeafContent = domNode.querySelector(':scope > .tree-leaf-content');
+		treeLeafContent && treeLeafContent.classList &&
 		treeLeafContent.classList.add('changed');
 	}
 
@@ -1004,6 +1006,7 @@ class ServiceTree {
 		this.changed.forEach(path => {
 			const domNode = this.select(path, 'skipDomUpdate');
 			const treeLeafContent = domNode.querySelector(':scope > .tree-leaf-content');
+			treeLeafContent && treeLeafContent.classList &&
 			treeLeafContent.classList.remove('changed');
 		});
 	}

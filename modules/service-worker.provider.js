@@ -8,6 +8,7 @@
 			"video/",
 			"wasm",
 			"application/zip",
+			'application/octet-stream'
 		];
 		const storeAsBlobBlacklist = ["image/svg", "image/x-portable-pixmap"];
 		const fileNameBlacklist = [

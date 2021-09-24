@@ -11,7 +11,9 @@ function getFileType(fileName = "") {
 		/^\./,
 		""
 	);
-
+	if (fileName.toLowerCase() === "config") {
+		type = "config";
+	}
 	if (ext[extension]) {
 		type = ext[extension];
 	}
@@ -29,6 +31,9 @@ function getFileType(fileName = "") {
 			name: "htmlmixed",
 			mimeType: "application/x-ejs",
 		};
+	}
+	if (fileName === '.profile'){
+		type = "shell"
 	}
 	return type;
 }

@@ -2,6 +2,7 @@ function codemirrorModeFromFileType(fileType){
 	const conversions = {
 		assemblyscript: { name: 'javascript', typescript: true, assemblyscript: true },
 		apl: 'text/apl',
+		config: 'text/x-properties',
 		typescript: { name: 'javascript', typescript: true },
 		react: 'jsx',
 		svg: 'xml',
@@ -30,6 +31,7 @@ function codemirrorModeFromFileType(fileType){
 		kotlin: 'text/x-kotlin',
 		lisp: 'commonlisp',
 		raku: 'perl6',
+		yml: 'text/x-yaml',
 		zig: 'rust',
 		sql: 'text/x-pgsql',
 	};

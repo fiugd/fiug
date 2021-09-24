@@ -16,9 +16,9 @@ describe('test examples', () => {
 	});
 });
 
-//TestStart();
-
-let finish;
-const donePromise = new Promise((resolve) => { finish = resolve; });
-TestStart(finish);
-await donePromise;
+if(self instanceof WorkerGlobalScope){
+	let finish;
+	const donePromise = new Promise((resolve) => { finish = resolve; });
+	TestStart(finish);
+	await donePromise;
+}

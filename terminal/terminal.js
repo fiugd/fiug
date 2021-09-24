@@ -62,4 +62,4 @@ setTimeout(async () => {
 	} catch(e){
 		term.write('\n$ ');
 	}
-}, 1500);
+}, 1);

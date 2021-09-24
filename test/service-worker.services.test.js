@@ -12,45 +12,6 @@ const utils = module.exports;
 let mock;
 let manager;
 
-describe('utils', ({ beforeEach }) => {
-	let tree;
-	let code;
-
-	beforeEach(() => {
-		tree = {
-			one: {
-				two: {
-					three: {}
-				},
-				four: {
-					'example.jpg': {}
-				}
-			}
-		};
-		code = [{
-			path: "./one/four/example.jpg"
-		},{
-			path: "./one/orphan.jpg"
-		}];
-	});
-
-	it('should flatten a tree', (assert) => {
-		const { flattenTree } = utils;
-		const treeFlat = flattenTree(tree);
-		expect(treeFlat.length, 'length of flat tree').toEqual(2);
-	});
-	it('should add keep files', async (assert) => {
-		const { keepHelper } = utils;
-		const allKeptFiles = keepHelper(tree, code);
-		const orphanKept = allKeptFiles.find(x => x.includes('orphan'));
-		const exampleKept = allKeptFiles.find(x => x.includes('example'));
-		const keepCreated = allKeptFiles.find(x => x === '/one/two/three/.keep');
-		expect(orphanKept, 'kept orphan file').toEqual(undefined);
-		expect(exampleKept, 'kept example file').toBeTruthy();
-		expect(keepCreated, 'keep file created').toBeTruthy();
-	});
-});
-
 describe('update service', ({ beforeEach }) => {
 	const newServiceName = 'fake/foo';
 
@@ -1417,7 +1378,39 @@ describe('delete service', ({ beforeEach }) => {
 	it.todo('should remove files when service is deleted', async (assert) => {});
 });
 
-let finish;
-const donePromise = new Promise((resolve) => { finish = resolve; });
-TestStart(finish);
-await donePromise;
+describe('special folders', ({ beforeEach }) => {
+	const newServiceName = 'fake/foo';
+
+	beforeEach(() => {
+		mock = ServiceMock({ utils });
+		manager = new ServicesManager(mock.deps);
+			mock.setService(3002, (svc) => {
+			svc.tree[newServiceName] = svc.tree.fake;
+			delete svc.tree.fake;
+			svc.name = newServiceName;
+			svc.repo = newServiceName;
+			return svc;
+		});
+		mock.setFiles((files) => {
+			Object.entries(files)
+				.forEach(([k,v]) => {
+					delete files[k];
+					files[k.replace('./fake/', `${newServiceName}/`)] = v;
+				});
+		});
+	});
+
+	it.only('should not check in files in .git folder', async (assert) => {
+		expect(true, 'bogus test condition').toEqual(false);
+	});
+	it.todo('should not check in .gitignore files', async (assert) => {
+		//https://www.npmjs.com/package/parse-gitignore
+	});
+});
+
+if(self instanceof WorkerGlobalScope){
+	let finish;
+	const donePromise = new Promise((resolve) => { finish = resolve; });
+	TestStart(finish);
+	await donePromise;
+}

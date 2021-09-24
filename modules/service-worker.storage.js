@@ -388,14 +388,28 @@
 		return new Proxy(fn, { apply });
 	}
 
-	let changeCache, fileCache;
+	let changeCache, fileCache, servicesCache;
 	let cacheTTL = 250;
+	let serviesCacheTTL = 500;
 	async function getFile(path){
 		const changesStore = this.stores.changes;
 		const filesStore = this.stores.files;
+		const servicesStore = this.stores.services;
+		const { fetchFileContents } = this.utils;
+
+		const getAllServices = async () => {
+			const keys = await servicesStore.keys();
+			let services = [];
+			for(let i=0, len=keys.length; i<len; i++){
+				const thisService = await servicesStore.getItem(keys[i]);
+				services.push(thisService);
+			}
+			return services;
+		};
 
 		changeCache = changeCache || cacheFn(changesStore.getItem.bind(changesStore), cacheTTL);
 		fileCache = fileCache || cacheFn(filesStore.getItem.bind(filesStore), cacheTTL);
+		servicesCache = servicesCache || cacheFn(getAllServices, serviesCacheTTL);
 
 		let t0 = performance.now();
 		const perfNow = () => {
@@ -410,8 +424,44 @@
 			return changes.value;
 		}
 
-		const file = await fileCache(path);
+		let file = await fileCache(path);
 		console.log(`file store: ${perfNow()}ms (${path})`);
+		
+		if(file && file.includes && file.includes('##PLACEHOLDER##')){
+			const services = await servicesCache();
+			services.sort((a,b) => b.name.length - a.name.length);
+
+			let serviceFile;
+			let thisService = {};
+			for(let i=0, len=services.length; i<len; i++){
+				thisService = services[i];
+				if(thisService.type !== 'github' || !thisService.git || !thisService.git.tree) continue;
+				if(!path.startsWith(thisService.name)) continue;
+				serviceFile = thisService.git.tree
+					.find(x => path === `${thisService.name}/${x.path}`);
+				if(serviceFile) break;
+			}
+			if(!serviceFile) return file;
+
+			const getFileContents = async ({ path }) => {
+				try {
+					const contentUrl = 'https://raw.githubusercontent.com/{owner}/{repo}/{sha}/{path}'
+						.replace('{path}', path)
+						.replace('{owner}', thisService.owner)
+						.replace('{repo}', thisService.repo)
+						.replace('{sha}', thisService.git.sha);
+					const contents = await fetchFileContents(contentUrl);
+					return contents;
+				} catch(e){
+					console.error(e);
+					return;
+				}
+			};
+
+			file = await getFileContents(serviceFile);
+			if(file) filesStore.setItem(path, file);
+		}
+
 		return file;
 	}
 

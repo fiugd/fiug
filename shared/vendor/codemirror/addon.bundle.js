@@ -1605,6 +1605,7 @@ this file is a bundle of many search addons
     }
 
     function getStyle() {
+        /*
         const style = [
             '.cm-whitespace::before {',
                 'position: absolute;',
@@ -1614,6 +1615,14 @@ this file is a bundle of many search addons
                 'filter: brightness(5);',
             '}',
         ].join('');
+        */
+
+        const style = `.cm-whitespace::before {
+            position: absolute;
+            pointer-events: none;
+            filter: saturate(0);
+            opacity: .35;
+        }`.split('\n').join('');
 
         return style;
     }

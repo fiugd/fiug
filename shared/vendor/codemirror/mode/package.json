@@ -4,8 +4,8 @@
   "description": "",
   "main": ".build.js",
   "scripts": {
-    "start":  "node .build.js",
-    "watch":  "nodemon .build.js -e js -w .build.js",
+    "start": "node .build.js",
+    "watch": "nodemon .build.js -e js -w .build.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

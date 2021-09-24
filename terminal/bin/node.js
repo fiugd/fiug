@@ -18,6 +18,18 @@ const operation = async (args, state={}) => {
 			//.replace(/async /gm, replaced + 'async ')
 			.replace(/^[\s\t]*await /gm, '' + replaced);
 	}
+	
+	// CRIPE! this won't work because "node" itself is running in a worker...
+	function WithSession(original){
+		try {
+			const storageKeys = Array.from(original.matchAll(/sessionStorage.getItem\(['`"](.*)['`"]\)/g)).map(([,x])=>x);
+			const stored = storageKeys.reduce((all,one) => ({ ...all, [one]: sessionStorage.getItem(one) }), {});
+			const fakeStorage = `const sessionStorage = { getItem: (key) => { return ${JSON.stringify(stored)}[key]; } };\n`;
+			return fakeStorage + original;
+		} catch(e){
+			return '// ERROR adding session to worker: ${e.message}\n' + original;
+		}
+	}
 
 	const runScript = (name, src, logger) => new Promise((resolve, reject) => {
 		const upParent = (root, base) => {
@@ -37,7 +49,7 @@ const operation = async (args, state={}) => {
 			self.asyncHooks = [];
 			self.hookCount = 0;
 
-			${AsyncHooked(src)}
+			${WithSession(AsyncHooked(src))}
 
 			//queueMicrotask(() => {
 			//	postMessage({ exit: true });

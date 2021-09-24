@@ -1,12 +1,17 @@
 /*
 
 https://medium.com/@mehulgala77/github-fundamentals-clone-fetch-push-pull-fork-16d79bb16b79
+https://wyag.thb.lt/ - write yourself a git
+https://medium.com/@urna.hybesis/git-from-scratch-5-steps-guide-8943f19c62b
+
 https://googlechrome.github.io/samples/service-worker/post-message/
 
 */
-import GetOps from './terminal.ops.js';
+import ini from 'https://cdn.skypack.dev/ini';
 import Diff from 'https://cdn.skypack.dev/diff-lines';
-import { chalk, jsonColors } from './terminal.utils.js';
+
+import GetOps from './terminal.ops.js';
+import { chalk, jsonColors, getCurrentService, addFile, addFolder } from './terminal.utils.js';
 
 const getStored = (varName) => {
 	const stored = sessionStorage.getItem(varName);
@@ -36,12 +41,18 @@ These are common Git COMMANDs which are supported in some form here:
 
 ${hex('#BBB')('start a working area')}
    ${bold('clone')}      Copy a remote repository to local
+   ${bold('init')}       Create an empty repository
+
+${hex('#BBB')('work on the current change')}
+   ${bold('add')}        Add files to commit
+   ${bold('rm')}         Remove files from commit
 
 ${hex('#BBB')('examine the history and state')}
    ${bold('diff')}       Show local changes per file
    ${bold('status')}     List all files changed locally
+   ${bold('log')}        Show commit logs
 
-${hex('#BBB')('grow, mark and tweak your common history')}
+${hex('#BBB')('grow, mark, and tweak your common history')}
    ${bold('branch')}     List, create, or delete branches
    ${bold('commit')}     Record changes to the repository
 
@@ -49,11 +60,75 @@ ${hex('#BBB')('collaborate')}
    ${bold('pull')}       Fetch recent changes from remote
    ${bold('push')}       Update remote with local commits
 
+${hex('#BBB')('other')}
+   ${bold('config')}     Get and set repository or global options
+
+${hex('#BBB')('totally non-standard utils')}
+   ${bold('list')}       List all cloned repositories
+   ${bold('open')}       Load a repository for editing
+   ${bold('close')}      Unload a repository
+
 ${italic(`
 Online help: ${link('https://github.com/crosshj/fiug/wiki')}
 Report bugs: ${link('https://github.com/crosshj/fiug/issues')}
 `)}
 `; };
+
+/*
+start a working area (see also: git help tutorial)
+   clone      Clone a repository into a new directory
+   init       Create an empty Git repository or reinitialize an existing one
+
+work on the current change (see also: git help everyday)
+   add        Add file contents to the index
+   mv         Move or rename a file, a directory, or a symlink
+   reset      Reset current HEAD to the specified state
+   rm         Remove files from the working tree and from the index
+
+examine the history and state (see also: git help revisions)
+   bisect     Use binary search to find the commit that introduced a bug
+   grep       Print lines matching a pattern
+   log        Show commit logs
+   show       Show various types of objects
+   status     Show the working tree status
+
+grow, mark and tweak your common history
+   branch     List, create, or delete branches
+   checkout   Switch branches or restore working tree files
+   commit     Record changes to the repository
+   diff       Show changes between commits, commit and working tree, etc
+   merge      Join two or more development histories together
+   rebase     Reapply commits on top of another base tip
+   tag        Create, list, delete or verify a tag object signed with GPG
+
+collaborate (see also: git help workflows)
+   fetch      Download objects and refs from another repository
+   pull       Fetch from and integrate with another repository or a local branch
+   push       Update remote refs along with associated objects
+
+*/
+
+const unknownArgsHelper = (args) => {
+	const keyed = {};
+	const anon = [];
+	for(var i=0, len=args.length; i<len; i++){
+		const thisArg = args[i];
+		const nextArg = args[i+1];
+		if(thisArg.startsWith('--')){
+			keyed[thisArg.replace(/^--/, '')] = nextArg || null;
+			i++;
+			continue;
+		}
+		if(thisArg.startsWith('-')){
+			keyed[thisArg.replace(/^-/, '')] = nextArg || null;
+			i++;
+			continue;
+		}
+		anon.push(thisArg);
+	}
+	return { keyed, anon };
+};
+
 const diffPretty = (diff) => {
 	const colors = {
 		invisible: '#555',
@@ -62,7 +137,7 @@ const diffPretty = (diff) => {
 		special: '#38b8bf',
 		normal: '#ddd',
 	};
-	return diff.split('\n').map((x,i,all) => {
+	return (diff||'').split('\n').map((x,i,all) => {
 		const invisibles = (str) => str
 			.replace(/ /g, chalk.hex(colors.invisible)('·'))
 			.replace(/\t/g, chalk.hex(colors.invisible)(' → '));
@@ -74,7 +149,8 @@ const diffPretty = (diff) => {
 		return `${chalk.hex(colors.normal)(x)}\n`;
 	}).join('');
 };
-const config = {
+
+const opConfig = {
 	keyword: "git",
 	description: "git is version control.",
 	event: "",
@@ -98,9 +174,136 @@ const _getChanges = async ({ ops }) => {
 const notImplemented = (command) => chalk.hex('#ccc')(`\ngit ${command}: not implemented\n`);
 const unrecognizedCommand = (command) => `\n${command}: command not found\n`
 
+class GitConfig {
+	constructor(service, current, comm){
+		this.root = location.origin;
+		this.service = service;
+		this.current = current;
+		this.comm = comm;
+		this.path = '.git/config';
+		this.url = `${this.root}/${this.service.name}/${this.path}`;
+	}
+	async update(prop, value){
+		const {service, current, comm} = this;
+		await this.read();
+		const propSplit = (prop||'').split('.');
+		let cursor = this.config;
+		for(var i=0, len=propSplit.length; i<len; i++){
+			cursor[propSplit[i]] = i === len-1
+				? value
+				: cursor[propSplit[i]] || {};
+			cursor = cursor[propSplit[i]];
+		}
+		const { message, result } = await this.save();
+
+		if(current.id === service.id){
+			const triggerEvent = {
+				type: 'operationDone',
+				detail: {
+					op: 'update',
+					id: this.service.id+'',
+					result,
+					source: 'Terminal'
+				}
+			};
+			comm.execute({ triggerEvent });
+		}
+
+		return message;
+	}
+	async read(){
+		let configText = await fetch(this.url).then(x=> x.ok ? x.text() : undefined);
+		configText = (configText||'').split('\n').map(x=>x.trim()).filter(x=>x).join('\n');
+		this.config = ini.parse(configText);
+	}
+	async readProp(prop){
+		if(!this.config) await this.read();
+		let cursor = this.config;
+		const propSplit = (prop||'').split('.');
+		if(!propSplit[0].trim()) return cursor;
+
+		for(var i=0, len=propSplit.length; i<len; i++){
+			if(!cursor) break;
+			cursor = cursor[propSplit[i]];
+		}
+		return cursor;
+	}
+	async save(){
+		const { config, path } = this;
+		const source = ini.encode(config, { whitespace: true });
+		const service = this.service;
+		console.log(JSON.stringify(config, null, 2)+'\n\n');
+		console.log(source);
+
+		let message = `saved config to ${this.url}`;
+		let result;
+		try {
+			const {error:addFolderError} = await addFolder(`.git`, service);
+			if(addFolderError){
+				message = addFolderError;
+				return;
+			}
+			const {error:addFileError, result: addFileResult} = await addFile(path, source, service);
+			if(addFileError) message = addFileError;
+			if(addFileResult) result = addFileResult;
+		} catch(e){
+			console.log(e);
+			message = 'error: ' + e.message;
+		}
+		return { message, result };
+	}	
+}
+
+const getConfig = async (prop) => {
+	const current = await getCurrentService("all");
+	const localConfig = new GitConfig(current);
+	const globalConfig = new GitConfig({id: 0, name: '~'});
+	return {
+		local: await localConfig.readProp(prop),
+		global: await globalConfig.readProp(prop)
+	};
+}
+
+const config = async ({ term, comm }, args) => {
+	const { _unknown=[] } = args;
+	const { keyed, anon } = unknownArgsHelper(_unknown);
+	const { local, global } = keyed;
+
+	if(local === undefined && global === undefined){
+		return chalk.hex('#ccc')(`
+Usage:
+  git config [--local or --global] <optional value-pattern>
+
+Examples:
+  git config --global user.name "Jimmy Fiug"
+  git config --local
+
+`);
+	}
+
+	const prop = local || global;
+	const value = anon.join(' ').replace(/['"]/g, '').trim();
+	const current = await getCurrentService("all");
+	const service = local ? current : { name: '~', id: 0 };
+	const config = new GitConfig(service, current, comm);
+
+	if(!value){
+		const propVal = await config.readProp(prop);
+		const out = typeof propVal === 'object'
+			? ini.encode(propVal, { whitespace: true }).trim()
+			: propVal;
+		return `${out}\n`;
+	}
+
+	const message = await config.update(prop, value)
+
+	return message + '\n';
+};
+
 const diff = async ({ ops }, args) => {
 	const { _unknown: files } = args;
-	const { changes } = await _getChanges({ ops });
+	let { changes } = await _getChanges({ ops });
+	changes = changes.filter(x => !x.fileName.includes('/.git/'));
 
 	let filesToShow = changes;
 	if(files && Array.isArray(files)){
@@ -117,13 +320,17 @@ const diff = async ({ ops }, args) => {
 	return filesToShow
 		.filter(x => x && getDiff(x.original, x.value).trim())
 		.map(x => {
+			if(x.deleteFile)
+				return `\n${x.fileName}\n\n${chalk.red('DELETED')}\n`
 			return `\n${x.fileName}\n\n${getDiff(x.original, x.value)}\n`
 		})
 		.join('\n');
 };
+
 const status = async ({ ops }) => {
 	const changesResponse = await _getChanges({ ops });
-	const { changes } = changesResponse;
+	let { changes } = changesResponse;
+	changes = changes.filter(x => !x.fileName.includes('/.git/'));
 	if(!changes.length){
 		return '\n   no changes\n';
 	}
@@ -136,30 +343,122 @@ const status = async ({ ops }) => {
 	};
 	return '\n' + changes.map(changeRender).join('\n') + '\n';
 };
+
 const commit = async ({ ops }, args) => {
 	const { _unknown } = args;
-	const message = _unknown.join(' ')
+	const message = (_unknown||[]).join(' ')
 		.match(/(?:"[^"]*"|^[^"]*$)/)[0]
 		.replace(/"/g, "");
+
+	if(!message.trim()){
+		return chalk.hex('#ccc')(`
+Usage:
+  git commit -m <commit message>
+
+Example:
+  git commit -m "made some changes to service"
+
+`);
+	}
+
 	const pwdCommand = ops.find(x => x.keyword === 'pwd');
 	const { response: cwd = '' } = await pwdCommand.invokeRaw();
 	const commitUrl = '/service/commit';
-	const auth = getStored('Github Personal Access Token');
+	
+	const authConfig = await getConfig('user.token');
+	const token = authConfig.local || authConfig.global;
+	const auth = token || getStored('Github Personal Access Token');
 	const { commitResponse } = await postJSON(commitUrl, null, {
 		cwd, message, auth
 	});
+	if(commitResponse && commitResponse.error){
+		return `ERROR: ${commitResponse.error}`;
+	}
 	return chalk.hex('#ccc')('\nCommit SHA: ') + commitResponse + '\n';
 };
 
-const clone = async ({}, args) => {
-	// do what settings does when it clones a github repo
-	return notImplemented('clone');
-}
+const clone = async ({term}, args) => {
+	//git clone --branch <branchname> <remote-repo-url>
+	//git clone -b <branchname> <remote-repo-url>
+	const { _unknown=[] } = args;
+	const { keyed, anon } = unknownArgsHelper(_unknown);
+	const branch = keyed.b || keyed.branch;
+	const [repo] = anon;
+	const cloneUrl = '/service/create/provider';
+	
+	if(!repo){
+		return chalk.hex('#ccc')(`
+Usage:
+  git clone [-b or --branch] <branch> <repository>
+
+Example:
+  git clone -b main crosshj/fiug-welcome
+
+`);
+	}
+	const authConfig = await getConfig('user.token');
+	const token = authConfig.local || authConfig.global;
+	const auth = token || getStored('Github Personal Access Token');
+	const bodyObj = {
+		providerType:"github-provider",
+		operation:"provider-add-service",
+		auth, repo, branch,
+	};
+	const body = JSON.stringify(bodyObj);
+	const method = 'POST';
+
+	term.write(chalk.hex('#ccc')(
+		`Cloning ${bodyObj.repo}${
+			bodyObj.branch
+			? `, ${bodyObj.branch} branch`
+			: ''
+		}... `
+	));
+
+	const { result } = await fetch(cloneUrl, { body, method }).then(x=>x.json());
+	if(result && result.error){
+		return `ERROR: ${result.error}\n`;
+	}
+	return chalk.hex('#ccc')(`DONE\n`);
+};
+
+const list = async ({ term }, args) => {
+	const { result: allServices } = await fetchJSON('/service/read');
+	return '\n' + allServices
+		.map(x=>x.name + ` (${x.id})`)
+		.filter(x => x !== '~ (0)')
+		.join('\n') + '\n';
+};
+const open = async ({ term }, args) => {
+	const { _unknown=[] } = args;
+	const { keyed, anon } = unknownArgsHelper(_unknown);
+	const param = anon.join('');
+	const { result: allServices } = await fetchJSON('/service/read');
+	const found = allServices.find(x => (x.id+'') === param || x.name === param);
+	if(!found) return `could not find repo; unable to open\n`;
+
+	localStorage.setItem('lastService',found.id);
+	//document.location.reload();
+	return 'repo opened, please refresh page\n';
+};
+const close = async ({ term }, args) => {
+	localStorage.setItem('lastService', '0');
+	//document.location.reload();
+	return 'repo closed, please refresh page\n';
+};
+
 const branch = async ({ term }) => notImplemented('branch');
 const push = async ({ term }) => notImplemented('push');
 const pull = async ({ term }) => notImplemented('pull');
+const init = async ({ term }) => notImplemented('init');
+const add = async ({ term }) => notImplemented('add');
+const rm = async ({ term }) => notImplemented('rm');
+const log = async ({ term }) => notImplemented('log');
 
-const commands = { clone, diff, status, branch, commit, push, pull };
+const commands = {
+	diff,  status, commit, clone, config, list, open, close,
+	branch, push, pull, init, add, rm, log //not implemented
+};
 
 async function invokeRaw(_this, args){
 	const { command } = args;
@@ -196,7 +495,7 @@ async function invoke(args, done){
 async function exit(){}
 
 const Git = (term, comm) => ({
-	...config,
+	...opConfig,
 	ops: GetOps(term, comm),
 	term,
 	comm,
@@ -204,12 +503,12 @@ const Git = (term, comm) => ({
 	invokeRaw,
 	exit,
 	listenerKeys: [],
-	args: config.args || [],
-	event: Array.isArray(config.event) ? config.event : [config.event],
-	required: (config.args || [])
+	args: opConfig.args || [],
+	event: Array.isArray(opConfig.event) ? opConfig.event : [opConfig.event],
+	required: (opConfig.args || [])
 		.filter(x => x.required)
 		.map(x => x.name),
-	help: () => commandHelp(config),
+	help: () => commandHelp(opConfig),
 });
 
 export { Git };

@@ -163,6 +163,9 @@ const getModeWithEffects = (opts) => {
 	if(mode === 'c'){
 		opts.mode = 'text/x-' + mode;
 	}
+	if(mode === 'config'){
+		opts.mode = 'text/x-properties';
+	}
 	return mode;
 }
 

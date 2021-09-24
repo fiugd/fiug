@@ -12,36 +12,133 @@
 		<script src="/shared/vendor/xterm-addon-fit.js"></script>
 		<link rel="stylesheet" href="/index.css" />
 	</head>
-	<body>
+	<body style="height:100vh;width:100vw;">
 		<div id="terminal">
-			<div id="terminal-menu"></div>
+			<div id="terminal-menu" style="height:0;overflow:hidden;"></div>
 			<div class="term-contain"></div>
 		</div>
 	</body>
 	<script>
-		const isRunningAsModule = document.location.href.includes("_/modules");
+		try {
+			const embedded = window.location !== window.parent.location;
+			const previewMode = document.location.href.includes("/::preview::/");
 
-		//<base target="_blank" href="../../">
-		if(!isRunningAsModule){
-			const base = document.createElement('base');
-			base.href = '../../';
-			document.getElementsByTagName('head')[0].appendChild(base);
+			if(!embedded){
+				document.body.style.backgroundColor = '#1e1e1e';
+			}
+			if(previewMode){
+				const base = document.createElement('base');
+				base.href = '../../';
+				document.getElementsByTagName('head')[0].appendChild(base);
+			}
+
+			const head=document.getElementsByTagName("head")[0];
+
+			//<link rel="stylesheet" href="./terminal.css" />
+			const cssnode = document.createElement('link');
+			cssnode.type = 'text/css';
+			cssnode.rel = 'stylesheet';
+			cssnode.href = './terminal.css';
+			head.appendChild(cssnode);
+
+			//<script src="./terminal.js" type="module">...
+			const scriptnode=document.createElement('script');
+			scriptnode.type="module";
+			scriptnode.src='./terminal.js';
+			head.appendChild(scriptnode);
+		} catch(e) {
+			debugger;
 		}
-
-		const head=document.getElementsByTagName("head")[0];
-
-		//<link rel="stylesheet" href="./terminal.css" />
-		const cssnode = document.createElement('link');
-		cssnode.type = 'text/css';
-		cssnode.rel = 'stylesheet';
-		cssnode.href = './terminal.css';
-		head.appendChild(cssnode);
-
-		//<script src="./terminal.js" type="module">...
-		const scriptnode=document.createElement('script');
-		scriptnode.type="module";
-		scriptnode.src='./terminal.js';
-		head.appendChild(scriptnode);
-
 	</script>
+
+	<script>
+		const menuDiv = document.querySelector('#terminal-menu');
+		menuDiv.innerHTML = `
+<style>
+	#terminal-menu > div:nth-child(2) ul li {
+		padding-left: 15px;
+	}
+	#terminal-menu li.action-item:hover a.action-label {
+		filter: none;
+		color: rgb(231, 231, 231);
+	}
+	#terminal-menu li.action-item.checked a {
+		color: rgb(231, 231, 231);
+		border-bottom-color: rgba(128, 128, 128, 0.8);
+	}
+	#terminal-menu .terminal-actions li.action-item.checked a {
+		border-bottom: 0;
+	}
+	li.action-item.preview-control.checked a.lock-panel-action {
+		filter: brightness(.55) sepia(1) contrast(5);
+	}
+	#terminal-menu li.full-screen a {
+		-webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M0 0h24v24H0z' fill='none'/%3E%3Cpath d='M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z'/%3E%3C/svg%3E") no-repeat 50% 50%;
+	}
+	#terminal-menu li.full-screen.full-screen-exit a {
+		-webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M0 0h24v24H0z' fill='none'/%3E%3Cpath d='M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z'/%3E%3C/svg%3E") no-repeat 50% 50% !important;
+	}
+	#terminal-menu li.full-screen a:before {
+		content: '■';
+		font-size: 62px;
+		position: relative;
+	}
+	#terminal:fullscreen {
+		padding-right: 18px;
+	}
+</style>
+
+<div class="composite-bar panel-switcher-container">
+	 <div class="monaco-action-bar">
+			<ul class="actions-container view-switcher" role="toolbar" aria-label="Active View Switcher">
+				 <li class="action-item checked" role="tab" draggable="true" active="">
+						<a class="action-label terminal" data-type="terminal">Terminal</a>
+				 </li>
+				 <li class="action-item " role="tab" draggable="true" style="display: none;">
+						<a class="action-label preview" data-type="preview">Preview</a>
+					</li>
+					<li class="action-item hidden " role="tab" draggable="true">
+						<a class="action-label logs" data-type="logs">Logs</a>
+					</li>
+				 <li class="action-item" role="button" aria-label="Additional Views" title="Additional Views">
+						<a class="action-label toggle-more" aria-label="Additional Views" title="Additional Views" style="background-color: rgb(30, 30, 30);"></a>
+						<div class="badge" aria-hidden="true" aria-label="Additional Views" title="Additional Views" style="display: none;">
+							 <div class="badge-content" style="color: rgb(255, 255, 255); background-color: rgb(77, 77, 77);"></div>
+						</div>
+				 </li>
+			</ul>
+	 </div>
+</div>
+<div class="title-actions terminal-actions">
+	 <div class="monaco-toolbar">
+			<div class="monaco-action-bar animated">
+				 <ul class="actions-container" role="toolbar" aria-label="Terminal actions">
+						<li class="action-item select-container" role="presentation">
+							 <select class="monaco-select-box" aria-label="Open Terminals." title="1: node, node" style="background-color: rgb(60, 60, 60); color: rgb(240, 240, 240); border-color: rgb(60, 60, 60);">
+									<option value="1: node, node">1: node, node</option>
+							 </select>
+						</li>
+						<li class="action-item" role="presentation"><a class="hidden action-label icon terminal-action new" role="button" title="New Terminal"></a></li>
+						<li class="action-item" role="presentation"><a class="hidden action-label icon terminal-action split" role="button" title="Split Terminal (⌘)"></a></li>
+						<li class="action-item" role="presentation"><a class="hidden action-label icon terminal-action kill" role="button" title="Kill Terminal"></a></li>
+						<li class="action-item" role="presentation"><a class="hidden action-label icon maximize-panel-action" role="button" title="Maximize Panel Size"></a></li>
+
+						<li class="action-item full-screen" role="presentation" data-type="full-screen" style="display: none;">
+							<a class="action-label icon full-screen-panel-action" data-type="full-screen" role="button" title="Preview Full Screen"></a>
+						</li>
+
+						<li class="action-item lock-action		preview-control		hidden" role="presentation" data-type="lock" style="display: none;">
+							<a class="action-label icon lock-panel-action" data-type="lock" role="button" title="Lock Preview"></a>
+						</li>
+
+						<li class="action-item" role="presentation" style="display: none;">
+							<a class="disabled action-label icon hide-panel-action" role="button" title="Close Panel">
+							</a>
+						</li>
+				 </ul>
+			</div>
+	 </div>
+</div>`;
+	</script>
+
 </html>

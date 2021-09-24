@@ -292,7 +292,7 @@
 }
 .icon-config:before {
   content: '\E017';
-  color: white;
+  color: #6d8086;
 }
 .icon-cpp:before {
   content: '\E018';
@@ -396,19 +396,19 @@
 }
 .icon-font:before {
   content: '\E030';
-  color: white;
+  color: #cc3e44;
 }
 .icon-git:before {
   content: '\E031';
-  color: white;
+  color: #41535b;
 }
 .icon-git_folder:before {
   content: '\E032';
-  color: white;
+  color: #41535b;
 }
 .icon-git_ignore:before {
   content: '\E033';
-  color: white;
+  color: #41535b;
 }
 .icon-github:before {
   content: '\E034';
@@ -548,7 +548,7 @@
 }
 .icon-license:before {
   content: '\E055';
-  color: white;
+  color: #cbcb41;
 }
 .icon-liquid:before {
   content: '\E056';
@@ -828,7 +828,7 @@
 }
 .icon-xml:before {
   content: '\E098';
-  color: white;
+  color: #e37933;
 }
 .icon-yarn:before {
   content: '\E099';
@@ -836,7 +836,7 @@
 }
 .icon-yml:before {
   content: '\E09A';
-  color: white;
+  color: #a074c4;
 }
 .icon-zip:before {
   content: '\E09B';

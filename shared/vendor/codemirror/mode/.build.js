@@ -38,7 +38,7 @@ const exclude = (file) => file.includes('.json') ||
 		Codemirror Mode Bundle
 		${new Date().toLocaleString('en')}\n
 		MODES: ${files.map(x=>x.replace('.js','')).join(', ')}
-		*/`.replace(new RegExp('    ','g'), '')
+		*/`.replace(new RegExp('		','g'), '')
 	for (let i = 0; i < files.length; i++) {
 		const file = files[i];
 		const code = await readFile(file, 'utf8');
@@ -49,7 +49,7 @@ const exclude = (file) => file.includes('.json') ||
 		allText += `\n\n\n\n\n
 			// -----  ${file}
 			${result.error ? code : result.code}
-			`.replace(new RegExp('      ','g'), '');
+			`.replace(new RegExp('			','g'), '');
 	}
 	await writeFile(bundleName, allText)
 })()

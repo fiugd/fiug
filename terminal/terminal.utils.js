@@ -1,5 +1,6 @@
 //NOTE: sucks that I am stuck with this instance of chalk
-import chalk2 from "https://cdn.skypack.dev/-/chalk@v2.4.2-3J9R9FJJA7NuvPxkCfFq/dist=es2020,mode=imports/optimized/chalk.js";
+//import chalk2 from "https://cdn.skypack.dev/-/chalk@v2.4.2-3J9R9FJJA7NuvPxkCfFq/dist=es2020,mode=imports/optimized/chalk.js";
+import chalk2 from "https://cdn.skypack.dev/chalk@2.4.2";
 import colorize from 'https://cdn.skypack.dev/json-colorizer';
 
 // enable browser support for chalk
@@ -26,6 +27,7 @@ const colors = {
 };
 
 const jsonColors = (json) => colorize(json, { colors, pretty: true });
+//const jsonColors = (obj) => JSON.stringify(obj,null,2);
 
 const chalk = chalk2;
 
@@ -33,11 +35,27 @@ export { chalk, jsonColors };
 
 export const fetchJSON = url => fetch(url).then(x => x.json());
 
+export const getCurrentService = async (prop="name") => {
+	const currentServiceId = localStorage.getItem('lastService');
+	if(!currentServiceId || currentServiceId === "0"){
+		if(prop==="all") return { id: 0, name: '~'};
+		return '~';
+	}
+	const { result: [ service ] } = await fetch(`/service/read/${currentServiceId}`, {
+		"headers": {
+			"accept": "application/json",
+			"content-type": "application/json",
+		},
+	}).then(x => x.json());
+	if(prop==="all") return service;
+	return service[prop];
+};
+
 export const readDir = async (serviceName, dir, cwd) => {
 	let response, error;
 	try {
 		const { result: allServices } = await fetchJSON('/service/read');
-		if(!serviceName && !cwd) return { repsonse: allServices.map(x => x.name) };
+		if(!serviceName && !cwd) return { response: allServices };
 		const { id: serviceId } = serviceName
 			? allServices.find(x => x.name === serviceName )
 			: allServices.reduce((all, one) => {
@@ -66,3 +84,51 @@ export const readDir = async (serviceName, dir, cwd) => {
 		return { error };
 	}
 };
+
+export const addFile = async (target, source, service={}) => {
+	const currentService = await getCurrentService("all");
+	const serviceName = service.name || currentService.name;
+	const serviceId = (service.id+'') || currentService.id;
+	const body = JSON.stringify({
+		name: serviceName,
+		id: serviceId,
+		operation: { name: "addFile", source, target }
+	});
+	try {
+		return fetch("https://beta.fiug.dev/service/update/"+serviceId, {
+			method: "POST",
+			headers: {
+				"accept": "application/json",
+				"content-type": "application/json",
+			},
+			body,
+		}).then(x => x.json());
+	} catch(e){
+		console.log(e);
+		return { error: 'failed to write file: ' + target }
+	}
+}
+
+export const addFolder = async (target, service={}) => {
+	const currentService = await getCurrentService("all");
+	const serviceName = service.name || currentService.name;
+	const serviceId = (service.id+'') || currentService.id;
+	const body = JSON.stringify({
+		name: serviceName,
+		id: serviceId,
+		operation: { name: "addFolder", target }
+	});
+	try {
+		return fetch("https://beta.fiug.dev/service/update/"+serviceId, {
+			method: "POST",
+			headers: {
+				"accept": "application/json",
+				"content-type": "application/json",
+			},
+			body,
+		}).then(x => x.json());
+	} catch(e){
+		console.log(e);
+		return { error: 'failed to create folder: ' + target }
+	}
+}

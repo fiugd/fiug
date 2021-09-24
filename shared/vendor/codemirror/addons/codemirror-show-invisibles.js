@@ -71,7 +71,7 @@
 
     function add(max) {
         const classBase = '.CodeMirror .cm-whitespace-';
-        const spaceChar = 'Â·';
+        const spaceChar = '·';
         const style = document.createElement('style');
 
         style.setAttribute('data-name', 'js-show-invisibles');
@@ -84,7 +84,7 @@
             rules += classBase + i + `:not([class*="cm-trailing-space-"])::before { content: "${spaceChars}";}\n`;
         }
 
-        const gfmRules = '[class*=cm-trailing-space]::before{content: "Â·";}';
+        const gfmRules = '[class*=cm-trailing-space]::before{content: "·";}';
 
         style.textContent = [
             getStyle(),
@@ -102,6 +102,7 @@
     }
 
     function getStyle() {
+        /*
         const style = [
             '.cm-whitespace::before {',
                 'position: absolute;',
@@ -111,6 +112,14 @@
                 'filter: brightness(5);',
             '}',
         ].join('');
+        */
+
+        const style = `.cm-whitespace::before {
+            position: absolute;
+            pointer-events: none;
+            filter: saturate(0);
+            opacity: .35;
+        }`.split('\n').join('');
 
         return style;
     }
@@ -122,7 +131,7 @@
             // '.CodeMirror-code > div > pre > span::after, .CodeMirror-line > span::after {',
             // 'pointer-events: none;',
             // 'color: #404F7D;',
-            // 'content: "Â¬"',
+            // 'content: "¬"',
             // '}',
         ].join('');
 

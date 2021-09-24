@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en"  class="dark-enabled">
+	<head>
+		<title></title>
+		<meta charset="utf-8">
+		<meta name="description" content="">
+		<meta name="author" content="">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<meta name="mobile-web-app-capable" content="yes">
+
+		<link rel="stylesheet" href="/index.css" />
+	</head>
+	<body>
+		<div id="explorer">
+			<div id="tree-menu" class="row no-margin">
+				<div class="title-label">
+					<h2 title=""></h2>
+				</div>
+				<div class="title-actions">
+				</div>
+			</div>
+		</div>
+	</body>
+
+	<script>
+		const isRunningAsModule = document.location.href.includes("_/modules");
+
+		if(!isRunningAsModule){
+			const base = document.createElement('base');
+			base.href = '../../';
+			document.getElementsByTagName('head')[0].appendChild(base);
+		}
+
+		const head=document.getElementsByTagName("head")[0];
+
+		const cssnode = document.createElement('link');
+		cssnode.type = 'text/css';
+		cssnode.rel = 'stylesheet';
+		cssnode.href = './tree.css';
+		head.appendChild(cssnode);
+
+		const scriptnode=document.createElement('script');
+		scriptnode.type="module";
+		scriptnode.src='./tree.js';
+		head.appendChild(scriptnode);
+
+	</script>
+</html>
+

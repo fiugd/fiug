@@ -59,6 +59,12 @@ function getFileType(fileName = "") {
 	}
 	
 	//TODO: most of this should be able to go away with addition of getExtension above...
+	if (fileName.toLowerCase() === ".git/config") {
+		type = "config";
+	}
+	if (fileName.toLowerCase() === "license") {
+		type = "license";
+	}
 	if (ext[extension]) {
 		type = ext[extension];
 	}
@@ -85,6 +91,9 @@ function getFileType(fileName = "") {
 	}
 	if (extension === 'hbs'){
 		type = {name: "handlebars", base: "text/html"}
+	}
+	if (fileName === '.profile'){
+		type = "shell"
 	}
 	return type;
 }

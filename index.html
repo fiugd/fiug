@@ -18,15 +18,33 @@
 
 	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
+	<link rel="preload" href="/shared/fonts/seti.woff2" as="font" type="font/woff2" crossorigin>
+
 	<!-- <link rel="icon" href="data:;base64,="> -->
-	<link rel="icon" href="/shared/images/favicon.svg" type="image/x-icon">
+	<!-- <link rel="icon" href="/shared/images/favicon.svg" type="image/x-icon"> -->
 	<link rel="stylesheet" href="index.css" />
 </head>
 
 <script>
-	document.location.origin.includes('beta') && (document.title += " (beta)");
+	const isBeta = document.location.origin.includes('beta');
+	isBeta && (document.title += " (beta)");
+	
+	(function() {
+		const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
+		link.type = 'image/x-icon';
+		link.rel = 'shortcut icon';
+		link.href = isBeta
+			? "/shared/images/faviconBeta.svg"
+			: "/shared/images/favicon.svg";
+		document.getElementsByTagName('head')[0].appendChild(link);
+	})();
 
-	const themeHighlightColor = localStorage.getItem('themeHighlightColor');
+	let themeHighlightColor = localStorage.getItem('themeHighlightColor');
+
+	themeHighlightColor = themeHighlightColor || (isBeta
+		? '44, 174, 190' // Pelorous
+		: '202, 44, 146' // Fuschia
+	);
 	if(themeHighlightColor){
 		document.documentElement.style
 			.setProperty(
@@ -34,6 +52,10 @@
 				themeHighlightColor
 			);
 	}
+
+	//5c4785 (prod)
+	//rgb(var(--main-theme-highlight-color))
+	//http://www.pfnp.me/mother-tongues-the-evolution-of-programming-languages/
 
 </script>
 

@@ -1,5 +1,5 @@
 {
-	"version": "0.4.3",
+	"version": "0.4.4",
 	"main": "service.manifest.json",
 	"modules": [
 		{
@@ -12,11 +12,7 @@
 
 				"./settings.html",
 
-				"/shared/vendor/stylus.min.js",
 				"/shared/vendor/materialize.min.js",
-
-				"/shared/vendor/localforage.min.js",
-				"/shared/vendor/json5v-2.0.0.min.js",
 
 				"/shared/fonts/flUhRq6tzZclQEJ-Vdg-IuiaDsNcIhQ8tQ.woff2",
 				"/shared/fonts/seti.woff2",
@@ -27,119 +23,6 @@
 				"/shared/css/seti-icons.css",
 				"/shared/css/material-icons.css",
 				"/shared/css/materialize.min.css"
-			]
-		},
-		"NOTE: resources for example apps",
-		{
-			"resources": [
-				"/shared/vendor/showdown.1.9.1.min.js",
-				"/shared/css/github-markdown.min.css",
-				"/shared/vendor/preact.standalone.module.js",
-				"/shared/vendor/babel.min.js",
-				"/shared/vendor/biwascheme-0.7.0-min.js",
-				"/shared/vendor/css-doodle.0.6.1.min.js",
-
-				"https://cdnjs.cloudflare.com/ajax/libs/rxjs/6.2.1/rxjs.umd.min.js",
-				"https://cdnjs.cloudflare.com/ajax/libs/core-js/2.5.7/core.js",
-				"https://cdnjs.cloudflare.com/ajax/libs/zone.js/0.8.26/zone.min.js",
-
-				"https://cdn.auth0.com/js/auth0-spa-js/1.7/auth0-spa-js.production.js",
-
-				"https://d3js.org/d3.v5.min.js",
-
-				"https://felixhao28.github.io/JSCPP/dist/JSCPP.es5.min.js",
-				"https://jscl-project.github.io/jscl.js",
-				"https://asmblah.github.io/uniter/dist/uniter.js",
-
-				"https://cdn.opalrb.com/opal/current/opal.js",
-				"https://cdn.opalrb.com/opal/current/opal-parser.js",
-
-				"/shared/vendor/sql-wasm.js",
-				"/shared/vendor/sql-wasm.wasm",
-
-				"/shared/vendor/wasm_lua/main.wasm",
-				"/shared/vendor/wasm_lua/main.js",
-
-				"/shared/vendor/waforth/waforth.wat",
-				"/shared/vendor/waforth/WAForth.js",
-
-				"/shared/vendor/pascal/parse.js",
-				"/shared/vendor/pascal/ieee754.js",
-				"/shared/vendor/pascal/ir.js",
-				"/shared/vendor/pascal/units/system.js",
-
-				"/shared/vendor/llvm.js/analyzer.js",
-				"/shared/vendor/llvm.js/compiler.js",
-				"/shared/vendor/llvm.js/framework.js",
-				"/shared/vendor/llvm.js/intertyper.js",
-				"/shared/vendor/llvm.js/jsifier.js",
-				"/shared/vendor/llvm.js/library.js",
-				"/shared/vendor/llvm.js/library_browser.js",
-				"/shared/vendor/llvm.js/library_egl.js",
-				"/shared/vendor/llvm.js/library_gc.js",
-				"/shared/vendor/llvm.js/library_gl.js",
-				"/shared/vendor/llvm.js/library_glut.js",
-				"/shared/vendor/llvm.js/library_jansson.js",
-				"/shared/vendor/llvm.js/library_sdl.js",
-				"/shared/vendor/llvm.js/library_xlib.js",
-				"/shared/vendor/llvm.js/modules.js",
-				"/shared/vendor/llvm.js/parseTools.js",
-				"/shared/vendor/llvm.js/preamble.js",
-				"/shared/vendor/llvm.js/postamble.js",
-				"/shared/vendor/llvm.js/runtime.js",
-				"/shared/vendor/llvm.js/settings.js",
-				"/shared/vendor/llvm.js/shell.js",
-				"/shared/vendor/llvm.js/utility.js",
-
-				"/shared/vendor/julia/hello-no-bysyncify.js",
-				"/shared/vendor/julia/hello-no-bysyncify.data",
-				"/shared/vendor/julia/hello-no-bysyncify.wasm",
-
-				"/shared/vendor/klipse_plugin-7.9.6.min.js",
-
-				"/shared/images/wp5199724.jpg",
-				"https://s3.amazonaws.com/ganbreederpublic/imgs/65d75503c6d4ed375d336261.jpeg",
-				"https://media0.giphy.com/media/3oEduR8JONr03Z8TuM/source.gif",
-				"https://media2.giphy.com/media/QWuiKv0BuLFvpK0mQm/source.gif",
-				"https://i.imgur.com/YPQc9ad.gif?noredirect",
-				"https://cdna.artstation.com/p/assets/images/images/002/190/202/large/teun-van-der-zalm-ncu001-2a.jpg?1458468286",
-				"https://mir-s3-cdn-cf.behance.net/project_modules/fs/84ae7e19292199.562d7ef8051b0.jpg",
-				"/shared/images/forest_fog_dark_152252_1920x1080.jpg",
-				"/shared/images/forest_fog_trees_131668_1920x1080.jpg",
-				"/shared/images/forest_fog_dark_127172_1920x1080.jpg",
-				"/shared/images/9cfbf2a3ef56089624822bedbea2da64.gif",
-				"/shared/images/8f0b34aa3fed21ec78784a3f52f1728c.gif",
-
-				"/shared/images/thumb-1920-774078.jpg",
-
-				"/shared/vendor/go/playground.js",
-				"/shared/vendor/go/pkg/errors.a.js",
-				"/shared/vendor/go/pkg/fmt.a.js",
-				"/shared/vendor/go/pkg/github.com/gopherjs/gopherjs/js.a.js",
-				"/shared/vendor/go/pkg/github.com/gopherjs/gopherjs/nosync.a.js",
-				"/shared/vendor/go/pkg/internal/bytealg.a.js",
-				"/shared/vendor/go/pkg/internal/cpu.a.js",
-				"/shared/vendor/go/pkg/internal/fmtsort.a.js",
-				"/shared/vendor/go/pkg/internal/poll.a.js",
-				"/shared/vendor/go/pkg/internal/race.a.js",
-				"/shared/vendor/go/pkg/internal/syscall/unix.a.js",
-				"/shared/vendor/go/pkg/internal/testlog.a.js",
-				"/shared/vendor/go/pkg/io.a.js",
-				"/shared/vendor/go/pkg/math.a.js",
-				"/shared/vendor/go/pkg/math/bits.a.js",
-				"/shared/vendor/go/pkg/os.a.js",
-				"/shared/vendor/go/pkg/reflect.a.js",
-				"/shared/vendor/go/pkg/runtime.a.js",
-				"/shared/vendor/go/pkg/runtime/internal/sys.a.js",
-				"/shared/vendor/go/pkg/sort.a.js",
-				"/shared/vendor/go/pkg/strconv.a.js",
-				"/shared/vendor/go/pkg/sync.a.js",
-				"/shared/vendor/go/pkg/sync/atomic.a.js",
-				"/shared/vendor/go/pkg/syscall.a.js",
-				"/shared/vendor/go/pkg/syscall/js.a.js",
-				"/shared/vendor/go/pkg/time.a.js",
-				"/shared/vendor/go/pkg/unicode.a.js",
-				"/shared/vendor/go/pkg/unicode/utf8.a.js"
 			]
 		},
 		"NOTE: -- TERMINAL UI /START --",

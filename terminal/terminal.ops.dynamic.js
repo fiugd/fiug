@@ -31,7 +31,7 @@ export const readSourceDir = async (dir) => {
 		? `https://api.github.com/repos/crosshj/fiug-beta`
 		: `https://api.github.com/repos/crosshj/fiug`;
 	const branch = site.includes('beta')
-		? 'gh-pages'
+		? 'main'
 		: 'master';
 	const githubContentsUrl = `${root}/contents${dir||''}?ref=${branch}`;
 	let response, error;

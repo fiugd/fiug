@@ -39,7 +39,7 @@ async function Operations() {
 		operationsListener,
 	});
 
-	const lastService = localStorage.getItem("lastService");
+	const lastService = localStorage.getItem("lastService") || 0;
 	if (!lastService && ![0, "0"].includes(lastService)) {
 		const event = new CustomEvent("noServiceSelected", {
 			bubbles: true,

@@ -13,11 +13,14 @@ const history = [
 	`git status`,
 	`git diff terminal.git.mjs`,
 	`git commit -m "commit me"`,
-	`cat terminal.comm.js`,
-	`node --watch .example.js`,
+	`cat terminal/terminal.comm.js`,
+	`node --watch terminal/.example.js`,
 	`preview zip_project.html`,
-	`node --watch service-worker.services.test.js`,
-	`node update.js`
+	`node --watch test/service-worker.services.test.js`,
+	`node service-worker/_build.js`,
+	`node shared/vendor/codemirror/update.js`,
+	`git config --global user.email johndoe@example.com`,
+	`git config --local user.name "John Doe"`,
 ];
 
 const usage = (chalk) => {

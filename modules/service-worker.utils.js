@@ -160,8 +160,25 @@
 
 	const fetchJSON = async (url, opts) => await (await fetch(url, opts)).json();
 
+	// unused: convert from base64 string to blob
+	 const base64toBlob = (base64) => {
+		const binary = atob(base64);
+		var array = new Uint8Array(binary.length)
+		for(var i = 0; i < binary.length; i++ ){
+			 array[i] = binary.charCodeAt(i);
+		}
+		return new Blob([array], { type: "image/png" });
+	};
+
+	// TODO: pattern part of fetchFileContents like this
+	 const Storeable = (path, content) => {
+		const storeAsBlob = path.endsWith('png');
+		if(storeAsBlob) return base64toBlob(content);
+		return atob(content);
+	 };
+
 	//TODO: ??? move to provider since fetching is a provider thing
-	async function fetchFileContents(filename) {
+	async function fetchFileContents(filename, opts) {
 		const storeAsBlob = [
 			"image/",
 			"audio/",
@@ -173,7 +190,7 @@
 		const fileNameBlacklist = [
 			".ts", // mistaken as video/mp2t
 		];
-		const fetched = await fetch(filename);
+		const fetched = await fetch(filename, opts);
 
 		//getting content type like this because can't trust server's CT headers
 		const mime = getMime(filename) || {};

@@ -1,3 +1,10 @@
+/*
+
+this is used by Editor (I think)
+needs to be deprecated!!!
+
+*/
+
 (() => {
 	let mimeTypes;
 	const xfrmMimes = (() => {

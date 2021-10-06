@@ -486,6 +486,7 @@ const inlineEditor = (ChangeHandler) => ({
 	code = BLANK_CODE_PAGE,
 	line: loadLine,
 	column: loadColumn,
+	forceUpdate,
 	name,
 	id,
 	filename,
@@ -866,6 +867,7 @@ const inlineEditor = (ChangeHandler) => ({
 			path,
 			line: loadLine ? Number(loadLine) : 0,
 			ch: loadColumn ? Number(loadColumn) : 0,
+			forceUpdate,
 			text,
 			mode,
 			callback
@@ -1228,7 +1230,7 @@ function _Editor(callback) {
 			e.target.classList.contains("provider-add-service"),
 	});
 
-	const switchEditor = async (filename, mode, {line, column}={}) => {
+	const switchEditor = async (filename, mode, {line, column, forceUpdate}={}) => {
 		//TODO: should go into loading mode first
 
 		if (mode === "systemDoc") {
@@ -1312,7 +1314,7 @@ function _Editor(callback) {
 		}
 
 		editor({
-			code, line, column, name, id, path,
+			code, line, column, name, id, path, forceUpdate,
 			filename: filename || defaultFile
 		});
 		editorDom = document.querySelector(".CodeMirror");

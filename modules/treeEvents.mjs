@@ -232,16 +232,18 @@ const contextMenuHandler = ({ treeView, treeContext, showMenu }) => (e) => {
 
 		context.type === 'file' ? "seperator" : '',
 		{
+			//TODO: re-enable this when it's possible
 			name: "Open in Preview",
-			hidden: context.type === 'folder'
+			hidden: true || context.type === 'folder'
 		},
 		{
 			name: "Open in New Window",
 			hidden: context.type === 'folder'
 		},
 		{
+			//TODO: revisit this with terminal revamp
 			name: "Open in Terminal",
-			hidden: true //TODO: revisit this with terminal revamp
+			hidden: true
 		},
 
 		"seperator",

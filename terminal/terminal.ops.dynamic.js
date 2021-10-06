@@ -1,3 +1,16 @@
+/*
+
+"dynamic" basically just means that this command is not cached with sw
+instead this module loads "dynamic" op from github / uses terminalCache
+
+it may be tempting to think that "dynamic" means that crosshj/fiug-beta/terminal/bin
+files are ran autommatically, but this is not the case
+
+basically, this file just shortcuts the need for sw and service.manifest.json entry
+
+*/
+
+
 import { chalk, jsonColors } from './terminal.utils.js';
 import ansiEscapes from 'https://cdn.skypack.dev/ansi-escapes';
 const showCursor = ansiEscapes.cursorShow;
@@ -94,7 +107,7 @@ class ProcessWorker {
 
 			try {
 				script = script || e.data;
-				result = await operation(script || e.data, state);
+				result = await operation(script || e.data, state, e);
 			} catch(e){
 				error = e.message;
 			}
@@ -187,12 +200,15 @@ class ProcessWorker {
 				worker.terminate();
 				finish(resolve);
 			};
+			this.kill = () => {
+				worker.terminate();
+			};
 			worker.onmessage = (e) => {
 				const { result, log, exit, error } = e.data;
 				log && logger(log);
 				result && logger(result);
 				error && logger('ERROR: ' + error);//should be red?
-				if(exit || error) exitWorker();
+				if(exit || (error && !args.watch)) exitWorker();
 			};
 			worker.postMessage(args);
 
@@ -236,6 +252,9 @@ function exit(){
 		this.listenerKey.forEach(detach);
 		this.listenerKey = undefined;
 	}
+	try {
+		this.process.kill();
+	} catch(e){}
 	this.term.write(showCursor);
 }
 

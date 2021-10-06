@@ -118,7 +118,6 @@ const importMap = {
 		//"chalk/": "https://cdn.skypack.dev/-/chalk/",
 	}
 };
-
 const importMapResponse = new Response(
 	JSON.stringify(importMap, null, 2),
 	{
@@ -127,24 +126,5 @@ const importMapResponse = new Response(
 		}
 	}
 );
-
 await cache.put(root+'/importmap.importmap', importMapResponse);
-
 console.log(`also added /importmap.importmap`);
-
-/*
-<script type="importmap" src="/importmap.importmap"></script>
-
-const script = document.createElement('script')
-script.src = '/importmap.importmap';
-script.type = 'importmap';
-document.body.appendChild(script);
-
-probably makes more sense to have service worker rewrite imports versus trying to make this work
-see fiug-beta/.welcome/1ncubate/sw-worker-rewrite
-
-also, look into https://github.com/GoogleChromeLabs/comlink
-this is for communication between workers
-
-
-*/

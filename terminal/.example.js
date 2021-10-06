@@ -1,42 +1,34 @@
-//show-preview
-//import { sleep } from './.example_import.js';
+import _ from 'lodash';
+import { sleep } from './.example_import2.js';
 
-if(typeof document !== "undefined"){
-	document.body.innerHTML += `
-		<style>body{ margin: 2em;color: #777; font: 20px sans-serif; }</style>
-		<div>This file is used for testing with "node" keyword.</div>
-		<div>See console out.</div>
-	`;
-}
+console.log('\n\nlodash test');
+console.log('----------------')
+console.log('lodash version: ' + _.VERSION);
+let words = [
+	'sky', 'wood', 'forest', 'falcon',
+	'pear', 'ocean', 'universe'
+];
+console.log(`First element: ${_.first(words)}`);
+console.log(`Last element: ${_.last(words)}`);
+console.log('----------------\n\n\n');
 
 const these = [
-	['one', 5000],
-	['two', 1000],
-	['three', 300],
+	['one', 3000],
+	['two', 2000],
+	['three', 1000],
 ];
-
-const delay = (time) => new Promise((resolve)=> setTimeout(() => resolve('done'), time) );
 
 const AsyncTask = async (item) => {
 	const [name, time] = item;
-	console.log(`start execution ${name}`);
-	//throw new Error('error test');
-	//sleep(time); //<< will block other threads from starting
-	await delay(time); //will allow worker to exit since it's a microtask... sigh
-	console.log(`end execution ${name}`);
-	await delay(1);
-}
+	console.log(`start: ${name}`);
+	await sleep(time);
+	console.log(`end: ${name}`);
+};
 
-const mapTasks = () => these.map(async (item) => await AsyncTask(item));
+console.log('\nstart');
 
-//console.log('start');
-(async () => {
-	//await Promise.allSettled(mapTasks());
-	//await AsyncTask(these[0]);
-	//console.log('done\n');
-	
-	for(var i=0, len=10; i<len; i++){
-		//await delay(600);
-		console.log(`${i} - test this`);
-	}
-})();
+const asyncTasks = these.map(AsyncTask);
+await Promise.all(asyncTasks);
+
+console.log('done');
+//throw new Error('woops');

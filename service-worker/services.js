@@ -130,11 +130,14 @@ const ServicesManager = (() => {
 				return;
 			});
 
-			// github services don't store files with ./ prepended
+			// github services (and default service) don't store files with ./ prepended
 			// and also this should be done through provider...
 			// also, would expect to not change the file, instead add a change in changes table
 			// ^^ and restore that on read
 			if(service.type === 'github' && `${path.slice(0,2)}` === './'){
+				path = path.slice(2);
+			}
+			if(service.type === 'default' && `${path.slice(0,2)}` === './'){
 				path = path.slice(2);
 			}
 
@@ -465,6 +468,7 @@ const ServicesManager = (() => {
 		const servicesStore = storage.stores.services;
 		const filesStore = storage.stores.files;
 		const changesStore = storage.stores.changes;
+		const editorStore = storage.stores.editor;
 
 		try {
 			const { id } = params;
@@ -675,6 +679,8 @@ const ServicesManager = (() => {
 						return rest;
 					})()
 				});
+				await editorStore.removeItem('/' + path);
+
 				//TODO: I think this is a problem, not sure...
 				//files get written with blank string and dot in front of name
 				//await filesStore.setItem(path, code);

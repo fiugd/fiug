@@ -9,7 +9,8 @@ export default function(){
 			// max_line_len: 80
 		},
 		mangle: false,
-		// compress: false,
+		//mangle: true,
+		//compress: true,
 		// sourceMap: {
 		// 	filename: "service-worker.js",
 		// 	url: "inline"

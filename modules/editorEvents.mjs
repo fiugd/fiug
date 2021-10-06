@@ -151,7 +151,7 @@ const contextMenuSelectHandler = ({ paste, cutSelected, copySelected } = {}) => 
 
 let firstLoad = true;
 const fileSelectHandler = ({ switchEditor }) => async (event) => {
-	const { name, path, next, nextPath, parent } = event.detail;
+	const { name, path, next, nextPath, parent, forceUpdate } = event.detail;
 	const { line, column } = event.detail;
 	let savedFileName;
 
@@ -203,7 +203,7 @@ const fileSelectHandler = ({ switchEditor }) => async (event) => {
 		return;
 	}
 
-	switchEditor(filePath, null, { line, column });
+	switchEditor(filePath, null, { line, column, forceUpdate });
 };
 
 const operationDoneHandler = ({ switchEditor, messageEditor }) => (e) => {
@@ -222,7 +222,7 @@ const operationDoneHandler = ({ switchEditor, messageEditor }) => (e) => {
 	if (op === 'update') {
 		const name = result[0]?.state?.selected;
 		const fileSelect = fileSelectHandler({ switchEditor });
-		fileSelect({ detail: { name } });
+		fileSelect({ detail: { name, forceUpdate: true } });
 		return;
 	}
 };

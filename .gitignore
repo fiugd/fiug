@@ -3,3 +3,4 @@ __services/
 #*.sqlite
 node_modules
 .DS_Store
+shared/vendor/codemirror/mode/package-lock.json

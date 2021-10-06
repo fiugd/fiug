@@ -45,7 +45,16 @@ const StorageManager = (() => {
 			description: "used after app has booted when service worker is updated",
 		});
 
+		const editor = localforage.createInstance({
+			driver,
+			name: 'editorState',
+			version: 1.0,
+			storeName: 'editor',
+			description: 'scroll and cursor position, history, selection'
+		});
+
 		return {
+			editor,
 			files,
 			services,
 			providers,

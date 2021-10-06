@@ -29,4 +29,4 @@ export default class List {
 		this.operation = operation;
 		this.help = () => usage;
 	}
-};
+}; 

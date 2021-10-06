@@ -26,14 +26,12 @@ const TemplateEngine = (() => {
 					overflow: hidden;
 					color: var(--main-theme-text-color);
 					background: var(--main-theme-color);
-					font-family: sans-serif;
+					font-family: system-ui, sans-serif;
 				}
 			</style>
 			<link rel="stylesheet" href="/colors.css" />
 			<body>
-				<pre>
-					<div class="no-preview" title="No preview!">⠝⠕ ⠏⠗⠑⠧⠊⠑⠺</div>
-				</pre>
+				<div class="no-preview" title="No preview!">⠝⠕ ⠏⠗⠑⠧⠊⠑⠺</div>
 			</body>
 		</html>
 		`.replace(/^		/g, '');

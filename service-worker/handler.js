@@ -6,6 +6,7 @@ import { ProviderManager } from "./provider.js";
 import { GithubProvider } from "./provider.github.js";
 import { ServicesManager } from "./services.js";
 import { TemplateEngine } from "./templates.js";
+import { WorkerRewrite } from "./worker.rewrite.js";
 
 const init = async ({ cacheName }) => {
 	const swHandlers = self.handlers;
@@ -21,6 +22,7 @@ const init = async ({ cacheName }) => {
 	const services = new ServicesManager({
 		app, storage, providers, utils, templates
 	});
+	const workerRewrite = new WorkerRewrite({ storage });
 
 	app.get("/service/search/", storage.handlers.serviceSearch); // move handler to services
 	app.get("/service/read/:id?", storage.handlers.serviceRead); // move handler to services
@@ -42,6 +44,8 @@ const init = async ({ cacheName }) => {
 	app.get("/manage/:id?", utils.notImplementedHandler);
 	app.get("/monitor/:id?", utils.notImplementedHandler);
 	app.get("/persist/:id?", utils.notImplementedHandler);
+	
+	app.get("/!/:path?", workerRewrite.handlers.get);
 
 	return async (event) => {
 		const serviceAPIMatch = await app.find(event.request);

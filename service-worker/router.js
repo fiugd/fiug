@@ -185,6 +185,18 @@ const Router = (() => {
 					),
 			};
 		})(),
+		// worker rewriter
+		"/!/:path?": (() => {
+			// NOTE: this is actually the regex for (.*)/!/(.*)
+			const regex = new RegExp(/^((?:.*))\/\!\/((?:.*))(?:\/(?=$))?$/i);
+			return {
+				match: (url) => regex.test(url),
+				params: (url) => ({
+					path: (regex.exec(url)[2] || "").split("?")[0],
+					query: (regex.exec(url)[2] || "").split("?")[1],
+				}),
+			};
+		})(),
 	};
 
 	const _generic = ({ _handlers }) => (method) => (pathString, handler) => {

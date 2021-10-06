@@ -4,7 +4,6 @@
 
 ![image](https://user-images.githubusercontent.com/1816471/93670856-78e66b00-fa6c-11ea-9ee3-2d35db13c030.png)
 
-
 ### about the name
 
 This project is called `fiug` but it wasn't always.  First it was called `bartok`, because it was to be a service composer.

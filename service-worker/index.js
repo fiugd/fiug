@@ -191,7 +191,12 @@ async function fetchHandler(event) {
 	const routeHandlerBlacklist = ["//(.*)"];
 	const path = event.request.url.replace(location.origin, "");
 
+	// root service
 	if(event.request.url.includes(location.origin+'/~/')){
+		return genericHandler(event);
+	}
+	// worker rewrite
+	if(event.request.url.includes(location.origin+'/!/')){
 		return genericHandler(event);
 	}
 

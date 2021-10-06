@@ -1,3 +1,15 @@
+/*
+
+this file used to serve the same purpose as root.js: offer the ZERO state service to user
+
+it did so in a slightly different way; that is, it served files that were live versions of fiug code as currently loaded
+
+cloning and commiting to fiug repo (plus update script) now serves the same purpose
+
+keeping this around until I feel comfortable deleting it
+
+*/
+
 const { UIManager, UIManagerAddChanged } = (() => {
 	/*
 		access this service

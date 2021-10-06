@@ -1,12 +1,45 @@
 <style>
 	body {
-		position: absolute; left:0; right:0; top:0; bottom:0;
-		font-size: 25px; font-family: sans-serif;
-		background: #1a1a1a; color: #777;
+		font: 15px sans-serif;
+		background: #1a1a1a;
+		color: #999;
 		margin: 1em;
 	}
+	pre { white-space: pre-wrap; }
+	pre.error { color: #c13137; }
 </style>
 
-<div>
-	this example is used for testing preview command
-</div>
+<body>
+
+</body>
+
+<script>
+	const url = '/!/crosshj/fiug-beta/terminal/.example.js';
+	const worker = new Worker(url, { type: 'module' });
+
+	const message = (text, type) => {
+		const pre = document.createElement('pre');
+		pre.innerHTML = text;
+		if(type) pre.classList.add(type)
+		document.body.append(pre);
+	};
+
+	const exitWorker = () => {
+		message('[ exit worker ]');
+		worker.terminate();
+	};
+	worker.onerror = (error) => {
+		message(
+			error?.message ? 'WORKER ERROR: \n'+error.message : 'unknown error',
+			'error'
+		);
+		exitWorker();
+	};
+	worker.onmessageerror = worker.onerror;
+
+	worker.onmessage = (e) => {
+		const { log, exit } = e.data;
+		log && message(log);
+		if(exit) exitWorker();
+	};
+</script>

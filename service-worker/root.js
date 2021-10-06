@@ -1,3 +1,8 @@
+import { settings } from './root.settings.js';
+import { welcome } from './root.welcome.js';
+import { profile } from './root.profile.js';
+import { importmap } from './root.importmap.js';
+
 const initRootService = async ({ stores }) => {
 	const {services, files, changes} = stores;
 	const service = {
@@ -7,74 +12,36 @@ const initRootService = async ({ stores }) => {
 		tree: { '~': {
 			'.git': { config: {} },
 			'.profile': {},
+			'importmap.json': {},
 			'settings.json': {},
 			'welcome.md': {}
 		}},
 	};
 	await services.setItem('0', service);
-	await files.setItem("~/.git/config", '\n');
-	await files.setItem("~/settings.json", '{}');
 
-	await files.setItem("~/.profile", `
-# configure prompt here
-# https://phoenixnap.com/kb/change-bash-prompt-linux
-# http://bashrcgenerator.com/
+	const getFile = async (filePath) => {
+		const value = (await changes.getItem(filePath) || {}).value ||
+			await files.getItem(filePath);
+		try {
+			return JSON5.parse(value);
+		} catch(e){}
+		return value;
+	};
 
-# in the future, parse this and use for prompt
-` + 
-'export PS1="\[\\033[38;5;14m\]\h\[$(tput sgr0)\] \[$(tput sgr0)\]\[\\033[38;5;2m\]\W\[$(tput sgr0)\]\n\\$ \[$(tput sgr0)\]"'
-+ `
+	const rootFiles = [
+		["~/.git/config", '\n'],
+		["~/settings.json", settings()],
+		["~/.profile", profile()],
+		["~/welcome.md", welcome()],
+		["~/importmap.json", importmap()],
+	];
 
-`.trim() +'\n');
-
-	await files.setItem("~/welcome.md", `
-Welcome to fiug!
-================
-
-Try out the terminal on the right.
-
-#### configure git:
-\`git config --global user.name john\`
-\`git config --global user.email johndoe@example.com\`
-\`git config --global user.token {your github token}\`
-
-#### clone a repo:
-\`git clone crosshj/fiug-welcome\`
-
-#### list all cloned repos:
-\`git list\`
-
-#### open/close a repo in editor:
-\`git open crosshj/fiug-welcome\`
-\`git close\`
-
-#### view names of changed files:
-\`git status\`
-
-#### view changes:
-\`git diff\`
-
-#### view changes in a specific file:
-\`git diff README.md\`
-
-#### create and push a commit to github:
-\`git commit -m "message about changes"\`
-
-#### download all templates (for preview):
-\`git clone crosshj/fiug-plugins\`
-
-#### preview files:
-\`preview\`
-
-#### preview a specific file:
-\`preview README.md\`
-
-#### quit preview
-1. click preview pane
-2. press Control
-3. click quit
-
-`.trim() +'\n');
+	for(let i=0, len=rootFiles.length; i<len; i++){
+		const [path, defaultContent] = rootFiles[i];
+		const existingContent = await getFile(path);
+		if(existingContent) continue;
+		await files.setItem(path, defaultContent);
+	}
 
 	await changes.setItem(`state-${service.name}-opened`, [
 		{ name: 'welcome.md', order: 0 }

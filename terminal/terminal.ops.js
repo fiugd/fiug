@@ -23,6 +23,11 @@ const mapSourceDestArg = (args) => {
 state.service = await getCurrentService();
 state.cwd = state.service + '/';
 
+export const switchService = (service) => {
+	state.cwd = service.name;
+	state.service = service.name;
+};
+
 const commands = [
 	{
 		name: 'PrintWorkingDir',

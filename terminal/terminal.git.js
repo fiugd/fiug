@@ -10,8 +10,12 @@ https://googlechrome.github.io/samples/service-worker/post-message/
 import ini from 'https://cdn.skypack.dev/ini';
 import Diff from 'https://cdn.skypack.dev/diff-lines';
 
-import GetOps from './terminal.ops.js';
-import { chalk, jsonColors, getCurrentService, addFile, addFolder } from './terminal.utils.js';
+import GetOps, { switchService } from './terminal.ops.js';
+import {
+	chalk, jsonColors,
+	getCurrentService, addFile, addFolder,
+	Spinner
+} from './terminal.utils.js';
 
 const getStored = (varName) => {
 	const stored = sessionStorage.getItem(varName);
@@ -344,14 +348,8 @@ const status = async ({ ops }) => {
 	return '\n' + changes.map(changeRender).join('\n') + '\n';
 };
 
-const commit = async ({ ops }, args) => {
-	const { _unknown } = args;
-	const message = (_unknown||[]).join(' ')
-		.match(/(?:"[^"]*"|^[^"]*$)/)[0]
-		.replace(/"/g, "");
 
-	if(!message.trim()){
-		return chalk.hex('#ccc')(`
+const commitUsage = chalk.hex('#ccc')(`
 Usage:
   git commit -m <commit message>
 
@@ -359,7 +357,13 @@ Example:
   git commit -m "made some changes to service"
 
 `);
-	}
+const commit = async ({ ops, term }, args) => {
+	const { _unknown } = args;
+	const message = (_unknown||[]).join(' ')
+		.match(/(?:"[^"]*"|^[^"]*$)/)[0]
+		.replace(/"/g, "");
+
+	if(!message.trim())return commitUsage;
 
 	const pwdCommand = ops.find(x => x.keyword === 'pwd');
 	const { response: cwd = '' } = await pwdCommand.invokeRaw();
@@ -368,15 +372,48 @@ Example:
 	const authConfig = await getConfig('user.token');
 	const token = authConfig.local || authConfig.global;
 	const auth = token || getStored('Github Personal Access Token');
-	const { commitResponse } = await postJSON(commitUrl, null, {
-		cwd, message, auth
+
+	const spin = new Spinner({
+		stdOut: term.write.bind(term),
+		message: chalk.hex('#ccc')(`Pushing commit`),
+		color: '#0FF',
+		doneColor: '#0FF',
+		doneMsg: 'DONE'
 	});
+	const commitRequest = postJSON(commitUrl, null, { cwd, message, auth });
+	spin.until(commitRequest);
+
+	const shortenShaUrl = (url) => {
+		const newHashLength = 6;
+		try {
+			return [
+				...url.split('/').slice(0,-1),
+				url.split('/').pop().slice(0, newHashLength)
+			].join('/');
+		}catch(e){
+			console.log(e);
+			return url;
+		}
+	}
+
+	const { commitResponse } = await commitRequest;
 	if(commitResponse && commitResponse.error){
 		return `ERROR: ${commitResponse.error}`;
 	}
-	return chalk.hex('#ccc')('\nCommit SHA: ') + commitResponse + '\n';
+	return '\n' +
+		chalk.hex('#ccc')('Commit Info: ') +
+		chalk.hex('#9cdcfe')(shortenShaUrl(commitResponse)) +
+		'\n';
 };
 
+const cloneUsage = chalk.hex('#ccc')(`
+Usage:
+  git clone [-b or --branch] <branch> <repository>
+
+Example:
+  git clone -b main crosshj/fiug-welcome
+
+`);
 const clone = async ({term}, args) => {
 	//git clone --branch <branchname> <remote-repo-url>
 	//git clone -b <branchname> <remote-repo-url>
@@ -386,16 +423,8 @@ const clone = async ({term}, args) => {
 	const [repo] = anon;
 	const cloneUrl = '/service/create/provider';
 	
-	if(!repo){
-		return chalk.hex('#ccc')(`
-Usage:
-  git clone [-b or --branch] <branch> <repository>
+	if(!repo) return cloneUsage;
 
-Example:
-  git clone -b main crosshj/fiug-welcome
-
-`);
-	}
 	const authConfig = await getConfig('user.token');
 	const token = authConfig.local || authConfig.global;
 	const auth = token || getStored('Github Personal Access Token');
@@ -407,19 +436,28 @@ Example:
 	const body = JSON.stringify(bodyObj);
 	const method = 'POST';
 
-	term.write(chalk.hex('#ccc')(
+	const cloneMessage = chalk.hex('#ccc')(
 		`Cloning ${bodyObj.repo}${
 			bodyObj.branch
 			? `, ${bodyObj.branch} branch`
 			: ''
-		}... `
-	));
+		}`
+	);
+	const spin = new Spinner({
+		stdOut: term.write.bind(term),
+		message: cloneMessage,
+		color: '#0FF',
+		doneColor: '#0FF',
+		doneMsg: 'DONE'
+	});
+	const cloneRequest = fetch(cloneUrl, { body, method }).then(x=>x.json());
+	spin.until(cloneRequest);
 
-	const { result } = await fetch(cloneUrl, { body, method }).then(x=>x.json());
+	const { result } = await cloneRequest;
 	if(result && result.error){
 		return `ERROR: ${result.error}\n`;
 	}
-	return chalk.hex('#ccc')(`DONE\n`);
+	return `\n`;
 };
 
 const list = async ({ term }, args) => {
@@ -429,7 +467,7 @@ const list = async ({ term }, args) => {
 		.filter(x => x !== '~ (0)')
 		.join('\n') + '\n';
 };
-const open = async ({ term }, args) => {
+const open = async ({ term, comm }, args) => {
 	const { _unknown=[] } = args;
 	const { keyed, anon } = unknownArgsHelper(_unknown);
 	const param = anon.join('');
@@ -438,13 +476,35 @@ const open = async ({ term }, args) => {
 	if(!found) return `could not find repo; unable to open\n`;
 
 	localStorage.setItem('lastService',found.id);
-	//document.location.reload();
-	return 'repo opened, please refresh page\n';
+	const { result } = await fetchJSON('/service/read/'+found.id);
+	const triggerEvent = {
+		type: 'operationDone',
+		detail: {
+			op: 'update',
+			id: found.id+'',
+			result,
+			source: 'Terminal'
+		}
+	};
+	comm.execute({ triggerEvent });
+	switchService(found);
+	return '\n';
 };
-const close = async ({ term }, args) => {
+const close = async ({ term, comm, ops }, args) => {
 	localStorage.setItem('lastService', '0');
-	//document.location.reload();
-	return 'repo closed, please refresh page\n';
+	const { result } = await fetchJSON('/service/read/0');
+	const triggerEvent = {
+		type: 'operationDone',
+		detail: {
+			op: 'update',
+			id: '0',
+			result,
+			source: 'Terminal'
+		}
+	};
+	comm.execute({ triggerEvent });
+	switchService({ id: 0, name: '~' });
+	return '\n';
 };
 
 const branch = async ({ term }) => notImplemented('branch');

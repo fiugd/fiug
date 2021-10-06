@@ -154,6 +154,32 @@ class StateTracker {
 }
 const stateTracker = new StateTracker();
 
+class ServiceSwitcher {
+	shouldSwitch(event){
+		try {
+			const {source, op, result} = event.detail;
+			if(
+				op === 'update' &&
+				source === 'Terminal' &&
+				result.length === 1
+			) {
+				this.newService = result[0];
+				return true;
+			};
+		} catch(e){}
+		return false;
+	}
+	switch(){
+		const { newService } = this;
+		currentService = newService;
+		// TODO: other things that could be set here (maybe should not)
+		// currentFile;
+		// currentFilePath;
+		// currentFolder;
+	}
+}
+const serviceSwitcher = new ServiceSwitcher();
+
 const sortAlg = (propFn = (x) => x, alg = "alpha") => {
 	if (alg === "alpha") {
 		const lowSafe = (x = "") => x.toLowerCase();
@@ -534,6 +560,9 @@ function getSettings(){
 }
 
 const operationDoneHandler = (event) => {
+	if(serviceSwitcher.shouldSwitch(event))
+		serviceSwitcher.switch();
+
 	if (listenerQueue.length === 0) {
 		//console.warn('nothing listening!');
 		return;

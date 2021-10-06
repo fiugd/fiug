@@ -51,6 +51,8 @@ further reference, see defineExtension here https://codemirror.net/doc/manual.ht
 	let docsLoad;
 	const docsCache = {};
 
+	const sleep = (time) => new Promise((resolve)=> setTimeout(() => resolve('done'), time) );
+
 	CodeMirror.defineOption('docStore', () => {}, (cm, localforage) => {
 		if(!localforage || !localforage.createInstance) return;
 
@@ -69,14 +71,14 @@ further reference, see defineExtension here https://codemirror.net/doc/manual.ht
 			});
 		cm.options.docStore = {
 			setItem: (key, value) => {
-				docsCache[key] = value;
+				//docsCache[key] = value;
 				docStore.setItem(key, value);
 			},
 			getItem: async (key) => {
 				if(docsCache[key]) return docsCache[key];
 				const value = await docStore.getItem(key);
-				docsCache[key] = value;
-				docsInStore.push(key);
+				//docsCache[key] = value;
+				!docsInStore.includes(key) && docsInStore.push(key);
 				return value;
 			}
 		};
@@ -139,7 +141,7 @@ further reference, see defineExtension here https://codemirror.net/doc/manual.ht
 		const newLine = ch ? { line, ch } : line;
 
 		//const t = doc.cm.charCoords(newLine, "local").top;
-		//cm.scrollTo(0,·t·-·SCROLL_MARGIN);
+		//cm.scrollTo(0, t - SCROLL_MARGIN);
 		cm.scrollIntoView(newLine, SCROLL_MARGIN);
 
 		doc.setSelections([])
@@ -202,7 +204,7 @@ further reference, see defineExtension here https://codemirror.net/doc/manual.ht
 	};
 
 	CodeMirror.defineExtension('loadDoc', function ({
-		callback, name, path, text, mode, scrollTop, scrollLeft, line, ch
+		callback, name, path, text, mode, scrollTop, scrollLeft, line, ch, forceUpdate
 	}){
 		/*
 		TODO: loading async and using a callback seems not to help
@@ -214,7 +216,8 @@ further reference, see defineExtension here https://codemirror.net/doc/manual.ht
 
 		const loadAsync = async () => {
 			if(!name) return;
-			if(currentDoc && path === currentDoc.path){
+			if(forceUpdate) await sleep(500);
+			if(!forceUpdate && currentDoc && path === currentDoc.path){
 				if(line) selectLine(this, currentDoc.editor, line, ch);
 				return;
 			}

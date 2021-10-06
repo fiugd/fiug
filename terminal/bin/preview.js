@@ -1,4 +1,6 @@
-import { chalk } from '../terminal.utils.js';
+import {
+	chalk, getServices
+} from '../terminal.utils.js';
 
 let quitButton;
 let currentFile;
@@ -203,7 +205,31 @@ function updatePreview(args, done) {
 	currentFile = url;
 	renderPreview(url, isNew, done);
 	return { isNew, url };
-}
+};
+
+const initCurrentIfMatch = async ({ cwd, matcher, args, done }) => {
+	//TODO: if current service has selected file matching wildcard
+	const services = await getServices();
+	const foundService = services.find(x => cwd.startsWith(x.name));
+	let currentService = { state: {} };
+	if(foundService){
+		([currentService] = await getServices(foundService.id));
+	}
+	const currentFile = currentService.state.selected;
+	const serviceUrl = `${self.location.origin}/${currentService.name}`;
+	const absPath = `${serviceUrl}/${currentFile}`;
+	const isMatch = matcher.test(absPath);
+	if(currentFile && isMatch){
+		args.event = {
+			detail: {
+				name: currentFile
+			}
+		}
+		args.serviceUrl = serviceUrl;
+		return handleFileSelect(args, done);
+	}
+	return false;
+};
 
 const handleInit = async (args, done) => {
 	const {cwd, event } = args;
@@ -211,13 +237,13 @@ const handleInit = async (args, done) => {
 	file = file || '*.*';
 
 	const fileIsWildcard = file.includes("*.");
+	if(!fileIsWildcard) return handleFileChange(args, done);
 
-	if(fileIsWildcard){
-		matcher = wildcardToRegExp(file);
-		return chalk.hex('#ccc')(`\nselect a file matching ${file}\n`);
-	}
+	matcher = wildcardToRegExp(file);
+	const handleCurrentMatch = await initCurrentIfMatch({ cwd, matcher, args, done });
+	if(handleCurrentMatch) return handleCurrentMatch;
 
-	return handleFileChange(args, done);
+	return chalk.hex('#ccc')(`\nselect a file matching ${file}\n`);
 };
 
 const handleFileSelect = async (args, done) => {
@@ -261,7 +287,7 @@ const handlers = {
 	fileChange: handleFileChange,
 };
 
-const operation = async (args, done) => {
+export const operation = async (args, done) => {
 	const { eventName } = args;
 	if(handlers[eventName]){
 		return await handlers[eventName](args, done)

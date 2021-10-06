@@ -1,7 +1,7 @@
 {
 	"name": "fiug",
-	"version": "0.4.4",
-	"description": "api and services composer and host",
+	"version": "0.4.5",
+	"description": "cloud IDE without the cloud",
 	"main": "index.js",
 	"scripts": {
 		"watch": "browser-sync start --config .browsersync.js",

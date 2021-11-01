@@ -81,4 +81,3 @@ other names for this service considered:
 - catechist - (one of the things alakso can mean) because it sounds cool, "to question or instruct" related to Christian religion
 - ... and more, forgot those (and you don't really care, do you?)
 
-

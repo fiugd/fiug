@@ -39,7 +39,7 @@ export default () => {
 		- git diff could use this, esp.
 		- could be useful for ls command, etc
 
-	import ansiEscapes from 'https://cdn.skypack.dev/ansi-escapes';
+	import ansiEscapes from 'https://cdn.skypack.dev/ansi-escapes@4.3.2';
 	ansiEscapes.link(text, url)
 	- not sure xterm.js supports this yet, though
 

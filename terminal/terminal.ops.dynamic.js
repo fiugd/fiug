@@ -12,7 +12,7 @@ basically, this file just shortcuts the need for sw and service.manifest.json en
 
 
 import { chalk, jsonColors } from './terminal.utils.js';
-import ansiEscapes from 'https://cdn.skypack.dev/ansi-escapes';
+import ansiEscapes from 'https://cdn.skypack.dev/ansi-escapes@4.3.2';
 const showCursor = ansiEscapes.cursorShow;
 
 const cacheName = 'terminal-cache'

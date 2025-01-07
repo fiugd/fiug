@@ -7,7 +7,7 @@ import QUnit from 'https://cdn.skypack.dev/qunit';
 import chalk2 from "https://cdn.skypack.dev/-/chalk@v2.4.2-3J9R9FJJA7NuvPxkCfFq/dist=es2020,mode=imports/optimized/chalk.js";
 import colorize from 'https://cdn.skypack.dev/json-colorizer@2.2.2';
 
-import ansiEscapes from 'https://cdn.skypack.dev/ansi-escapes';
+import ansiEscapes from 'https://cdn.skypack.dev/ansi-escapes@4.3.2';
 
 let finish;
 

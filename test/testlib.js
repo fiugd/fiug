@@ -5,7 +5,7 @@ import QUnit from 'https://cdn.skypack.dev/qunit';
 
 //NOTE: sucks that I am stuck with this instance of chalk (due to json colorizer)
 import chalk2 from "https://cdn.skypack.dev/-/chalk@v2.4.2-3J9R9FJJA7NuvPxkCfFq/dist=es2020,mode=imports/optimized/chalk.js";
-import colorize from 'https://cdn.skypack.dev/json-colorizer';
+import colorize from 'https://cdn.skypack.dev/json-colorizer@2.2.2';
 
 import ansiEscapes from 'https://cdn.skypack.dev/ansi-escapes';
 

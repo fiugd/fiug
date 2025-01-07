@@ -1,7 +1,7 @@
 //NOTE: sucks that I am stuck with this instance of chalk
 //import chalk2 from "https://cdn.skypack.dev/-/chalk@v2.4.2-3J9R9FJJA7NuvPxkCfFq/dist=es2020,mode=imports/optimized/chalk.js";
 import chalk2 from "https://cdn.skypack.dev/chalk@2.4.2";
-import colorize from 'https://cdn.skypack.dev/json-colorizer';
+import colorize from 'https://cdn.skypack.dev/json-colorizer@2.2.2';
 import ansiEscapes from 'https://cdn.skypack.dev/ansi-escapes';
 const {
 	cursorHide, cursorShow,

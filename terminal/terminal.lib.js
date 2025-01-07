@@ -1,10 +1,27 @@
-import packageJson from "/package.json" assert { type: "json" };
 import { chalk } from './terminal.utils.js';
 
 import commandLineArgs from 'https://cdn.skypack.dev/command-line-args';
 // also consider: https://www.npmjs.com/package/minimist
 // https://www.sitepoint.com/javascript-command-line-interface-cli-node-js/
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Shells
+
+// NOTE: for lame reasons, the two following solutions won't work, so have hard-coded the relevant packageJson
+const packageJson = {
+	"name": "fiug",
+	"version": "0.4.5",
+    "main": "index.js",
+}
+
+// import packageJson from "/package.json" assert { type: "json" };
+
+// (async () => {
+//     const response = await fetch('/package.json');
+//     if (response.ok) {
+//         packageJson = await response.json();
+//     } else {
+//         console.error('Failed to fetch package.json:', response.statusText);
+//     }
+// })();
 
 const getSupportedCommands = (commands) => {
 	const supported = {

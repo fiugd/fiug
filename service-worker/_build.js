@@ -27,7 +27,24 @@ import 'terser';
 
 import rollupConfig from './build/rollup.config.js';
 import terserConfig from './build/terser.config.js';
-import packageJson from "/package.json" assert { type: "json" };
+
+// NOTE: for lame reasons, the two following solutions won't work, so have hard-coded the relevant packageJson
+const packageJson = {
+	"name": "fiug",
+	"version": "0.4.5",
+    "main": "index.js",
+}
+
+// import packageJson from "/package.json" assert { type: "json" };
+
+// (async () => {
+//     const response = await fetch('/package.json');
+//     if (response.ok) {
+//         packageJson = await response.json();
+//     } else {
+//         console.error('Failed to fetch package.json:', response.statusText);
+//     }
+// })();
 
 const VERSION = `v${packageJson.version}`;
 const DATE = new Date().toISOString();
